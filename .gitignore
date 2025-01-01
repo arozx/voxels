@@ -1,0 +1,11 @@
+# Vscode config
+.vscode
+
+# build files
+build/
+
+# TODO
+todo.txt
+todo.md
+todo
+TODO
