@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Voxels)
+project(VoxelEngine)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -7,13 +7,27 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(OpenGL REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(GLEW REQUIRED)
 
-# Add GLM manually
-set(GLM_INCLUDE_DIRS "/usr/include/glm")
-include_directories(${GLM_INCLUDE_DIRS})
+# Find GLFW
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLFW REQUIRED glfw3)
 
-add_executable(voxels src/main.cpp)
+include_directories(/usr/include)
+link_directories(/usr/lib)
 
-target_link_libraries(voxels ${OPENGL_LIBRARIES} glfw GLEW::GLEW)
+# Add source files
+set(SOURCES
+    external/glad/src/glad.c
+    src/main.cpp
+    src/Camera.cpp
+    src/Input.cpp
+)
+
+# Add executable
+add_executable(voxel-engine ${SOURCES})
+
+target_include_directories(voxel-engine PRIVATE external/glad/include)
+
+# Link OpenGL library
+find_package(OpenGL REQUIRED)
+target_link_libraries(voxel-engine PRIVATE glfw OpenGL::GL)
