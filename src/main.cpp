@@ -1,47 +1,35 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+// standard headers
 #include <iostream>
 #include <thread>
 #include <chrono>
+
+// glm headers
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+// custom headers
 #include "Camera.h"
 #include "Input.h"
-
-// Vertex shader source code
-const char* vertexShaderSource = R"(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-
-void main()
-{
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
-}
-)";
-
-// Fragment shader source code
-const char* fragmentShaderSource = R"(
-#version 330 core
-out vec4 FragColor;
-
-void main()
-{
-    FragColor = vec4(1.0, 1.0, 1.0, 1.0); // White color
-}
-)";
+#include "shaders.h"
+#include "World.h"
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
 float lastX = 400, lastY = 300;
 bool firstMouse = true;
 
+// Lighting variables
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+float ambientStrength = 0.1f;
+float specularStrength = 0.5f;
+
+// gets from glfw in milliseconds
 double getCurrentTime()
 {
-    return glfwGetTime() * 1000.0; // Convert to milliseconds
+    return glfwGetTime() * 1000.0;
 }
 
 void update()
@@ -49,29 +37,42 @@ void update()
     // Update game state
 }
 
-void render(unsigned int VAO, unsigned int shaderProgram)
+void render(unsigned int VAO, unsigned int shaderProgram, World& world)
 {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(shaderProgram);
 
+    // Set lighting uniforms
+    glUniform3fv(glGetUniformLocation(shaderProgram, "lightPos"), 1, glm::value_ptr(lightPos));
+    glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
+    glUniform3fv(glGetUniformLocation(shaderProgram, "viewPos"), 1, glm::value_ptr(camera.Position));
+    glUniform1f(glGetUniformLocation(shaderProgram, "ambientStrength"), ambientStrength);
+    glUniform1f(glGetUniformLocation(shaderProgram, "specularStrength"), specularStrength);
+
+    // Camera matrices
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.1f, 100.0f);
-    glm::mat4 model = glm::mat4(1.0f);
+    
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-    unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
-    unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
-    unsigned int projLoc = glGetUniformLocation(shaderProgram, "projection");
-
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    // Render each active voxel
+    for (const auto& voxel : world.getActiveVoxels()) {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, voxel.position);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        
+        // Set voxel color
+        glVertexAttrib3fv(2, glm::value_ptr(voxel.color));
+        
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
 }
 
+// sleep for a given number of milliseconds
 void sleep(double milliseconds)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(milliseconds)));
@@ -193,6 +194,7 @@ unsigned int createCubeVAO()
     return VAO;
 }
 
+// Game loop
 int gameLoop()
 {
     if (!glfwInit())
@@ -228,6 +230,15 @@ int gameLoop()
     unsigned int shaderProgram = createShaderProgram();
     unsigned int VAO = createCubeVAO();
 
+    // Create world
+    World world(16, 16, 16); // 16x16x16 voxel world
+    
+    // Create some example voxels
+    world.setVoxel(0, 0, 0, glm::vec3(1.0f, 0.0f, 0.0f)); // Red cube
+    world.setVoxel(1, 0, 0, glm::vec3(0.0f, 1.0f, 0.0f)); // Green cube
+    world.setVoxel(0, 1, 0, glm::vec3(0.0f, 0.0f, 1.0f)); // Blue cube
+    world.setVoxel(1, 1, 0, glm::vec3(1.0f, 1.0f, 0.0f)); // Yellow cube
+
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
 
@@ -239,7 +250,7 @@ int gameLoop()
 
         processInput(window, deltaTime);
         update();
-        render(VAO, shaderProgram);
+        render(VAO, shaderProgram, world);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -253,6 +264,8 @@ int gameLoop()
     return 0;
 }
 
+// Entry point
+// Have main function as a wrapper for gameLoop
 int main()
 {
     return gameLoop();
