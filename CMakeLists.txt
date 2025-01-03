@@ -21,6 +21,7 @@ set(SOURCES
     src/main.cpp
     src/Camera.cpp
     src/Input.cpp
+    src/World.cpp
 )
 
 # Add executable
