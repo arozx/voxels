@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y cmake build-essential
+          sudo apt install -y cmake build-essential pkg-config libglfw3-dev libgl1-mesa-dev libx11-dev libgl-dev
       
       # Generate and build the project using CMake
       - name: Build project
