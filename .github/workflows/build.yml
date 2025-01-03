@@ -1,27 +1,48 @@
-name: Build
+name: Build and Analyze
 
 on:
   push:
     branches:
-      - main
-
+      - '*'
+  pull_request:
+    branches:
+      - '*'
 
 jobs:
   build:
-    name: Build and analyze
+    name: Build and analyze with SonarQube
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - uses: sonarsource/sonarqube-scan-action@v3
+          fetch-depth: 0  # Ensure full history for analysis
+        
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y cmake build-essential
+      
+      # Generate and build the project using CMake
+      - name: Build project
+        run: |
+          mkdir -p build
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      
+      # Run SonarQube analysis
+      - name: Run SonarQube scan
+        uses: sonarsource/sonarqube-scan-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      # If you wish to fail your job when the Quality Gate is red, uncomment the
-      # following lines. This would typically be used to fail a deployment.
-      # - uses: sonarsource/sonarqube-quality-gate-action@master
+
+      # (Optional) Enforce quality gate
+      # - name: Check SonarQube quality gate
+      #   uses: sonarsource/sonarqube-quality-gate-action@master
       #   timeout-minutes: 5
       #   env:
       #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
