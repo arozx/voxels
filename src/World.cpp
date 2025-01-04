@@ -1,43 +1,87 @@
 #include "World.h"
+#include "Voxel.h"
 
 World::World(int width, int height, int depth) 
     : width(width), height(height), depth(depth) {
-    voxels.resize(width * height * depth);
-    for (auto& voxel : voxels) {
-        voxel.active = false;
-        voxel.color = glm::vec3(1.0f);
-    }
+    glm::vec3 origin(width / 2.0f, height / 2.0f, depth / 2.0f);
+    glm::vec3 halfDimension(width / 2.0f, height / 2.0f, depth / 2.0f);
+    octree = new Octree(origin, halfDimension);
 }
 
-void World::setVoxel(int x, int y, int z, const glm::vec3& color) {
-    int index = getIndex(x, y, z);
-    if (index >= 0) {
-        voxels[index].active = true;
-        voxels[index].position = glm::vec3(x, y, z);
-        voxels[index].color = color;
-    }
+void World::setVoxel(int x, int y, int z, const Material& material) {
+    Voxel voxel = { glm::vec3(x, y, z), &material, true };
+    octree->insert(voxel);
 }
 
 void World::removeVoxel(int x, int y, int z) {
-    int index = getIndex(x, y, z);
-    if (index >= 0) {
-        voxels[index].active = false;
+    Voxel voxel;
+    if (octree->search(glm::vec3(x, y, z), voxel)) {
+        voxel.active = false;
+        octree->insert(voxel);
     }
 }
 
 std::vector<Voxel> World::getActiveVoxels() const {
-    std::vector<Voxel> activeVoxels;
-    for (const auto& voxel : voxels) {
-        if (voxel.active) {
-            activeVoxels.push_back(voxel);
-        }
-    }
-    return activeVoxels;
+    return octree->getAllVoxels();
 }
 
-int World::getIndex(int x, int y, int z) const {
-    if (x < 0 || x >= width || y < 0 || y >= height || z < 0 || z >= depth) {
-        return -1;
+float World::getHeightAt(int x, int z, TerrainType type) {
+    double scale = 0.1;
+    double heightScale = height * 0.5;
+    double value = 0.0;
+    
+    switch(type) {
+        case FLAT:
+            value = noise.noise(x * scale, 0, z * scale);
+            return (value + 1.0) * 2.0;
+            
+        case HILLS:
+            value = noise.octaveNoise(x * scale, 0, z * scale, 4, 0.5);
+            return (value + 1.0) * heightScale;
+            
+        case MOUNTAINS:
+            value = std::abs(noise.octaveNoise(x * scale, 0, z * scale, 6, 0.5));
+            return value * height * 0.8;
+            
+        case ISLANDS:
+            double distance = glm::length(glm::vec2(x - width/2, z - depth/2));
+            double island = 1.0 - (distance / (width * 0.4));
+            value = noise.octaveNoise(x * scale, 0, z * scale, 4, 0.5);
+            return std::max(0.0, (value + island) * heightScale);
     }
-    return x + width * (y + height * z);
+    
+    return 0.0;
+}
+
+void World::generateTerrain(unsigned int seed, TerrainType type) {
+    noise = PerlinNoise(seed);
+    
+    for (int x = 0; x < width; x++) {
+        for (int z = 0; z < depth; z++) {
+            int height = static_cast<int>(getHeightAt(x, z, type));
+            
+            for (int y = 0; y < height; y++) {
+                if (y == height - 1) {
+                    // Always set top block to grass
+                    setVoxel(x, y, z, Materials::GRASS);
+                } else if (y > height * 0.7f) {
+                    setVoxel(x, y, z, Materials::DIRT);
+                } else {
+                    setVoxel(x, y, z, Materials::STONE);
+                }
+            }
+        }
+    }
+
+    // Add snow caps only for mountains above certain height
+    if (type == MOUNTAINS) {
+        for (int x = 0; x < width; x++) {
+            for (int z = 0; z < depth; z++) {
+                int height = static_cast<int>(getHeightAt(x, z, type));
+                if (height > this->height * 0.7) {
+                    setVoxel(x, height - 1, z, Materials::SNOW);
+                }
+            }
+        }
+    }
 }

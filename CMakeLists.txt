@@ -22,6 +22,9 @@ set(SOURCES
     src/Camera.cpp
     src/Input.cpp
     src/World.cpp
+    src/PerlinNoise.cpp
+    src/Octree.cpp
+    src/Frustum.cpp
 )
 
 # Add executable
