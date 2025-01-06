@@ -19,6 +19,7 @@
 #include "World.h"
 #include "Voxel.h"
 #include "Frustum.h"
+#include "TextRenderer.h"
 
 // set camera position above the terrain
 Camera camera(glm::vec3(16.0f, 20.0f, 16.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, -45.0f);
@@ -51,16 +52,26 @@ int shininess = 32;  // Controls how focused the specular highlight is
 // Global variable to control frustum culling
 bool frustumCullingEnabled = true;
 
-// gets from glfw in milliseconds
+// Add after other global variables
+bool showOutlines = true;
+float outlineThickness = 0.03f;
+glm::vec3 outlineColor(0.0f, 0.0f, 0.0f);
+
+struct PointLight {
+    glm::vec3 position;
+    glm::vec3 color;
+    float ambientStrength;
+    float diffuseStrength;
+    float specularStrength;
+};
+
+std::vector<PointLight> pointLights;
+
 double getCurrentTime()
 {
     return glfwGetTime() * 1000.0;
 }
 
-void update()
-{
-    // Update game state
-}
 
 void updateLightPosition(float deltaTime) {
     // Make light orbit around the center
@@ -70,24 +81,50 @@ void updateLightPosition(float deltaTime) {
     lightPos.y = lightHeight;
 }
 
+
+void update(float deltaTime)
+{
+    glfwPollEvents(); // poll events in the queue
+
+    // make pointLights to move in a circle
+    if (pointLights.size() > 0) {
+        pointLights[0].position = lightPos; // Update first point light position
+    }
+
+    updateLightPosition(deltaTime);
+}
+
+void setupPointLights() {
+    pointLights.push_back({ glm::vec3(1.2f, 1.0f, 2.0f), glm::vec3(1.0f, 1.0f, 1.0f), 0.1f, 1.0f, 0.5f });
+    pointLights.push_back({ glm::vec3(-1.2f, 1.0f, -2.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.1f, 1.0f, 0.5f });
+    pointLights.push_back({ glm::vec3(1.2f, -1.0f, 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 1.0f, 0.5f });
+    pointLights.push_back({ glm::vec3(-1.2f, -1.0f, -2.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.1f, 1.0f, 0.5f });
+}
+
 void render(unsigned int VAO, unsigned int shaderProgram, World& world)
 {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Enable wireframe mode
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_FRONT);
+    // Enable polygon offset to prevent z-fighting
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0f, 1.0f);
 
     glUseProgram(shaderProgram);
 
     // Set lighting uniforms
-    glUniform3fv(glGetUniformLocation(shaderProgram, "lightPos"), 1, glm::value_ptr(lightPos));
-    glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), 1.0f, 1.0f, 1.0f);
     glUniform3fv(glGetUniformLocation(shaderProgram, "viewPos"), 1, glm::value_ptr(camera.Position));
-    
+
+    for (int i = 0; i < pointLights.size(); ++i) {
+        std::string index = std::to_string(i);
+        glUniform3fv(glGetUniformLocation(shaderProgram, ("pointLights[" + index + "].position").c_str()), 1, glm::value_ptr(pointLights[i].position));
+        glUniform3fv(glGetUniformLocation(shaderProgram, ("pointLights[" + index + "].color").c_str()), 1, glm::value_ptr(pointLights[i].color));
+        glUniform1f(glGetUniformLocation(shaderProgram, ("pointLights[" + index + "].ambientStrength").c_str()), pointLights[i].ambientStrength);
+        glUniform1f(glGetUniformLocation(shaderProgram, ("pointLights[" + index + "].diffuseStrength").c_str()), pointLights[i].diffuseStrength);
+        glUniform1f(glGetUniformLocation(shaderProgram, ("pointLights[" + index + "].specularStrength").c_str()), pointLights[i].specularStrength);
+    }
+    glUniform1i(glGetUniformLocation(shaderProgram, "numPointLights"), pointLights.size());
+
     float currentAmbientStrength = ambientLightEnabled ? defaultAmbientStrength : 0.0f;
     float currentDiffuseStrength = diffuseLightEnabled ? diffuseStrength : 0.0f;
     float currentSpecularStrength = specularLightEnabled ? specularStrength : 0.0f;
@@ -99,7 +136,8 @@ void render(unsigned int VAO, unsigned int shaderProgram, World& world)
 
     // Camera matrices
     glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.1f, 100.0f);
+    // Adjust near and far planes to reduce z-fighting
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.5f, 50.0f);
     
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -112,6 +150,8 @@ void render(unsigned int VAO, unsigned int shaderProgram, World& world)
         glm::vec3 max = voxel.position + glm::vec3(0.5f);
 
         if (!frustumCullingEnabled || frustum.isBoxInFrustum(min, max)) {
+            // First pass: render the solid cube
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, voxel.position);
             glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -122,29 +162,48 @@ void render(unsigned int VAO, unsigned int shaderProgram, World& world)
             glUniform1f(glGetUniformLocation(shaderProgram, "material.diffuse"), voxel.material->diffuse);
             glUniform1f(glGetUniformLocation(shaderProgram, "material.specular"), voxel.material->specular);
             glUniform1i(glGetUniformLocation(shaderProgram, "material.shininess"), voxel.material->shininess);
+            glUniform1i(glGetUniformLocation(shaderProgram, "isOutline"), 0);
             
             glBindVertexArray(VAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
+
+            // Second pass: render the outline if enabled
+            if (showOutlines) {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                model = glm::scale(model, glm::vec3(1.0f + outlineThickness));
+                glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+                
+                // Set outline properties
+                glUniform3fv(glGetUniformLocation(shaderProgram, "material.color"), 1, glm::value_ptr(outlineColor));
+                glUniform1i(glGetUniformLocation(shaderProgram, "isOutline"), 1);
+                
+                glLineWidth(2.0f);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+                glLineWidth(1.0f);
+            }
         }
     }
 
-    // Render light source cube
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, lightPos);
-    model = glm::scale(model, glm::vec3(0.2f)); // Smaller cube for light source
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-    
-    // Set light cube color (bright white)
-    glVertexAttrib3f(2, 1.0f, 1.0f, 1.0f);
-    
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    // Render light source cubes
+    for (const auto& light : pointLights) {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, light.position);
+        model = glm::scale(model, glm::vec3(0.2f)); // Smaller cube for light source
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        
+        // Set light cube color
+        glVertexAttrib3f(2, light.color.r, light.color.g, light.color.b);
+        
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
 
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
     glDisable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
 }
 
-// sleep for a given number of milliseconds
 void sleep(double milliseconds)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(milliseconds)));
@@ -195,6 +254,54 @@ unsigned int createShaderProgram()
     }
 
     // Delete the shaders as they're linked into our program now and no longer necessary
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return shaderProgram;
+}
+
+unsigned int createTextShaderProgram() {
+    const char* vertexShaderSource = R"(
+    #version 330 core
+    layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>
+    
+    out vec2 TexCoords;
+
+    uniform mat4 projection;
+
+    void main() {
+        gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
+        TexCoords = vertex.zw;
+    }
+    )";
+
+    const char* fragmentShaderSource = R"(
+    #version 330 core
+    in vec2 TexCoords;
+    out vec4 color;
+
+    uniform sampler2D text;
+    uniform vec3 textColor;
+
+    void main() {    
+        vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
+        color = vec4(textColor, 1.0) * sampled;
+    }
+    )";
+
+    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    unsigned int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
@@ -276,7 +383,6 @@ unsigned int createCubeVAO()
 }
 
 unsigned int generateRandomSeed() {
-    // Combine hardware random device with time-based seed
     std::random_device rd;
     auto time = std::chrono::high_resolution_clock::now();
     auto time_seed = time.time_since_epoch().count();
@@ -285,45 +391,12 @@ unsigned int generateRandomSeed() {
     return rd() ^ static_cast<unsigned int>(time_seed);
 }
 
-// Game loop
-int gameLoop()
-{
-    if (!glfwInit())
-    {
-        std::cout << "Failed to initialize GLFW" << std::endl;
-        return -1;
-    }
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+}
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
-    {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetScrollCallback(window, scroll_callback);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-
-    glViewport(0, 0, 800, 600);
-    glEnable(GL_DEPTH_TEST);
-
-    unsigned int shaderProgram = createShaderProgram();
-    unsigned int VAO = createCubeVAO();
-
-    // Create world and generate terrain
-    World world(32, 32, 32); // Bigger world for better terrain
+World generateWorld() {
+    World world(32, 32, 32);
     unsigned int seed = generateRandomSeed();
     std::cout << "Generated terrain with seed: " << seed << std::endl;
     
@@ -335,9 +408,115 @@ int gameLoop()
     int randomType = seed % 4;
     world.generateTerrain(seed, terrainTypes[randomType]);
 
+    return world;
+}
+
+TextRenderer* textRenderer;
+
+// Output FPS counter to console
+void displayFPS()
+{
+    static double lastTime = getCurrentTime();
+    static int nbFrames = 0;
+    double currentTime = getCurrentTime();
+    nbFrames++;
+    if (currentTime - lastTime >= 1000.0) { // If last prinf() was more than 1 sec ago
+        // printf and reset timer
+        printf("%f ms/frame\n", 1000.0 / double(nbFrames));
+        printf("%f FPS\n", double(nbFrames));
+        nbFrames = 0;
+        lastTime += 1000.0;
+    }
+
+    // Render FPS counter
+    std::string fpsText = "FPS: " + std::to_string(nbFrames);
+    textRenderer->RenderText(fpsText, 10.0f, 580.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+}
+
+class Renderer {
+    public:
+        void setViewPort(int width, int height) {
+        glViewport(0, 0, width, height);
+        }
+
+        void enableDepthTesting() {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+        }
+
+        void enableFaceCulling() {
+            glEnable(GL_CULL_FACE);
+
+            glCullFace(GL_BACK);
+            glFrontFace(GL_CCW);
+        }
+
+        void enableMSAA() {
+            glEnable(GL_MULTISAMPLE);
+        }
+};
+
+int gameLoop()
+{
+    if (!glfwInit())
+    {
+        std::cout << "Failed to initialize GLFW" << std::endl;
+        return -1;
+    }
+
+    // Set OpenGL version to 3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
+
+    GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel Engine", NULL, NULL);
+
+    if (window == NULL)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // Set the framebuffer size callback
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetScrollCallback(window, scroll_callback);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
+
+    // Instantiate renderer
+    Renderer renderer;    
+
+    renderer.setViewPort(800, 600);
+    renderer.enableDepthTesting();
+    renderer.enableFaceCulling();
+    renderer.enableMSAA();
+
+    unsigned int shaderProgram = createShaderProgram();
+    
+    unsigned int VAO = createCubeVAO();
+
+    World world = generateWorld();
+
+    setupPointLights();
+
+    unsigned int textShaderProgram = createTextShaderProgram();
+    textRenderer = new TextRenderer("fonts/Roboto-Light.ttf", 24, textShaderProgram);
+
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
 
+    float frameRate = 60.0f;
+    float frameTime = 1000.0f / frameRate;
+
+    // Loops until window is closed & application is told to stop
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
@@ -345,24 +524,23 @@ int gameLoop()
         lastFrame = currentFrame;
 
         processInput(window, deltaTime);
-        updateLightPosition(deltaTime);
-        update();
+
+        update(deltaTime);
+
         render(VAO, shaderProgram, world);
 
         glfwSwapBuffers(window);
-        glfwPollEvents();
 
-        // Sleep to keep frame rate constant: FRAME_TIME = 1/FPS
-        const float FRAME_TIME = 16.6667;
-        sleep(FRAME_TIME - (glfwGetTime() - currentFrame) * 1000.0);
+        displayFPS();
+
+        // MUST GO AT END OF GAME LOOP
+        sleep(frameTime - (glfwGetTime() - currentFrame) * 1000.0);
     }
-
     glfwTerminate();
     return 0;
 }
 
 // Entry point
-// Have main function as a wrapper for gameLoop
 int main()
 {
     return gameLoop();
