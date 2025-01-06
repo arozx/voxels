@@ -33,7 +33,7 @@ struct VoxelEngineConfig {
 };
 
 VoxelEngineConfig loadVoxelEngineConfig(const std::string& fileName) {
-    ConfigLoader config;
+    ConfigLoader& config = ConfigLoader::getInstance();
 
     if (!config.load(fileName)) {
         std::cerr << "Failed to load config file: " << fileName << std::endl;

@@ -1,22 +1,28 @@
-#ifndef CONFIG_LOADER_H
-#define CONFIG_LOADER_H
+#ifndef CONFIGLOADER_H
+#define CONFIGLOADER_H
 
 #include <string>
 #include <unordered_map>
 
 class ConfigLoader {
 public:
-    // Load the configuration file into memory
-    bool load(const std::string& filename);
+    // Get the singleton instance
+    static ConfigLoader& getInstance();
 
-    // Get a value by key with an optional default
+    // Delete copy constructor and assignment operator
+    ConfigLoader(const ConfigLoader&) = delete;
+    ConfigLoader& operator=(const ConfigLoader&) = delete;
+
+    // Public methods
+    bool load(const std::string& fileName);
     std::string get(const std::string& key, const std::string& defaultValue = "") const;
 
 private:
-    std::unordered_map<std::string, std::string> data_;
+    // Private constructor
+    ConfigLoader() = default;
 
-    // Trim whitespace from both ends of a string
-    static std::string trim(const std::string& str);
+    // Key-value store for configuration
+    std::unordered_map<std::string, std::string> data;
 };
 
 #endif
