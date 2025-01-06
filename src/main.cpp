@@ -361,17 +361,10 @@ TextRenderer* textRenderer;
 
 int gameLoop()
 {
-    if (!glfwInit())
-    {
-        std::cout << "Failed to initialize GLFW" << std::endl;
-        return -1;
-    }
+    Renderer& renderer = Renderer::getInstance();
 
-    // Set OpenGL version to 3.3
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    renderer.initGLFW();
+    renderer.setRenderVersion(3, 3);
 
     GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel Engine", NULL, NULL);
 
@@ -388,14 +381,7 @@ int gameLoop()
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetScrollCallback(window, scroll_callback);
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-
-    // Instantiate renderer
-    Renderer renderer;    
+    renderer.initGLAD();
 
     renderer.setViewPort(800, 600);
     renderer.enableDepthTesting();
