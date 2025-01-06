@@ -20,6 +20,7 @@
 #include "Voxel.h"
 #include "Frustum.h"
 #include "TextRenderer.h"
+#include "Renderer.h"
 
 // set camera position above the terrain
 Camera camera(glm::vec3(16.0f, 20.0f, 16.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, -45.0f);
@@ -433,42 +434,13 @@ void displayFPS()
     textRenderer->RenderText(fpsText, 10.0f, 580.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 }
 
-class Renderer {
-    public:
-        void setViewPort(int width, int height) {
-        glViewport(0, 0, width, height);
-        }
-
-        void enableDepthTesting() {
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LESS);
-        }
-
-        void enableFaceCulling() {
-            glEnable(GL_CULL_FACE);
-
-            glCullFace(GL_BACK);
-            glFrontFace(GL_CCW);
-        }
-
-        void enableMSAA() {
-            glEnable(GL_MULTISAMPLE);
-        }
-};
 
 int gameLoop()
 {
-    if (!glfwInit())
-    {
-        std::cout << "Failed to initialize GLFW" << std::endl;
-        return -1;
-    }
+    Renderer& renderer = Renderer::getInstance();
 
-    // Set OpenGL version to 3.3
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    renderer.initGLFW();
+    renderer.setRenderVersion(3, 3);
 
     GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel Engine", NULL, NULL);
 
@@ -485,14 +457,7 @@ int gameLoop()
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetScrollCallback(window, scroll_callback);
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-
-    // Instantiate renderer
-    Renderer renderer;    
+    renderer.initGLAD();
 
     renderer.setViewPort(800, 600);
     renderer.enableDepthTesting();

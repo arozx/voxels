@@ -31,6 +31,7 @@ set(SOURCES
     src/Octree.cpp
     src/Frustum.cpp
     src/TextRenderer.cpp
+    src/Renderer.cpp
 )
 
 # Add executable
