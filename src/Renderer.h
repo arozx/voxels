@@ -20,6 +20,11 @@ public:
     void setRenderVersion(int major, int minor);
     void initGLFW();
     void initGLAD();
+    void terminate();
+    void displayFPS();
+    double getCurrentTime() {
+        return glfwGetTime() * 1000.0;
+    }
 
 private:
     Renderer() = default;

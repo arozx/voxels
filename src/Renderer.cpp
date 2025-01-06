@@ -51,3 +51,26 @@ void Renderer::initGLAD() {
         exit(-1);
     }
 }
+
+void Renderer::terminate() {
+    glfwTerminate();
+}
+
+// take text renderer as a parameter
+void Renderer::displayFPS() {
+    static double lastTime = getCurrentTime();
+    static int nbFrames = 0;
+    double currentTime = getCurrentTime();
+    nbFrames++;
+    if (currentTime - lastTime >= 1000.0) { // If last prinf() was more than 1 sec ago
+        // printf and reset timer
+        printf("%f ms/frame\n", 1000.0 / double(nbFrames));
+        printf("%f FPS\n", double(nbFrames));
+        nbFrames = 0;
+        lastTime += 1000.0;
+    }
+
+    // Render FPS counter
+    // std::string fpsText = "FPS: " + std::to_string(nbFrames);
+    // textRenderer->RenderText(fpsText, 10.0f, 580.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+}
