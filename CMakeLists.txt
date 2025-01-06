@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 11)
 # Export compile commands for SonarQube
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
 
 # Find GLFW
