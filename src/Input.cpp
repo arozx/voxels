@@ -108,6 +108,18 @@ void processInput(GLFWwindow* window, float deltaTime)
         shininess = std::min(256, shininess + 1);
         std::cout << "Shininess: " << shininess << std::endl;
     }
+
+    // Toggle outlines with T key
+    static bool tKeyPressed = false;
+    if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
+        if (!tKeyPressed) {
+            showOutlines = !showOutlines;
+            std::cout << "Outlines: " << (showOutlines ? "ON" : "OFF") << std::endl;
+            tKeyPressed = true;
+        }
+    } else {
+        tKeyPressed = false;
+    }
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)

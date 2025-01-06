@@ -15,6 +15,7 @@ extern float lightRadius;
 extern bool specularLightEnabled;
 extern float specularStrength;
 extern int shininess;
+extern bool showOutlines;
 
 void processInput(GLFWwindow* window, float deltaTime);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);

@@ -34,36 +34,95 @@ struct Material {
     int shininess;
 };
 
-uniform Material material;
+struct PointLight {
+    vec3 position;
+    vec3 color;
+    float ambientStrength;
+    float diffuseStrength;
+    float specularStrength;
+};
 
-uniform vec3 lightPos;
-uniform vec3 lightColor;
+struct SpotLight {
+    vec3 position;
+    vec3 direction;
+    vec3 color;
+    float cutOff;
+    float outerCutOff;
+    float ambientStrength;
+    float diffuseStrength;
+    float specularStrength;
+};
+
+uniform Material material;
+uniform bool isOutline;
+uniform PointLight pointLights[4];
+uniform int numPointLights;
+uniform SpotLight spotLights[4];
+uniform int numSpotLights;
 uniform vec3 viewPos;
-uniform float ambientStrength;
-uniform float diffuseStrength;
-uniform float specularStrength;
 uniform bool isLightSource;
 
 void main() {
+    if (isOutline) {
+        FragColor = vec4(material.color, 1.0);
+        return;
+    }
+
     if (isLightSource) {
         FragColor = vec4(material.color, 1.0);
         return;
     }
 
-    // ambient
-    vec3 ambient = ambientStrength * lightColor * material.ambient;
+    vec3 ambient = vec3(0.0);
+    vec3 diffuse = vec3(0.0);
+    vec3 specular = vec3(0.0);
 
-    // diffuse
-    vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(lightPos - FragPos);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diffuseStrength * diff * lightColor * material.diffuse;
+    // Point lights
+    for (int i = 0; i < numPointLights; ++i) {
+        PointLight light = pointLights[i];
 
-    // specular
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    vec3 specular = specularStrength * spec * lightColor * material.specular;
+        // ambient
+        ambient += light.ambientStrength * light.color * material.ambient;
+
+        // diffuse
+        vec3 norm = normalize(Normal);
+        vec3 lightDir = normalize(light.position - FragPos);
+        float diff = max(dot(norm, lightDir), 0.0);
+        diffuse += light.diffuseStrength * diff * light.color * material.diffuse;
+
+        // specular
+        vec3 viewDir = normalize(viewPos - FragPos);
+        vec3 reflectDir = reflect(-lightDir, norm);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+        specular += light.specularStrength * spec * light.color * material.specular;
+    }
+
+    // Spot lights
+    for(int i = 0; i < numSpotLights; i++) {
+        SpotLight light = spotLights[i];
+        vec3 lightDir = normalize(light.position - FragPos);
+        
+        // Check if fragment is in spotlight cone
+        float theta = dot(lightDir, normalize(-light.direction));
+        float epsilon = light.cutOff - light.outerCutOff;
+        float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+
+        if(theta > light.outerCutOff) {
+            // ambient
+            ambient += light.ambientStrength * light.color * material.ambient;
+
+            // diffuse
+            vec3 norm = normalize(Normal);
+            float diff = max(dot(norm, lightDir), 0.0);
+            diffuse += intensity * light.diffuseStrength * diff * light.color * material.diffuse;
+
+            // specular
+            vec3 viewDir = normalize(viewPos - FragPos);
+            vec3 reflectDir = reflect(-lightDir, norm);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            specular += intensity * light.specularStrength * spec * light.color * material.specular;
+        }
+    }
 
     vec3 result = (ambient + diffuse + specular) * material.color;
     FragColor = vec4(result, 1.0);
