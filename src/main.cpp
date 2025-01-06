@@ -433,21 +433,28 @@ void displayFPS()
     textRenderer->RenderText(fpsText, 10.0f, 580.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 }
 
-void setViewPort(int width, int height) {
-    glViewport(0, 0, width, height);
-}
+class Renderer {
+    public:
+        void setViewPort(int width, int height) {
+        glViewport(0, 0, width, height);
+        }
 
-void enableDepthTesting() {
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-}
+        void enableDepthTesting() {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+        }
 
-void enableFaceCulling() {
-    glEnable(GL_CULL_FACE);
+        void enableFaceCulling() {
+            glEnable(GL_CULL_FACE);
 
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-}
+            glCullFace(GL_BACK);
+            glFrontFace(GL_CCW);
+        }
+
+        void enableMSAA() {
+            glEnable(GL_MULTISAMPLE);
+        }
+};
 
 int gameLoop()
 {
@@ -461,6 +468,7 @@ int gameLoop()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     GLFWwindow* window = glfwCreateWindow(800, 600, "Voxel Engine", NULL, NULL);
 
@@ -483,11 +491,13 @@ int gameLoop()
         return -1;
     }
 
-    setViewPort(800, 600);
+    // Instantiate renderer
+    Renderer renderer;    
 
-    enableDepthTesting();
-    
-    enableFaceCulling();
+    renderer.setViewPort(800, 600);
+    renderer.enableDepthTesting();
+    renderer.enableFaceCulling();
+    renderer.enableMSAA();
 
     unsigned int shaderProgram = createShaderProgram();
     
