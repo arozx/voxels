@@ -1,5 +1,33 @@
 #include "World.h"
 #include "Voxel.h"
+#include <random>
+#include <chrono>
+#include <iostream>
+
+unsigned int generateRandomSeed() {
+    std::random_device rd;
+    auto time = std::chrono::high_resolution_clock::now();
+    auto time_seed = time.time_since_epoch().count();
+    
+    // Mix the seeds using XOR
+    return rd() ^ static_cast<unsigned int>(time_seed);
+}
+
+World generateWorld() {
+    World world(32, 32, 32);
+    unsigned int seed = generateRandomSeed();
+    std::cout << "Generated terrain with seed: " << seed << std::endl;
+    
+    // Choose a random terrain type
+    World::TerrainType terrainTypes[] = {
+        World::FLAT, World::HILLS, 
+        World::MOUNTAINS, World::ISLANDS
+    };
+    int randomType = seed % 4;
+    world.generateTerrain(seed, terrainTypes[randomType]);
+
+    return world;
+}
 
 World::World(int width, int height, int depth) 
     : width(width), height(height), depth(depth) {

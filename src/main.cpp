@@ -20,6 +20,8 @@
 #include "Voxel.h"
 #include "Frustum.h"
 #include "TextRenderer.h"
+#include "Renderer.h"
+#include "LightingManager.h"
 
 // set camera position above the terrain
 Camera camera(glm::vec3(16.0f, 20.0f, 16.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, -45.0f);
@@ -57,32 +59,8 @@ bool showOutlines = true;
 float outlineThickness = 0.03f;
 glm::vec3 outlineColor(0.0f, 0.0f, 0.0f);
 
-struct PointLight {
-    glm::vec3 position;
-    glm::vec3 color;
-    float ambientStrength;
-    float diffuseStrength;
-    float specularStrength;
-};
 
-std::vector<PointLight> pointLights;
-
-double getCurrentTime()
-{
-    return glfwGetTime() * 1000.0;
-}
-
-
-void updateLightPosition(float deltaTime) {
-    // Make light orbit around the center
-    lightAngle += deltaTime * 0.5f;
-    lightPos.x = sin(lightAngle) * lightRadius + 16.0f;
-    lightPos.z = cos(lightAngle) * lightRadius + 16.0f;
-    lightPos.y = lightHeight;
-}
-
-
-void update(float deltaTime)
+void update(float deltaTime, LightingManager& lightingManager)
 {
     glfwPollEvents(); // poll events in the queue
 
@@ -91,14 +69,7 @@ void update(float deltaTime)
         pointLights[0].position = lightPos; // Update first point light position
     }
 
-    updateLightPosition(deltaTime);
-}
-
-void setupPointLights() {
-    pointLights.push_back({ glm::vec3(1.2f, 1.0f, 2.0f), glm::vec3(1.0f, 1.0f, 1.0f), 0.1f, 1.0f, 0.5f });
-    pointLights.push_back({ glm::vec3(-1.2f, 1.0f, -2.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.1f, 1.0f, 0.5f });
-    pointLights.push_back({ glm::vec3(1.2f, -1.0f, 2.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 1.0f, 0.5f });
-    pointLights.push_back({ glm::vec3(-1.2f, -1.0f, -2.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.1f, 1.0f, 0.5f });
+    lightingManager.updateLightPosition(deltaTime);
 }
 
 void render(unsigned int VAO, unsigned int shaderProgram, World& world)
@@ -382,79 +353,11 @@ unsigned int createCubeVAO()
     return VAO;
 }
 
-unsigned int generateRandomSeed() {
-    std::random_device rd;
-    auto time = std::chrono::high_resolution_clock::now();
-    auto time_seed = time.time_since_epoch().count();
-    
-    // Mix the seeds using XOR
-    return rd() ^ static_cast<unsigned int>(time_seed);
-}
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-World generateWorld() {
-    World world(32, 32, 32);
-    unsigned int seed = generateRandomSeed();
-    std::cout << "Generated terrain with seed: " << seed << std::endl;
-    
-    // Choose a random terrain type
-    World::TerrainType terrainTypes[] = {
-        World::FLAT, World::HILLS, 
-        World::MOUNTAINS, World::ISLANDS
-    };
-    int randomType = seed % 4;
-    world.generateTerrain(seed, terrainTypes[randomType]);
-
-    return world;
-}
-
 TextRenderer* textRenderer;
-
-// Output FPS counter to console
-void displayFPS()
-{
-    static double lastTime = getCurrentTime();
-    static int nbFrames = 0;
-    double currentTime = getCurrentTime();
-    nbFrames++;
-    if (currentTime - lastTime >= 1000.0) { // If last prinf() was more than 1 sec ago
-        // printf and reset timer
-        printf("%f ms/frame\n", 1000.0 / double(nbFrames));
-        printf("%f FPS\n", double(nbFrames));
-        nbFrames = 0;
-        lastTime += 1000.0;
-    }
-
-    // Render FPS counter
-    std::string fpsText = "FPS: " + std::to_string(nbFrames);
-    textRenderer->RenderText(fpsText, 10.0f, 580.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-}
-
-class Renderer {
-    public:
-        void setViewPort(int width, int height) {
-        glViewport(0, 0, width, height);
-        }
-
-        void enableDepthTesting() {
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LESS);
-        }
-
-        void enableFaceCulling() {
-            glEnable(GL_CULL_FACE);
-
-            glCullFace(GL_BACK);
-            glFrontFace(GL_CCW);
-        }
-
-        void enableMSAA() {
-            glEnable(GL_MULTISAMPLE);
-        }
-};
 
 int gameLoop()
 {
@@ -505,10 +408,11 @@ int gameLoop()
 
     World world = generateWorld();
 
-    setupPointLights();
-
     unsigned int textShaderProgram = createTextShaderProgram();
     textRenderer = new TextRenderer("fonts/Roboto-Light.ttf", 24, textShaderProgram);
+
+    LightingManager lightingManager;
+    lightingManager.setupPointLights();
 
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
@@ -525,13 +429,13 @@ int gameLoop()
 
         processInput(window, deltaTime);
 
-        update(deltaTime);
+        update(deltaTime, lightingManager);
 
         render(VAO, shaderProgram, world);
 
         glfwSwapBuffers(window);
 
-        displayFPS();
+        renderer.displayFPS();
 
         // MUST GO AT END OF GAME LOOP
         sleep(frameTime - (glfwGetTime() - currentFrame) * 1000.0);

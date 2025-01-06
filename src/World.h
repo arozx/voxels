@@ -1,8 +1,7 @@
 #pragma once
 #include <vector>
 #include <glm/glm.hpp>
-
-// Noise & terrain generation
+#include <GLFW/glfw3.h>
 #include "PerlinNoise.h"
 #include "Material.h"
 #include "Octree.h"
@@ -31,3 +30,7 @@ private:
     
     float getHeightAt(int x, int z, TerrainType type);
 };
+
+// Utility function declarations
+unsigned int generateRandomSeed();
+World generateWorld();
