@@ -4,6 +4,11 @@
 #include <chrono>
 #include <iostream>
 
+// Add the destructor implementation
+World::~World() {
+    chunks.clear(); // This will automatically delete all chunks through unique_ptr
+}
+
 unsigned int generateRandomSeed() {
     std::random_device rd;
     auto time = std::chrono::high_resolution_clock::now();
@@ -14,7 +19,7 @@ unsigned int generateRandomSeed() {
 }
 
 World generateWorld() {
-    World world(32, 32, 32);
+    World world(64, 64, 64);
     unsigned int seed = generateRandomSeed();
     std::cout << "Generated terrain with seed: " << seed << std::endl;
     

@@ -37,6 +37,7 @@ set(SOURCES
     src/Renderer.cpp
     src/LightingManager.cpp
     src/ConfigLoader.cpp
+    src/Chunk.cpp
 )
 
 # Add executable
