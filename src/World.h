@@ -56,4 +56,4 @@ private:
 
 // Utility function declarations
 unsigned int generateRandomSeed();
-World generateWorld();
+World generateWorld(int x, int y, int z);

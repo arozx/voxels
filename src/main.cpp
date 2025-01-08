@@ -428,7 +428,7 @@ int gameLoop()
     
     unsigned int VAO = createCubeVAO();
 
-    World world = generateWorld();
+    World world = generateWorld(128, 32, 128); // middle is height
 
     unsigned int textShaderProgram = createTextShaderProgram();
     textRenderer = new TextRenderer("fonts/Roboto-Light.ttf", 24, textShaderProgram);

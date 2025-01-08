@@ -18,8 +18,8 @@ unsigned int generateRandomSeed() {
     return rd() ^ static_cast<unsigned int>(time_seed);
 }
 
-World generateWorld() {
-    World world(64, 64, 64);
+World generateWorld(int x, int y, int z) {
+    World world(x, y, z);
     unsigned int seed = generateRandomSeed();
     std::cout << "Generated terrain with seed: " << seed << std::endl;
     
