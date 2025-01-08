@@ -22,6 +22,33 @@
 #include "TextRenderer.h"
 #include "Renderer.h"
 #include "LightingManager.h"
+#include "ConfigLoader.h"
+
+struct VoxelEngineConfig {
+    bool frustumCullingEnabled;
+    bool enableDepthTesting;
+    bool enableFaceCulling;
+    bool enableMSAA;
+    bool enableWireframe;
+};
+
+VoxelEngineConfig loadVoxelEngineConfig(const std::string& fileName) {
+    ConfigLoader& config = ConfigLoader::getInstance();
+
+    if (!config.load(fileName)) {
+        std::cerr << "Failed to load config file: " << fileName << std::endl;
+        exit(1);
+    }
+
+    VoxelEngineConfig voxelConfig;
+    voxelConfig.frustumCullingEnabled = config.get("VoxelEngine.frustumCullingEnabled", "False") == "True";
+    voxelConfig.enableDepthTesting = config.get("VoxelEngine.enableDepthTesting", "False") == "True";
+    voxelConfig.enableFaceCulling = config.get("VoxelEngine.enableFaceCulling", "False") == "True";
+    voxelConfig.enableMSAA = config.get("VoxelEngine.enableMSAA", "False") == "True";
+    voxelConfig.enableWireframe = config.get("VoxelEngine.enableWireframe", "False") == "True";
+
+    return voxelConfig;
+}
 
 // set camera position above the terrain
 Camera camera(glm::vec3(16.0f, 20.0f, 16.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, -45.0f);
@@ -361,6 +388,8 @@ TextRenderer* textRenderer;
 
 int gameLoop()
 {
+    VoxelEngineConfig config = loadVoxelEngineConfig("conf.ini");
+
     Renderer& renderer = Renderer::getInstance();
 
     renderer.initGLFW();
@@ -384,9 +413,16 @@ int gameLoop()
     renderer.initGLAD();
 
     renderer.setViewPort(800, 600);
-    renderer.enableDepthTesting();
-    renderer.enableFaceCulling();
-    renderer.enableMSAA();
+
+    if (config.enableDepthTesting) {
+        renderer.enableDepthTesting();
+    }
+    if (config.enableFaceCulling) {
+        renderer.enableFaceCulling();
+    }
+    if (config.enableMSAA) {
+        renderer.enableMSAA();
+    }
 
     unsigned int shaderProgram = createShaderProgram();
     

@@ -20,6 +20,9 @@ include_directories(/usr/include)
 include_directories(${FREETYPE_INCLUDE_DIRS})
 link_directories(/usr/lib)
 
+# Copy the INI file to the build directory
+file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
+
 # Add source files
 set(SOURCES
     external/glad/src/glad.c
@@ -33,6 +36,7 @@ set(SOURCES
     src/TextRenderer.cpp
     src/Renderer.cpp
     src/LightingManager.cpp
+    src/ConfigLoader.cpp
 )
 
 # Add executable
