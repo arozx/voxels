@@ -63,7 +63,7 @@ void OpenGLWindow::Init(const WindowProps& props) {
         data.EventCallback(event);
     });
 
-    // Keyboard callbacks
+    // Keyboard callback with more detail
     glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
@@ -91,10 +91,12 @@ void OpenGLWindow::Init(const WindowProps& props) {
         }
     });
 
-    // Mouse callbacks
+    // Mouse button callbacks with position
     glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)
     {
         WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
         
         switch (action)
         {
@@ -102,6 +104,7 @@ void OpenGLWindow::Init(const WindowProps& props) {
             {
                 MouseButtonPressedEvent event(button);
                 data.EventCallback(event);
+                LOG_INFO("Mouse clicked at: ({:.1f}, {:.1f})", xpos, ypos);
                 break;
             }
             case GLFW_RELEASE:

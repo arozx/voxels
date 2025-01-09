@@ -3,6 +3,7 @@
 #include "Events/KeyEvent.h"
 #include "Events/MouseEvent.h"
 #include "Events/WindowEvent.h"
+#include "Events/KeyCodes.h"
 
 namespace Engine {
     Application::Application() {
@@ -41,27 +42,50 @@ namespace Engine {
             
             dispatcher.Dispatch<WindowCloseEvent>(
                 std::function<bool(WindowCloseEvent&)>([this](WindowCloseEvent& e) {
+                    LOG_INFO("Window Close Event received");
                     m_Running = false;
                     return true;
                 })
             );
 
-            // Handle other events if not already handled
             if (!e.IsHandled()) {
-                if (e.GetEventType() == EventType::KeyPressed) {
-                    const auto& ke = static_cast<const KeyPressedEvent&>(e);
-                    LOG_INFO("Key pressed: {}", ke.GetKeyCode());
-                }
-                else if (e.GetEventType() == EventType::KeyReleased) {
-                    const auto& ke = static_cast<const KeyReleasedEvent&>(e);
-                    LOG_INFO("Key released: {}", ke.GetKeyCode());
-                }
-                else if (e.GetEventType() == EventType::MouseMoved) {
-                    const auto& me = static_cast<const MouseMovedEvent&>(e);
-                    LOG_INFO("Mouse moved: ({}, {})", me.GetX(), me.GetY());
-                }
-                else {
-                    LOG_INFO("Event: {}", e.GetName());
+                switch (e.GetEventType()) {
+                    case EventType::KeyPressed: {
+                        const auto& ke = static_cast<const KeyPressedEvent&>(e);
+                        std::string keyName = KeyCodeToString(ke.GetKeyCode());
+                        LOG_INFO_CONCAT("Key pressed: ", keyName, " (keycode: ", ke.GetKeyCode(), ")",
+                            ke.IsRepeat() ? " (repeat)" : "");
+                        break;
+                    }
+                    case EventType::KeyReleased: {
+                        const auto& ke = static_cast<const KeyReleasedEvent&>(e);
+                        std::string keyName = KeyCodeToString(ke.GetKeyCode());
+                        LOG_INFO_CONCAT("Key released: ", keyName, " (keycode: ", ke.GetKeyCode(), ")");
+                        break;
+                    }
+                    case EventType::MouseMoved: {
+                        const auto& me = static_cast<const MouseMovedEvent&>(e);
+                        LOG_INFO_CONCAT("Mouse moved to: (", me.GetX(), ", ", me.GetY(), ")");
+                        break;
+                    }
+                    case EventType::MouseButtonPressed: {
+                        const auto& me = static_cast<const MouseButtonPressedEvent&>(e);
+                        LOG_INFO_CONCAT("Mouse button pressed: ", me.GetButton());
+                        break;
+                    }
+                    case EventType::MouseButtonReleased: {
+                        const auto& me = static_cast<const MouseButtonReleasedEvent&>(e);
+                        LOG_INFO_CONCAT("Mouse button released: ", me.GetButton());
+                        break;
+                    }
+                    case EventType::MouseScrolled: {
+                        const auto& me = static_cast<const MouseScrolledEvent&>(e);
+                        LOG_INFO_CONCAT("Mouse scrolled: X:", me.GetXOffset(), " Y:", me.GetYOffset());
+                        break;
+                    }
+                    default:
+                        LOG_INFO_CONCAT("Event: ", e.GetName());
+                        break;
                 }
             }
         });
