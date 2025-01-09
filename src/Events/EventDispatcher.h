@@ -1,4 +1,3 @@
-
 #pragma once
 #include "Events.h"
 
@@ -11,7 +10,7 @@ namespace Engine {
         template<typename T, typename F>
         bool Dispatch(const F& func) {
             if (m_Event.GetEventType() == T::GetStaticType()) {
-                m_Event.m_Handled = func(static_cast<T&>(m_Event));
+                m_Event.SetHandled(func(static_cast<T&>(m_Event)));
                 return true;
             }
             return false;
@@ -19,5 +18,5 @@ namespace Engine {
 
     private:
         Event& m_Event;
-    };
+    };;
 }

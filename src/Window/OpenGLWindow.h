@@ -16,6 +16,8 @@ namespace Engine {
         
         void SetVSync(bool enabled) override;
         bool IsVSync() const override;
+
+        void SetClear(float a, float b, float c, float d);
         
         virtual void* GetNativeWindow() const override { return m_Window; }
         void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }

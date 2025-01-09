@@ -155,4 +155,9 @@ bool OpenGLWindow::IsVSync() const {
     return m_Data.VSync;
 }
 
+void OpenGLWindow::SetClear(float a, float b, float c, float d) {
+    glClearColor(a, b, c, d);
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
 }

@@ -21,11 +21,25 @@ link_directories(/usr/lib)
 # Copy the INI file to the build directory
 file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
 
+# Add ImGui source files
+set(IMGUI_DIR external/imgui)
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
 # Add source files
 set(SOURCES
     src/EntryPoint.cpp
     src/Application.cpp
     src/Window/OpenGLWindow.cpp
+    src/ImGui/ImGuiLayer.cpp
+    ${IMGUI_SOURCES}
 )
 
 # Add executable
@@ -41,4 +55,6 @@ set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-modernize-use-auto")
 
 target_include_directories(voxel-engine PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
 )

@@ -1,6 +1,6 @@
 #pragma once
 #include "Window/Window.h"
-#include <memory>
+#include "ImGui/ImGuiLayer.h"
 
 namespace Engine {
     class Application {
@@ -24,6 +24,7 @@ namespace Engine {
     private:
         bool m_Running = true;
         std::unique_ptr<Window> m_Window;
+        std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
     };
 
     // To be defined by client application
