@@ -1,3 +1,5 @@
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include "Application.h"
 #include "Logging.h"
 #include "Events/KeyEvent.h"
@@ -5,7 +7,6 @@
 #include "Events/WindowEvent.h"
 #include "Events/KeyCodes.h"
 #include <imgui.h>
-#include <GLFW/glfw3.h>
 
 namespace Engine {
     Application::Application() {
@@ -17,9 +18,80 @@ namespace Engine {
             return;
         }
 
+        m_Window->SetContext();
+        
+        // Initialize GLAD
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+            LOG_ERROR("Failed to initialize GLAD!");
+            m_Running = false;
+            return;
+        }
+
+        // Now we can make OpenGL calls safely
+        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
+
         m_ImGuiLayer = std::make_unique<ImGuiLayer>();
         m_ImGuiLayer->Init(m_Window.get());
-    }
+
+        // Create and compile shaders
+        const char* vertexShaderSource = R"(
+            #version 330 core
+            layout (location = 0) in vec3 aPos;
+            void main() {
+                gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+            }
+        )";
+        const char* fragmentShaderSource = R"(
+            #version 330 core
+            out vec4 FragColor;
+            void main() {
+                FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+            }
+        )";
+
+        // Vertex shader
+        unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+        glCompileShader(vertexShader);
+
+        // Fragment shader
+        unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+        glCompileShader(fragmentShader);
+
+        // Shader program
+        m_ShaderProgram = glCreateProgram();
+        glAttachShader(m_ShaderProgram, vertexShader);
+        glAttachShader(m_ShaderProgram, fragmentShader);
+        glLinkProgram(m_ShaderProgram);
+
+        // Delete shaders as they're linked into the program and no longer necessary
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+
+        // Create vertex array and buffers
+        glGenVertexArrays(1, &m_VertexArray);
+        glBindVertexArray(m_VertexArray);
+
+        glGenBuffers(1, &m_VertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, m_VertexBuffer);
+
+        float vertices[] = {
+            -0.5f, -0.5f, 0.0f,
+             0.5f, -0.5f, 0.0f,
+             0.0f,  0.5f, 0.0f
+        };
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glGenBuffers(1, &m_IndexBuffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer);  // Fixed: Was binding to vertex buffer
+        
+        unsigned int indices[] = { 0, 1, 2 };
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+    };
 
     Application::~Application() {
         if (m_ImGuiLayer) {
@@ -32,8 +104,15 @@ namespace Engine {
         LOG_INFO("Application Starting...");
         
         bool show_demo_window = true;
-        
+
         while (m_Running && m_Window) {
+            m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
+
+            // Use shader program and draw triangle
+            glUseProgram(m_ShaderProgram);
+            glBindVertexArray(m_VertexArray);
+            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+
             BeginScene();
 
             // Start ImGui frame
@@ -121,7 +200,9 @@ namespace Engine {
 
     void Application::BeginScene() {
         // LOG_TRACE("Begin Scene");
-        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
+        
+        // TODO: draw a triange here
+
     }
 
     void Application::EndScene() {
@@ -132,15 +213,7 @@ namespace Engine {
         // LOG_TRACE("Present Frame");
     }
 
-    void Application::SetClearColor(float r, float g, float b, float a) {
-        // LOG_TRACE("Set Clear Color: " + std::to_string(r) + "," + std::to_string(g) + "," + std::to_string(b) + "," + std::to_string(a));
-    }
-
-    void Application::Clear() {
-        // LOG_TRACE("Clear");
-    }
-
     void Application::SetViewport(int x, int y, int width, int height) {
         LOG_TRACE_CONCAT("Set Viewport: ", x, ",", y, ",", width, ",", height);
     }
-}
+}  // namespace Engine

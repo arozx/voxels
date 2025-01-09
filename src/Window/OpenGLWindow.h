@@ -18,6 +18,9 @@ namespace Engine {
         bool IsVSync() const override;
 
         void SetClear(float a, float b, float c, float d);
+
+        void SetContext();
+        void CreateVBO(); // Vertex Buffer
         
         virtual void* GetNativeWindow() const override { return m_Window; }
         void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }

@@ -35,6 +35,7 @@ set(IMGUI_SOURCES
 
 # Add source files
 set(SOURCES
+    external/glad/src/glad.c
     src/EntryPoint.cpp
     src/Application.cpp
     src/Window/OpenGLWindow.cpp

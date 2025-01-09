@@ -157,7 +157,25 @@ bool OpenGLWindow::IsVSync() const {
 
 void OpenGLWindow::SetClear(float a, float b, float c, float d) {
     glClearColor(a, b, c, d);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void OpenGLWindow::SetContext() {
+    // Enable depth testing
+    glEnable(GL_DEPTH_TEST);
+    
+    // Enable blending for transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    // Enable face culling
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    
+    glfwMakeContextCurrent(m_Window);
+}
+
+void OpenGLWindow::CreateVBO() {
 }
 
 }
