@@ -25,19 +25,8 @@ file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
 
 # Add source files
 set(SOURCES
-    external/glad/src/glad.c
-    src/main.cpp
-    src/Camera.cpp
-    src/Input.cpp
-    src/World.cpp
-    src/PerlinNoise.cpp
-    src/Octree.cpp
-    src/Frustum.cpp
-    src/TextRenderer.cpp
-    src/Renderer.cpp
-    src/LightingManager.cpp
-    src/ConfigLoader.cpp
-    src/Chunk.cpp
+    src/EntryPoint.cpp
+    src/Application.cpp
 )
 
 # Add executable
