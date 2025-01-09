@@ -1,17 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
 project(VoxelEngine)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Export compile commands for SonarQube
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
-
-# Find GLFW
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GLFW REQUIRED glfw3)
+find_package(glfw3 REQUIRED)
 
 # Find FreeType
 find_package(Freetype REQUIRED)
@@ -27,6 +25,7 @@ file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
 set(SOURCES
     src/EntryPoint.cpp
     src/Application.cpp
+    src/Window/OpenGLWindow.cpp
 )
 
 # Add executable
@@ -35,8 +34,11 @@ add_executable(voxel-engine ${SOURCES})
 target_include_directories(voxel-engine PRIVATE external/glad/include)
 
 # Link OpenGL and FreeType libraries
-find_package(OpenGL REQUIRED)
 target_link_libraries(voxel-engine PRIVATE glfw OpenGL::GL ${FREETYPE_LIBRARIES})
 
 # Set Clang-Tidy as the CMake static analysis tool
 set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-modernize-use-auto")
+
+target_include_directories(voxel-engine PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
