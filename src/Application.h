@@ -1,6 +1,7 @@
 #pragma once
 #include "Window/Window.h"
 #include "ImGui/ImGuiLayer.h"
+#include "Renderer/Renderer.h"
 
 namespace Engine {
     class Application {
@@ -28,6 +29,7 @@ namespace Engine {
         unsigned int m_VertexArray, m_VertexBuffer, m_IndexBuffer;
         
         unsigned int m_ShaderProgram;
+        Renderer m_Renderer;
     };
 
     // To be defined by client application

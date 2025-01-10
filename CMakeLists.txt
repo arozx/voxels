@@ -39,6 +39,9 @@ set(SOURCES
     src/EntryPoint.cpp
     src/Application.cpp
     src/Window/OpenGLWindow.cpp
+    src/Renderer/Buffer.cpp
+    src/Renderer/OpenGLBuffer.cpp
+    src/Renderer/Renderer.cpp
     src/ImGui/ImGuiLayer.cpp
     ${IMGUI_SOURCES}
 )
