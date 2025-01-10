@@ -1,5 +1,6 @@
 #pragma once
 #include "Buffer.h"
+#include "../Shader/Shader.h"
 #include <cstdint>
 #include <memory>
 
@@ -17,5 +18,6 @@ namespace Engine {
         uint32_t m_VertexArray;
         std::unique_ptr<VertexBuffer> m_VertexBuffer;
         std::unique_ptr<IndexBuffer> m_IndexBuffer;
+        std::unique_ptr<Shader> m_Shader;
     };
 }

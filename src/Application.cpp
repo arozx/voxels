@@ -16,20 +16,8 @@ namespace Engine {
             m_Running = false;
             return;
         }
-
-        m_Window->SetContext();
         
-        // Initialize GLAD
-        /*
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-            LOG_ERROR("Failed to initialize GLAD!");
-            m_Running = false;
-            return;
-        }
-        */
-
-        // Now we can make OpenGL calls safely
-        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
+        m_Window->SetContext();
 
         m_ImGuiLayer = std::make_unique<ImGuiLayer>();
         m_ImGuiLayer->Init(m_Window.get());
@@ -50,27 +38,15 @@ namespace Engine {
         bool show_demo_window = true;
 
         while (m_Running && m_Window) {
-            m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
-
             BeginScene();
             
-            m_Renderer.Draw();
-
-            // Start ImGui frame
-            m_ImGuiLayer->Begin();
-
-            // ImGui demo window
             if (show_demo_window) {
                 ImGui::ShowDemoWindow(&show_demo_window);
             }
 
-            // End ImGui frame
-            m_ImGuiLayer->End();
-
             EndScene();
 
-            // Update window (this calls glfwSwapBuffers and glfwPollEvents internally)
-            m_Window->OnUpdate();
+            Present();
         }
     }
 
@@ -140,18 +116,18 @@ namespace Engine {
     }
 
     void Application::BeginScene() {
-        // LOG_TRACE("Begin Scene");
-        
-        // TODO: draw a triange here
+        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
+        m_Renderer.Draw();
 
+        m_ImGuiLayer->Begin();
     }
 
     void Application::EndScene() {
-        // LOG_TRACE("End Scene");
+        m_ImGuiLayer->End();
     }
 
     void Application::Present() {
-        // LOG_TRACE("Present Frame");
+        m_Window->OnUpdate();
     }
 
     void Application::SetViewport(int x, int y, int width, int height) {

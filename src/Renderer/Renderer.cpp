@@ -1,13 +1,12 @@
 #include "Renderer.h"
+#include "../Shader/Shader.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 namespace Engine {
     Renderer::Renderer() {}
 
-    Renderer::~Renderer() {
-        glDeleteProgram(m_ShaderProgram);
-    }
+    Renderer::~Renderer() {}
 
     void Renderer::Init() {
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -29,45 +28,7 @@ namespace Engine {
             }
         )";
 
-        // Vertex shader
-        unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-        glCompileShader(vertexShader);
-
-        // Check shader compilation
-        int success;
-        char infoLog[512];
-        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-            // Handle error
-        }
-
-        // Fragment shader
-        unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-        glCompileShader(fragmentShader);
-
-        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-            // Handle error
-        }
-
-        // Shader program
-        m_ShaderProgram = glCreateProgram();
-        glAttachShader(m_ShaderProgram, vertexShader);
-        glAttachShader(m_ShaderProgram, fragmentShader);
-        glLinkProgram(m_ShaderProgram);
-
-        glGetProgramiv(m_ShaderProgram, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(m_ShaderProgram, 512, NULL, infoLog);
-            // Handle error
-        }
-
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
+        m_Shader = std::make_unique<Shader>(vertexShaderSource, fragmentShaderSource);
 
         // Create vertex array and buffers
         glGenVertexArrays(1, &m_VertexArray);
@@ -89,9 +50,10 @@ namespace Engine {
     }
 
     void Renderer::Draw() {
-        glUseProgram(m_ShaderProgram);
+        m_Shader->Bind();
         glBindVertexArray(m_VertexArray);
         m_IndexBuffer->Bind();
         glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+        m_Shader->Unbind();
     }
 }

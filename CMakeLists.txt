@@ -42,6 +42,7 @@ set(SOURCES
     src/Renderer/Buffer.cpp
     src/Renderer/OpenGLBuffer.cpp
     src/Renderer/Renderer.cpp
+    src/Shader/Shader.cpp
     src/ImGui/ImGuiLayer.cpp
     ${IMGUI_SOURCES}
 )
