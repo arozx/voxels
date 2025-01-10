@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Application.h"
 #include "Logging.h"
@@ -17,7 +18,6 @@ namespace Engine {
             m_Running = false;
             return;
         }
-        
         m_Window->SetContext();
 
         m_ImGuiLayer = std::make_unique<ImGuiLayer>();

@@ -1,12 +1,12 @@
 #include "../pch.h"
-#include "Renderer.h"
-#include "../Shader/Shader.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "Renderer.h"
+#include "VertexArray.h"
+#include "../Shader/Shader.h"
 
 namespace Engine {
     Renderer::Renderer() {}
-
     Renderer::~Renderer() {}
 
     void Renderer::Init() {
@@ -29,32 +29,61 @@ namespace Engine {
             }
         )";
 
-        m_Shader = std::make_unique<Shader>(vertexShaderSource, fragmentShaderSource);
-
-        // Create vertex array and buffers
-        glGenVertexArrays(1, &m_VertexArray);
-        glBindVertexArray(m_VertexArray);
+        m_Shader = std::make_shared<Shader>(vertexShaderSource, fragmentShaderSource);
 
         float vertices[] = {
             -0.5f, -0.5f, 0.0f,
-             0.5f, -0.5f, 0.0f,
-             0.0f,  0.5f, 0.0f
+            0.5f, -0.5f, 0.0f,
+            0.0f,  0.5f, 0.0f
         };
 
         uint32_t indices[] = { 0, 1, 2 };
 
-        m_VertexBuffer.reset(VertexBuffer::Create(vertices, sizeof(vertices)));
-        m_IndexBuffer.reset(IndexBuffer::Create(indices, 3));
+        m_VertexArray.reset(VertexArray::Create());
+        
+        std::shared_ptr<VertexBuffer> vertexBuffer(VertexBuffer::Create(vertices, sizeof(vertices)));
+        
+        BufferLayout layout = {
+            { ShaderDataType::Float3, "aPosition" }
+        };
+        
+        vertexBuffer->SetLayout(layout);
+        m_VertexArray->AddVertexBuffer(vertexBuffer);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
+        std::shared_ptr<IndexBuffer> indexBuffer(IndexBuffer::Create(indices, 3));
+        m_VertexArray->SetIndexBuffer(indexBuffer);
+    }
+
+    void Renderer::Submit(const std::shared_ptr<VertexArray>& vertexArray,
+        const std::shared_ptr<Shader>& shader,
+        GLenum primitiveType) 
+        {
+        RenderCommand command;
+        command.vertexArray = vertexArray;
+        command.shader = shader;
+        command.primitiveType = primitiveType;
+        m_CommandQueue.push(command);
+    }
+
+    void Renderer::Flush() {
+        while (!m_CommandQueue.empty()) {
+            const auto& command = m_CommandQueue.front();
+            command.shader->Bind();
+            command.vertexArray->Bind();
+            glDrawElements(command.primitiveType, 
+                command.vertexArray->GetIndexBuffer()->GetCount(), 
+                GL_UNSIGNED_INT, 
+                nullptr);
+            command.vertexArray->Unbind();
+            command.shader->Unbind();
+            m_CommandQueue.pop();
+        }
     }
 
     void Renderer::Draw() {
-        m_Shader->Bind();
-        glBindVertexArray(m_VertexArray);
-        m_IndexBuffer->Bind();
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-        m_Shader->Unbind();
+        // Submit the default triangle
+        Submit(m_VertexArray, m_Shader, GL_TRIANGLES);
+        // Execute all queued commands
+        Flush();
     }
 }

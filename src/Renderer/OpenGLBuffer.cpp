@@ -14,18 +14,12 @@ namespace Engine {
         glDeleteBuffers(1, &m_RendererID);
     }
 
-    void OpenGLVertexBuffer::SetData(float* vertices, uint32_t size)
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-        glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
-    }
-
     void OpenGLVertexBuffer::Bind() const
     {
         glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
     }
 
-    void OpenGLVertexBuffer::UnBind() const
+    void OpenGLVertexBuffer::Unbind() const
     {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
@@ -48,7 +42,7 @@ namespace Engine {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
     }
 
-    void OpenGLIndexBuffer::UnBind() const
+    void OpenGLIndexBuffer::Unbind() const
     {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }

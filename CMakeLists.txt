@@ -44,6 +44,8 @@ set(SOURCES
     src/Renderer/Renderer.cpp
     src/Shader/Shader.cpp
     src/ImGui/ImGuiLayer.cpp
+    src/Renderer/VertexArray.cpp
+    src/Renderer/OpenGLVertexArray.cpp
     ${IMGUI_SOURCES}
 )
 

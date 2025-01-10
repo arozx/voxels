@@ -1,10 +1,19 @@
 #pragma once
 #include "Buffer.h"
 #include "../Shader/Shader.h"
-#include <cstdint>
-#include <memory>
+#include <queue>
+#include <glad/glad.h>
 
 namespace Engine {
+    class Shader;
+    class VertexArray;
+
+    struct RenderCommand {
+        std::shared_ptr<VertexArray> vertexArray;
+        std::shared_ptr<Shader> shader;
+        GLenum primitiveType;
+    };
+
     class Renderer {
     public:
         Renderer();
@@ -12,12 +21,14 @@ namespace Engine {
 
         void Init();
         void Draw();
+        void Submit(const std::shared_ptr<VertexArray>& vertexArray, 
+            const std::shared_ptr<Shader>& shader,
+            GLenum primitiveType = GL_TRIANGLES);
+        void Flush();
 
     private:
-        uint32_t m_ShaderProgram;
-        uint32_t m_VertexArray;
-        std::unique_ptr<VertexBuffer> m_VertexBuffer;
-        std::unique_ptr<IndexBuffer> m_IndexBuffer;
-        std::unique_ptr<Shader> m_Shader;
+        std::shared_ptr<Shader> m_Shader;
+        std::shared_ptr<VertexArray> m_VertexArray;
+        std::queue<RenderCommand> m_CommandQueue;
     };
 }
