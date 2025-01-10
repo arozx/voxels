@@ -4,6 +4,9 @@
 # build files
 build/
 
+# imGUI config files
+imgui.ini
+
 # TODO
 todo.txt
 todo.md
