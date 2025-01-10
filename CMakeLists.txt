@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16) # PCH support requires 3.16+
 project(VoxelEngine)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -62,4 +62,23 @@ target_include_directories(voxel-engine PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+)
+
+# Enable precompiled headers - specify C++ explicitly
+target_precompile_headers(voxel-engine 
+  PRIVATE
+    $<INSTALL_INTERFACE:pch.h>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h>
+)
+
+# Force C++ compilation for PCH
+set_source_files_properties(
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h
+  PROPERTIES
+  LANGUAGE CXX
+)
+
+# Ensure PCH is used for all C++ files
+set_target_properties(voxel-engine PROPERTIES
+  COMPILE_FLAGS "-include pch.h"
 )

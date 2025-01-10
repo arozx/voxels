@@ -1,3 +1,4 @@
+#include "pch.h"
 #include <GLFW/glfw3.h>
 #include "Application.h"
 #include "Logging.h"
@@ -133,4 +134,4 @@ namespace Engine {
     void Application::SetViewport(int x, int y, int width, int height) {
         LOG_TRACE_CONCAT("Set Viewport: ", x, ",", y, ",", width, ",", height);
     }
-}  // namespace Engine
+}
