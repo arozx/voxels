@@ -1,7 +1,6 @@
 #include "Shader.h"
 #include <glad/glad.h>
-#include <iostream>
-
+#include "pch.h"
 namespace Engine {
     Shader::Shader(const char* vertexSrc, const char* fragmentSrc) {
         uint32_t vertexShader = 0, fragmentShader = 0;

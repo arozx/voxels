@@ -117,7 +117,7 @@ namespace Engine {
     }
 
     void Application::BeginScene() {
-        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
+        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f); // R, G, B, Alpha
         m_Renderer.Draw();
 
         m_ImGuiLayer->Begin();

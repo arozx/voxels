@@ -1,9 +1,5 @@
 #pragma once
-#include <string>
-#include <iostream>
-#include <ctime>
-#include <sstream>
-#include <memory>
+#include "pch.h"
 
 namespace Engine {
     enum class LogLevel {

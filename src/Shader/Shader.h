@@ -1,6 +1,5 @@
 #pragma once
-#include <string>
-#include <cstdint>
+#include "../pch.h"
 
 namespace Engine {
     class Shader {

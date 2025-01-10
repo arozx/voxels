@@ -1,7 +1,6 @@
 #pragma once
-#include <string>
-#include <cstdint>
-#include <memory>
+
+#include "../pch.h"
 #include "../Events/Event.h"
 
 namespace Engine {

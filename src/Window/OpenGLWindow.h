@@ -1,7 +1,7 @@
 #pragma once
 #include "Window.h"
 #include <GLFW/glfw3.h>
-#include <cstdint>
+#include "pch.h"
 
 namespace Engine {
     class OpenGLWindow : public Window {
