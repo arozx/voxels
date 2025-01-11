@@ -200,6 +200,12 @@ namespace Engine {
                 ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
                 ImGui::Text("Camera Type: %s", m_Renderer.GetCameraType() == Renderer::CameraType::Orthographic ? "Orthographic" : "Perspective");
                 ImGui::Text("FPS: %.1f (%.2f ms)", m_FPS, m_FrameTime * 1000.0f);
+                
+                bool vsync = m_Window->IsVSync();
+                if (ImGui::Checkbox("VSync", &vsync)) {
+                    m_Window->SetVSync(vsync);
+                }
+                
                 ImGui::End();
 
                 ImGui::Begin("Transform Controls");

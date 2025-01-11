@@ -1,7 +1,7 @@
 #pragma once
+#include "../pch.h"
 #include <glad/glad.h>
-#include <queue>
-#include <mutex>
+#include <atomic>
 #include "Buffer.h"
 #include "Material.h"
 #include "../Shader/Shader.h"
@@ -37,6 +37,32 @@ namespace Engine {
         Transform transform;
     };
 
+    struct PreprocessedRenderCommand {
+        std::shared_ptr<VertexArray> vertexArray;
+        std::shared_ptr<Material> material;
+        GLenum primitiveType;
+        glm::mat4 modelMatrix;
+    };
+
+    struct GLCommand {
+        enum class Type {
+            BindMaterial,
+            SetUniform,
+            DrawElements,
+            UnbindMaterial,
+            BindVertexArray,
+            UnbindVertexArray
+        };
+
+        Type type;
+        std::shared_ptr<Material> material;
+        std::shared_ptr<VertexArray> vertexArray;
+        glm::mat4 matrix;
+        std::string uniformName;
+        GLenum primitiveType;
+        uint32_t count;
+    };
+
     class Renderer {
     public:
         enum class CameraType {
@@ -66,11 +92,15 @@ namespace Engine {
 
     private:
         std::mutex m_QueueMutex;
+        std::mutex m_RenderMutex;
         std::shared_ptr<Shader> m_Shader;
         std::shared_ptr<VertexArray> m_VertexArray;
         std::queue<RenderCommand> m_CommandQueue;
+        std::vector<PreprocessedRenderCommand> m_ProcessingQueue;
+        std::vector<PreprocessedRenderCommand> m_RenderQueue;
         std::shared_ptr<Engine::OrthographicCamera> m_Camera;
         CameraType m_CameraType = CameraType::Orthographic;
         std::shared_ptr<PerspectiveCamera> m_PerspectiveCamera;
+        std::atomic<bool> m_ProcessingFrame{false};
     };
 }

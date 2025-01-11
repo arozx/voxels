@@ -1,12 +1,12 @@
 #include "../pch.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <mutex>
 #include "Renderer.h"
 #include "VertexArray.h"
 #include "Material.h"
 #include "../Shader/Shader.h"
 #include "../Camera/OrthographicCamera.h"
+#include "../Core/TaskSystem.h"
 
 namespace Engine {
     Renderer::Renderer() {}
@@ -25,15 +25,7 @@ namespace Engine {
         const Transform& transform,
         GLenum primitiveType) 
     {
-        auto shader = material->GetShader();
-        shader->Bind();
-        if (m_CameraType == CameraType::Orthographic) {
-            shader->SetMat4("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
-        } else {
-            shader->SetMat4("u_ViewProjection", m_PerspectiveCamera->GetViewProjectionMatrix());
-        }
-        shader->SetMat4("u_Model", transform.GetModelMatrix());
-        
+        // Don't bind or set uniforms here, just submit the command
         RenderCommand command;
         command.vertexArray = vertexArray;
         command.material = material;
@@ -45,20 +37,71 @@ namespace Engine {
     }
 
     void Renderer::Flush() {
-        std::lock_guard<std::mutex> lock(m_QueueMutex);
-        while (!m_CommandQueue.empty()) {
-            const auto& command = m_CommandQueue.front();
+        if (m_ProcessingFrame.exchange(true)) {
+            return; // Already processing a frame
+        }
+
+        std::vector<PreprocessedRenderCommand> commands;
+        {
+            std::lock_guard<std::mutex> lock(m_QueueMutex);
+            while (!m_CommandQueue.empty()) {
+                commands.push_back({
+                    m_CommandQueue.front().vertexArray,
+                    m_CommandQueue.front().material,
+                    m_CommandQueue.front().primitiveType,
+                    m_CommandQueue.front().transform.GetModelMatrix()
+                });
+                m_CommandQueue.pop();
+            }
+        }
+
+        static bool taskSystemInitialized = false;
+        if (!taskSystemInitialized) {
+            TaskSystem::Get().Initialize();
+            taskSystemInitialized = true;
+        }
+
+        // Process commands in parallel using TaskSystem
+        std::vector<std::future<void>> futures;
+        const size_t batchSize = 64; // Number of commands to process per task
+        
+        for (size_t i = 0; i < commands.size(); i += batchSize) {
+            size_t end = std::min(i + batchSize, commands.size());
+            futures.push_back(TaskSystem::Get().EnqueueTask([this, &commands, i, end]() {
+                for (size_t j = i; j < end; j++) {
+                    auto& cmd = commands[j];
+                    // Do CPU-intensive work here (transformations, frustum culling, etc.)
+                }
+            }));
+        }
+
+        for (auto& future : futures) {
+            future.wait();
+        }
+
+        // Execute render commands on main thread
+        for (const auto& command : commands) {
             command.material->Bind();
-            command.material->GetShader()->SetMat4("u_Model", command.transform.GetModelMatrix());
+            auto shader = command.material->GetShader();
+            
+            if (m_CameraType == CameraType::Orthographic) {
+                shader->SetMat4("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
+            } else {
+                shader->SetMat4("u_ViewProjection", m_PerspectiveCamera->GetViewProjectionMatrix());
+            }
+            shader->SetMat4("u_Model", command.modelMatrix);
+            
             command.vertexArray->Bind();
             glDrawElements(command.primitiveType, 
                 command.vertexArray->GetIndexBuffer()->GetCount(), 
                 GL_UNSIGNED_INT, 
                 nullptr);
+                
             command.vertexArray->Unbind();
             command.material->Unbind();
-            m_CommandQueue.pop();
         }
+
+        m_ProcessingFrame = false;
     }
 
     void Renderer::Draw() {

@@ -53,6 +53,7 @@ set(SOURCES
     src/Shader/DefaultShaders.h
     src/Renderer/MeshTemplates.h
     src/Debug/Profiler.cpp
+    src/Threading/ThreadPool.cpp
     ${IMGUI_SOURCES}
 )
 

@@ -17,6 +17,11 @@
 #include <ctime>
 #include <chrono>
 #include <fstream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <future>
+#include <queue>
 #endif
 
 // Platform detection
