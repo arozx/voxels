@@ -30,6 +30,15 @@ namespace Engine {
             2, 3, 0   // second triangle
         };
 
+        // Square vertices with texture coordinates
+        static const std::vector<float> TexturedSquare = {
+            // positions        // texture coords
+            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+             0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+             0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
+            -0.5f,  0.5f, 0.0f, 0.0f, 1.0f
+        };
+
         // Helper function to get raw vertex data
         static std::vector<float> GetVertexData(const std::vector<Vertex>& vertices) {
             std::vector<float> data;

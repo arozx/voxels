@@ -20,6 +20,14 @@ namespace Engine {
             
         for (const auto& [name, value] : m_MatrixProperties)
             m_Shader->SetMat4(name, value);
+            
+        // Bind textures
+        m_TextureSlot = 0;
+        for (const auto& [name, texture] : m_Textures) {
+            texture->Bind(m_TextureSlot);
+            m_Shader->SetInt(name, m_TextureSlot);
+            m_TextureSlot++;
+        }
     }
 
     void Material::Unbind() {
@@ -52,5 +60,9 @@ namespace Engine {
 
     void Material::SetMatrix4(const std::string& name, const glm::mat4& value) {
         m_MatrixProperties[name] = value;
+    }
+
+    void Material::SetTexture(const std::string& name, const std::shared_ptr<Texture>& texture) {
+        m_Textures[name] = texture;
     }
 }

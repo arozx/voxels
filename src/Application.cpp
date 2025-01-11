@@ -56,14 +56,20 @@ namespace Engine {
             MeshTemplates::TriangleIndices.size()));
         m_VertexArray->SetIndexBuffer(indexBuffer);
 
-        // Create square mesh using template
-        auto squareVertices = MeshTemplates::GetVertexData(MeshTemplates::Square);
+        // Create textured square
+        auto squareVertices = MeshTemplates::TexturedSquare;
         m_SquareVA.reset(VertexArray::Create());
         
         std::shared_ptr<VertexBuffer> squareVB(
             VertexBuffer::Create(squareVertices.data(), 
             squareVertices.size() * sizeof(float)));
-        squareVB->SetLayout(layout);  // Reuse the same layout
+
+        BufferLayout squareLayout = {
+            { ShaderDataType::Float3, "aPosition" },
+            { ShaderDataType::Float2, "aTexCoord" }
+        };
+        
+        squareVB->SetLayout(squareLayout);
         m_SquareVA->AddVertexBuffer(squareVB);
 
         std::shared_ptr<IndexBuffer> squareIB(
@@ -71,15 +77,20 @@ namespace Engine {
             MeshTemplates::SquareIndices.size()));
         m_SquareVA->SetIndexBuffer(squareIB);
 
-        // Create shader for square
+        // Load texture
+        m_TestTexture = Texture::Create("assets/textures/test.png");
+
+        // Create shader for textured square
         m_SquareShader = std::make_shared<Shader>(
-            DefaultShaders::BasicVertexShader, 
-            DefaultShaders::ColorFragmentShader);
+            DefaultShaders::TexturedVertexShader, 
+            DefaultShaders::TexturedFragmentShader);
         m_SquareMaterial = std::make_shared<Material>(m_SquareShader);
-        m_SquareMaterial->SetVector4("u_Color", glm::vec4(0.2f, 0.3f, 0.8f, 1.0f));
+        m_SquareMaterial->SetTexture("u_Texture", m_TestTexture);
+        m_SquareMaterial->SetVector4("u_Color", glm::vec4(1.0f));
 
         // Create transform for square
-        m_SquareTransform.position = glm::vec3(1.0f, 0.0f, 0.0f);
+        m_SquareTransform.position = glm::vec3(0.5f, 0.5f, 0.5f);
+        // m_SquareTransform.rotation = glm::vec3(0.0f); // In radians
         m_SquareTransform.scale = glm::vec3(0.5f);
     }
 
@@ -93,13 +104,22 @@ namespace Engine {
     void Application::Run() {
         LOG_INFO("Application Starting...");
         
-        bool show_demo_window = true;
+        bool ImGuiEnabled = true;
+
         float lastFrameTime = 0.0f;
 
         while (m_Running && m_Window) {
             float time = (float)glfwGetTime();
             float deltaTime = time - lastFrameTime;
             lastFrameTime = time;
+
+            // Calculate FPS
+            m_FrameTime = deltaTime;
+            m_FPSUpdateTimer += deltaTime;
+            if (m_FPSUpdateTimer >= 0.5f) { // Update FPS twice per second
+                m_FPS = 1.0f / m_FrameTime;
+                m_FPSUpdateTimer = 0.0f;
+            }
 
             // Toggle mouse control with right mouse button
             if (glfwGetMouseButton(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
@@ -148,10 +168,41 @@ namespace Engine {
                     m_Renderer.GetPerspectiveCamera()->MoveDown(deltaTime);
             }
 
+            // Update transform (TRS)
+            // m_SquareTransform.rotation.z = time; // Rotate around Z axis
+            // float scale = (sin(time) + 2.0f) * 0.5f; // Scale between 0.5 and 1.5
+            // m_SquareTransform.scale = glm::vec3(scale);
+            m_SquareTransform.scale = glm::vec3(1.0f); // Or whatever fixed scale you want
+
+            // Add WASD movement for the square
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS)
+                m_SquareTransform.position.x -= 2.0f * deltaTime;
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS)
+                m_SquareTransform.position.x += 2.0f * deltaTime;
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS)
+                m_SquareTransform.position.y += 2.0f * deltaTime;
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS)
+                m_SquareTransform.position.y -= 2.0f * deltaTime;
+
+            // Add manual rotation controls with Q and E keys
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_Q) == GLFW_PRESS)
+                m_SquareTransform.rotation.z += 2.0f * deltaTime;
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_E) == GLFW_PRESS)
+                m_SquareTransform.rotation.z -= 2.0f * deltaTime;
+
             BeginScene();
             
-            if (show_demo_window) {
-                ImGui::ShowDemoWindow(&show_demo_window);
+            if (ImGuiEnabled) {
+                ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+                ImGui::Text("Camera Type: %s", m_Renderer.GetCameraType() == Renderer::CameraType::Orthographic ? "Orthographic" : "Perspective");
+                ImGui::Text("FPS: %.1f (%.2f ms)", m_FPS, m_FrameTime * 1000.0f);
+                ImGui::End();
+
+                ImGui::Begin("Transform Controls");
+                ImGui::DragFloat3("Position", &m_SquareTransform.position[0], 0.1f);
+                ImGui::DragFloat3("Rotation", &m_SquareTransform.rotation[0], 0.1f);
+                ImGui::DragFloat3("Scale", &m_SquareTransform.scale[0], 0.1f);
+                ImGui::End();
             }
 
             EndScene();

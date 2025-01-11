@@ -36,6 +36,7 @@ set(IMGUI_SOURCES
 # Add source files
 set(SOURCES
     external/glad/src/glad.c
+    external/stb_image/src/stb_image.cpp
     src/EntryPoint.cpp
     src/Application.cpp
     src/Window/OpenGLWindow.cpp
@@ -48,6 +49,7 @@ set(SOURCES
     src/Renderer/OpenGLVertexArray.cpp
     src/Camera/PerspectiveCamera.cpp
     src/Renderer/Material.cpp
+    src/Renderer/Texture.cpp
     src/Shader/DefaultShaders.h
     src/Renderer/MeshTemplates.h
     ${IMGUI_SOURCES}
@@ -68,6 +70,7 @@ target_include_directories(voxel-engine PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${CMAKE_SOURCE_DIR}/external/stb_image/src
 )
 
 # Enable precompiled headers - specify C++ explicitly

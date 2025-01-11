@@ -27,6 +27,11 @@ namespace Engine {
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
         
+        // Add FPS counter variables
+        float m_FPS = 0.0f;
+        float m_FrameTime = 0.0f;
+        float m_FPSUpdateTimer = 0.0f;
+
         std::shared_ptr<VertexArray> m_VertexArray;
         std::shared_ptr<Shader> m_Shader;
         std::shared_ptr<Material> m_Material;
@@ -36,6 +41,8 @@ namespace Engine {
         std::shared_ptr<Shader> m_SquareShader;
         std::shared_ptr<Material> m_SquareMaterial;
         Transform m_SquareTransform;
+
+        std::shared_ptr<Texture> m_TestTexture;
 
         float m_LastMouseX = 0.0f;
         float m_LastMouseY = 0.0f;
