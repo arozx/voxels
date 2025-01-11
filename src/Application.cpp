@@ -12,6 +12,7 @@
 #include <imgui.h>
 #include "Shader/DefaultShaders.h"
 #include "Renderer/MeshTemplates.h"
+#include "Debug/Profiler.h"
 
 namespace Engine {
     Application::Application() {
@@ -102,7 +103,10 @@ namespace Engine {
     }
 
     void Application::Run() {
+        PROFILE_FUNCTION();
         LOG_INFO("Application Starting...");
+        
+        Profiler::Get().BeginSession("Runtime");
         
         bool ImGuiEnabled = true;
 
@@ -202,6 +206,40 @@ namespace Engine {
                 ImGui::DragFloat3("Position", &m_SquareTransform.position[0], 0.1f);
                 ImGui::DragFloat3("Rotation", &m_SquareTransform.rotation[0], 0.1f);
                 ImGui::DragFloat3("Scale", &m_SquareTransform.scale[0], 0.1f);
+                ImGui::End();
+
+                ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+                
+                bool enabled = Profiler::Get().IsEnabled();
+                if (ImGui::Checkbox("Enable Profiling", &enabled)) {
+                    Profiler::Get().SetEnabled(enabled);
+                }
+
+                if (ImGui::Button("Clear Profiling Data")) {
+                    Profiler::Get().ClearProfiles();
+                }
+
+                ImGui::Separator();
+
+                for (const auto& [name, timings] : Profiler::Get().GetProfiles()) {
+                    if (timings.empty()) continue;
+                    
+                    float total = 0.0f;
+                    for (float time : timings) {
+                        total += time;
+                    }
+                    
+                    float avg = total / static_cast<float>(timings.size());
+                    float min = *std::min_element(timings.begin(), timings.end());
+                    float max = *std::max_element(timings.begin(), timings.end());
+                    
+                    ImGui::Text("%s:", name.c_str());
+                    ImGui::Text("  Avg: %.3f ms", avg);
+                    ImGui::Text("  Min: %.3f ms", min);
+                    ImGui::Text("  Max: %.3f ms", max);
+                    ImGui::Text("  Calls: %zu", timings.size());
+                    ImGui::Separator();
+                }
                 ImGui::End();
             }
 

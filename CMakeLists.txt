@@ -52,6 +52,7 @@ set(SOURCES
     src/Renderer/Texture.cpp
     src/Shader/DefaultShaders.h
     src/Renderer/MeshTemplates.h
+    src/Debug/Profiler.cpp
     ${IMGUI_SOURCES}
 )
 
