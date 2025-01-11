@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 
 namespace Engine {
-    OpenGLVertexBuffer::OpenGLVertexBuffer(float* vertices, uint32_t size)
+    OpenGLVertexBuffer::OpenGLVertexBuffer(const float* vertices, uint32_t size)
     {
         glGenBuffers(1, &m_RendererID);
         glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -24,7 +24,7 @@ namespace Engine {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    OpenGLIndexBuffer::OpenGLIndexBuffer(uint32_t* indices, uint32_t count)
+    OpenGLIndexBuffer::OpenGLIndexBuffer(const uint32_t* indices, uint32_t count)
         : m_Count(count)
     {
         glGenBuffers(1, &m_RendererID);

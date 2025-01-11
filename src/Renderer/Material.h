@@ -1,7 +1,6 @@
 #pragma once
+#include "../pch.h"
 #include <glad/glad.h>
-#include <memory>
-#include <unordered_map>
 #include <glm/glm.hpp>
 #include "../Shader/Shader.h"
 

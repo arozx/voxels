@@ -11,6 +11,7 @@
 #include "Renderer/VertexArray.h"
 #include <imgui.h>
 #include "Shader/DefaultShaders.h"
+#include "Renderer/MeshTemplates.h"
 
 namespace Engine {
     Application::Application() {
@@ -35,17 +36,13 @@ namespace Engine {
         m_Material = std::make_shared<Material>(m_Shader);
         m_Material->SetVector4("u_Color", glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
 
-        // Create vertex array
-        float vertices[] = {
-            -0.5f, -0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f,
-            0.0f,  0.5f, 0.0f
-        };
-        uint32_t indices[] = { 0, 1, 2 };
-
+        // Create triangle mesh using template
+        auto triangleVertices = MeshTemplates::GetVertexData(MeshTemplates::Triangle);
         m_VertexArray.reset(VertexArray::Create());
         
-        std::shared_ptr<VertexBuffer> vertexBuffer(VertexBuffer::Create(vertices, sizeof(vertices)));
+        std::shared_ptr<VertexBuffer> vertexBuffer(
+            VertexBuffer::Create(triangleVertices.data(), 
+            triangleVertices.size() * sizeof(float)));
         
         BufferLayout layout = {
             { ShaderDataType::Float3, "aPosition" }
@@ -54,33 +51,24 @@ namespace Engine {
         vertexBuffer->SetLayout(layout);
         m_VertexArray->AddVertexBuffer(vertexBuffer);
 
-        std::shared_ptr<IndexBuffer> indexBuffer(IndexBuffer::Create(indices, 3));
+        std::shared_ptr<IndexBuffer> indexBuffer(
+            IndexBuffer::Create(MeshTemplates::TriangleIndices.data(), 
+            MeshTemplates::TriangleIndices.size()));
         m_VertexArray->SetIndexBuffer(indexBuffer);
 
-        // Create square mesh
-        float squareVertices[] = {
-            -0.5f, -0.5f, 0.0f,  // bottom left
-             0.5f, -0.5f, 0.0f,  // bottom right
-             0.5f,  0.5f, 0.0f,  // top right
-            -0.5f,  0.5f, 0.0f   // top left
-        };
-        
-        uint32_t squareIndices[] = {
-            0, 1, 2,  // first triangle
-            2, 3, 0   // second triangle
-        };
-
-        // Create vertex array for square
+        // Create square mesh using template
+        auto squareVertices = MeshTemplates::GetVertexData(MeshTemplates::Square);
         m_SquareVA.reset(VertexArray::Create());
         
-        std::shared_ptr<VertexBuffer> squareVB(VertexBuffer::Create(squareVertices, sizeof(squareVertices)));
-        BufferLayout squareLayout = {
-            { ShaderDataType::Float3, "aPosition" }
-        };
-        squareVB->SetLayout(squareLayout);
+        std::shared_ptr<VertexBuffer> squareVB(
+            VertexBuffer::Create(squareVertices.data(), 
+            squareVertices.size() * sizeof(float)));
+        squareVB->SetLayout(layout);  // Reuse the same layout
         m_SquareVA->AddVertexBuffer(squareVB);
 
-        std::shared_ptr<IndexBuffer> squareIB(IndexBuffer::Create(squareIndices, 6));
+        std::shared_ptr<IndexBuffer> squareIB(
+            IndexBuffer::Create(MeshTemplates::SquareIndices.data(), 
+            MeshTemplates::SquareIndices.size()));
         m_SquareVA->SetIndexBuffer(squareIB);
 
         // Create shader for square

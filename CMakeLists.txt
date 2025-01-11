@@ -49,6 +49,7 @@ set(SOURCES
     src/Camera/PerspectiveCamera.cpp
     src/Renderer/Material.cpp
     src/Shader/DefaultShaders.h
+    src/Renderer/MeshTemplates.h
     ${IMGUI_SOURCES}
 )
 
