@@ -47,6 +47,8 @@ set(SOURCES
     src/Renderer/VertexArray.cpp
     src/Renderer/OpenGLVertexArray.cpp
     src/Camera/PerspectiveCamera.cpp
+    src/Renderer/Material.cpp
+    src/Shader/DefaultShaders.h
     ${IMGUI_SOURCES}
 )
 

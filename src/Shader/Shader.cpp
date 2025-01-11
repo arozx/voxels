@@ -62,4 +62,29 @@ namespace Engine {
         GLint location = glGetUniformLocation(m_Program, name.c_str());
         glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
     }
+
+    void Shader::SetInt(const std::string& name, int value) {
+        GLint location = glGetUniformLocation(m_Program, name.c_str());
+        glUniform1i(location, value);
+    }
+
+    void Shader::SetFloat(const std::string& name, float value) {
+        GLint location = glGetUniformLocation(m_Program, name.c_str());
+        glUniform1f(location, value);
+    }
+
+    void Shader::SetVector2(const std::string& name, const glm::vec2& value) {
+        GLint location = glGetUniformLocation(m_Program, name.c_str());
+        glUniform2f(location, value.x, value.y);
+    }
+
+    void Shader::SetVector3(const std::string& name, const glm::vec3& value) {
+        GLint location = glGetUniformLocation(m_Program, name.c_str());
+        glUniform3f(location, value.x, value.y, value.z);
+    }
+
+    void Shader::SetVector4(const std::string& name, const glm::vec4& value) {
+        GLint location = glGetUniformLocation(m_Program, name.c_str());
+        glUniform4f(location, value.x, value.y, value.z, value.w);
+    }
 }

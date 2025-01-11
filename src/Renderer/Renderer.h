@@ -1,8 +1,10 @@
 #pragma once
-#include "Buffer.h"
-#include "../Shader/Shader.h"
-#include <queue>
 #include <glad/glad.h>
+#include <queue>
+#include <mutex>
+#include "Buffer.h"
+#include "Material.h"
+#include "../Shader/Shader.h"
 #include "../Camera/OrthographicCamera.h"
 #include "../Camera/PerspectiveCamera.h"
 
@@ -10,6 +12,7 @@ namespace Engine {
     class Shader;
     class VertexArray;
     class OrthographicCamera;
+    class Material;
 
     struct Transform {
         glm::vec3 position = glm::vec3(0.0f);
@@ -29,7 +32,7 @@ namespace Engine {
 
     struct RenderCommand {
         std::shared_ptr<VertexArray> vertexArray;
-        std::shared_ptr<Shader> shader;
+        std::shared_ptr<Material> material;
         GLenum primitiveType;
         Transform transform;
     };
@@ -46,12 +49,9 @@ namespace Engine {
 
         void Init();
         void Draw();
-        void Submit(const std::shared_ptr<VertexArray>& vertexArray, 
-            const std::shared_ptr<Shader>& shader,
-            GLenum primitiveType = GL_TRIANGLES);
         void Submit(const std::shared_ptr<VertexArray>& vertexArray,
-            const std::shared_ptr<Shader>& shader,
-            const Transform& transform,
+            const std::shared_ptr<Material>& material,
+            const Transform& transform = Transform(),
             GLenum primitiveType = GL_TRIANGLES);
         void Flush();
 
@@ -65,6 +65,7 @@ namespace Engine {
         void SetPerspectiveCamera(const std::shared_ptr<PerspectiveCamera>& camera) { m_PerspectiveCamera = camera; }
 
     private:
+        std::mutex m_QueueMutex;
         std::shared_ptr<Shader> m_Shader;
         std::shared_ptr<VertexArray> m_VertexArray;
         std::queue<RenderCommand> m_CommandQueue;

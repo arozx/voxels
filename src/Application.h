@@ -2,6 +2,7 @@
 #include "Window/Window.h"
 #include "ImGui/ImGuiLayer.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/Material.h"
 
 namespace Engine {
     class Application {
@@ -28,7 +29,13 @@ namespace Engine {
         
         std::shared_ptr<VertexArray> m_VertexArray;
         std::shared_ptr<Shader> m_Shader;
+        std::shared_ptr<Material> m_Material;
         Renderer m_Renderer;
+
+        std::shared_ptr<VertexArray> m_SquareVA;
+        std::shared_ptr<Shader> m_SquareShader;
+        std::shared_ptr<Material> m_SquareMaterial;
+        Transform m_SquareTransform;
 
         float m_LastMouseX = 0.0f;
         float m_LastMouseY = 0.0f;

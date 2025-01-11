@@ -10,6 +10,7 @@
 #include "Camera/OrthographicCamera.h"
 #include "Renderer/VertexArray.h"
 #include <imgui.h>
+#include "Shader/DefaultShaders.h"
 
 namespace Engine {
     Application::Application() {
@@ -27,27 +28,12 @@ namespace Engine {
 
         m_Renderer.Init();
 
-        // Create shader
-        const char* vertexShaderSource = R"(
-            #version 330 core
-            layout (location = 0) in vec3 aPos;
-            
-            uniform mat4 u_ViewProjection;
-            uniform mat4 u_Model;
-            
-            void main() {
-                gl_Position = u_ViewProjection * u_Model * vec4(aPos, 1.0);
-            }
-        )";
-        const char* fragmentShaderSource = R"(
-            #version 330 core
-            out vec4 FragColor;
-            void main() {
-                FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-            }
-        )";
-
-        m_Shader = std::make_shared<Shader>(vertexShaderSource, fragmentShaderSource);
+        // Create shader for triangle
+        m_Shader = std::make_shared<Shader>(
+            DefaultShaders::BasicVertexShader, 
+            DefaultShaders::SimpleColorFragmentShader);
+        m_Material = std::make_shared<Material>(m_Shader);
+        m_Material->SetVector4("u_Color", glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
 
         // Create vertex array
         float vertices[] = {
@@ -70,6 +56,43 @@ namespace Engine {
 
         std::shared_ptr<IndexBuffer> indexBuffer(IndexBuffer::Create(indices, 3));
         m_VertexArray->SetIndexBuffer(indexBuffer);
+
+        // Create square mesh
+        float squareVertices[] = {
+            -0.5f, -0.5f, 0.0f,  // bottom left
+             0.5f, -0.5f, 0.0f,  // bottom right
+             0.5f,  0.5f, 0.0f,  // top right
+            -0.5f,  0.5f, 0.0f   // top left
+        };
+        
+        uint32_t squareIndices[] = {
+            0, 1, 2,  // first triangle
+            2, 3, 0   // second triangle
+        };
+
+        // Create vertex array for square
+        m_SquareVA.reset(VertexArray::Create());
+        
+        std::shared_ptr<VertexBuffer> squareVB(VertexBuffer::Create(squareVertices, sizeof(squareVertices)));
+        BufferLayout squareLayout = {
+            { ShaderDataType::Float3, "aPosition" }
+        };
+        squareVB->SetLayout(squareLayout);
+        m_SquareVA->AddVertexBuffer(squareVB);
+
+        std::shared_ptr<IndexBuffer> squareIB(IndexBuffer::Create(squareIndices, 6));
+        m_SquareVA->SetIndexBuffer(squareIB);
+
+        // Create shader for square
+        m_SquareShader = std::make_shared<Shader>(
+            DefaultShaders::BasicVertexShader, 
+            DefaultShaders::ColorFragmentShader);
+        m_SquareMaterial = std::make_shared<Material>(m_SquareShader);
+        m_SquareMaterial->SetVector4("u_Color", glm::vec4(0.2f, 0.3f, 0.8f, 1.0f));
+
+        // Create transform for square
+        m_SquareTransform.position = glm::vec3(1.0f, 0.0f, 0.0f);
+        m_SquareTransform.scale = glm::vec3(0.5f);
     }
 
     Application::~Application() {
@@ -235,7 +258,8 @@ namespace Engine {
         // RGB Alpha
         // m_Window->SetClear(1.0f, 0.0f, 1.0f, 0.0f);
         m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f); // Dark Grey
-        m_Renderer.Submit(m_VertexArray, m_Shader);
+        m_Renderer.Submit(m_VertexArray, m_Material);
+        m_Renderer.Submit(m_SquareVA, m_SquareMaterial, m_SquareTransform);
         m_Renderer.Draw();
 
         m_ImGuiLayer->Begin();
