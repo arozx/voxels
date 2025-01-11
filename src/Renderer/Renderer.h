@@ -3,6 +3,8 @@
 #include "../Shader/Shader.h"
 #include <queue>
 #include <glad/glad.h>
+#include "../Camera/OrthographicCamera.h"
+#include "../Camera/PerspectiveCamera.h"
 
 namespace Engine {
     class Shader;
@@ -34,6 +36,11 @@ namespace Engine {
 
     class Renderer {
     public:
+        enum class CameraType {
+            Orthographic,
+            Perspective
+        };
+
         Renderer();
         ~Renderer();
 
@@ -51,10 +58,18 @@ namespace Engine {
         std::shared_ptr<OrthographicCamera>& GetCamera() { return m_Camera; }
         void SetCamera(const std::shared_ptr<OrthographicCamera>& camera) { m_Camera = camera; }
 
+        void SetCameraType(CameraType type);
+        CameraType GetCameraType() const { return m_CameraType; }
+
+        std::shared_ptr<PerspectiveCamera>& GetPerspectiveCamera() { return m_PerspectiveCamera; }
+        void SetPerspectiveCamera(const std::shared_ptr<PerspectiveCamera>& camera) { m_PerspectiveCamera = camera; }
+
     private:
         std::shared_ptr<Shader> m_Shader;
         std::shared_ptr<VertexArray> m_VertexArray;
         std::queue<RenderCommand> m_CommandQueue;
         std::shared_ptr<Engine::OrthographicCamera> m_Camera;
+        CameraType m_CameraType = CameraType::Orthographic;
+        std::shared_ptr<PerspectiveCamera> m_PerspectiveCamera;
     };
 }

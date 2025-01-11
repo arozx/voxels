@@ -102,18 +102,39 @@ namespace Engine {
                 glfwSetInputMode(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             }
 
+            // Camera type switching
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_1) == GLFW_PRESS) {
+                m_Renderer.SetCameraType(Renderer::CameraType::Orthographic);
+                LOG_INFO("Switched to Orthographic Camera");
+            }
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_2) == GLFW_PRESS) {
+                m_Renderer.SetCameraType(Renderer::CameraType::Perspective);
+                LOG_INFO("Switched to Perspective Camera");
+            }
+
             // Camera Movement
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS) {
-                m_Renderer.GetCamera()->MoveUp(deltaTime);
-            }
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS) {
-                m_Renderer.GetCamera()->MoveDown(deltaTime);
-            }
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS) {
-                m_Renderer.GetCamera()->MoveLeft(deltaTime);
-            }
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS) {
-                m_Renderer.GetCamera()->MoveRight(deltaTime);
+            if (m_Renderer.GetCameraType() == Renderer::CameraType::Orthographic) {
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS)
+                    m_Renderer.GetCamera()->MoveUp(deltaTime);
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS)
+                    m_Renderer.GetCamera()->MoveDown(deltaTime);
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS)
+                    m_Renderer.GetCamera()->MoveLeft(deltaTime);
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS)
+                    m_Renderer.GetCamera()->MoveRight(deltaTime);
+            } else {
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS)
+                    m_Renderer.GetPerspectiveCamera()->MoveForward(deltaTime);
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS)
+                    m_Renderer.GetPerspectiveCamera()->MoveBackward(deltaTime);
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS)
+                    m_Renderer.GetPerspectiveCamera()->MoveLeft(deltaTime);
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS)
+                    m_Renderer.GetPerspectiveCamera()->MoveRight(deltaTime);
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_SPACE) == GLFW_PRESS)
+                    m_Renderer.GetPerspectiveCamera()->MoveUp(deltaTime);
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+                    m_Renderer.GetPerspectiveCamera()->MoveDown(deltaTime);
             }
 
             BeginScene();
@@ -170,12 +191,14 @@ namespace Engine {
                             }
 
                             float xOffset = me.GetX() - m_LastMouseX;
-                            float yOffset = m_LastMouseY - me.GetY();  // Reversed since y-coordinates range from bottom to top
+                            float yOffset = m_LastMouseY - me.GetY();
 
                             m_LastMouseX = me.GetX();
                             m_LastMouseY = me.GetY();
 
-                            m_Renderer.GetCamera()->RotateWithMouse(xOffset, yOffset, 0.1f);
+                            if (m_Renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                                m_Renderer.GetPerspectiveCamera()->RotateWithMouse(xOffset, yOffset, 0.1f);
+                            }
                         }
                         break;
                     }

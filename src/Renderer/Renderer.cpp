@@ -15,6 +15,7 @@ namespace Engine {
             return;
         }
         m_Camera = std::make_shared<OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f);
+        m_PerspectiveCamera = std::make_shared<PerspectiveCamera>(45.0f, 1280.0f/720.0f);
     }
 
     void Renderer::Submit(const std::shared_ptr<VertexArray>& vertexArray,
@@ -30,7 +31,11 @@ namespace Engine {
         GLenum primitiveType) 
         {
         shader->Bind();
-        shader->SetMat4("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
+        if (m_CameraType == CameraType::Orthographic) {
+            shader->SetMat4("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
+        } else {
+            shader->SetMat4("u_ViewProjection", m_PerspectiveCamera->GetViewProjectionMatrix());
+        }
         shader->SetMat4("u_Model", transform.GetModelMatrix());
         
         RenderCommand command;
@@ -59,5 +64,9 @@ namespace Engine {
 
     void Renderer::Draw() {
         Flush();
+    }
+
+    void Renderer::SetCameraType(CameraType type) {
+        m_CameraType = type;
     }
 }

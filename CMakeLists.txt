@@ -46,6 +46,7 @@ set(SOURCES
     src/ImGui/ImGuiLayer.cpp
     src/Renderer/VertexArray.cpp
     src/Renderer/OpenGLVertexArray.cpp
+    src/Camera/PerspectiveCamera.cpp
     ${IMGUI_SOURCES}
 )
 
