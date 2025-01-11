@@ -26,10 +26,14 @@ namespace Engine {
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
         
-        unsigned int m_VertexArray, m_VertexBuffer, m_IndexBuffer;
-        
-        unsigned int m_ShaderProgram;
+        std::shared_ptr<VertexArray> m_VertexArray;
+        std::shared_ptr<Shader> m_Shader;
         Renderer m_Renderer;
+
+        float m_LastMouseX = 0.0f;
+        float m_LastMouseY = 0.0f;
+        bool m_FirstMouse = true;
+        bool m_MouseControlEnabled = false;
     };
 
     // To be defined by client application

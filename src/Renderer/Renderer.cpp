@@ -4,6 +4,7 @@
 #include "Renderer.h"
 #include "VertexArray.h"
 #include "../Shader/Shader.h"
+#include "../Camera/OrthographicCamera.h"
 
 namespace Engine {
     Renderer::Renderer() {}
@@ -13,55 +14,30 @@ namespace Engine {
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
             return;
         }
-
-        const char* vertexShaderSource = R"(
-            #version 330 core
-            layout (location = 0) in vec3 aPos;
-            void main() {
-                gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-            }
-        )";
-        const char* fragmentShaderSource = R"(
-            #version 330 core
-            out vec4 FragColor;
-            void main() {
-                FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-            }
-        )";
-
-        m_Shader = std::make_shared<Shader>(vertexShaderSource, fragmentShaderSource);
-
-        float vertices[] = {
-            -0.5f, -0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f,
-            0.0f,  0.5f, 0.0f
-        };
-
-        uint32_t indices[] = { 0, 1, 2 };
-
-        m_VertexArray.reset(VertexArray::Create());
-        
-        std::shared_ptr<VertexBuffer> vertexBuffer(VertexBuffer::Create(vertices, sizeof(vertices)));
-        
-        BufferLayout layout = {
-            { ShaderDataType::Float3, "aPosition" }
-        };
-        
-        vertexBuffer->SetLayout(layout);
-        m_VertexArray->AddVertexBuffer(vertexBuffer);
-
-        std::shared_ptr<IndexBuffer> indexBuffer(IndexBuffer::Create(indices, 3));
-        m_VertexArray->SetIndexBuffer(indexBuffer);
+        m_Camera = std::make_shared<OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f);
     }
 
     void Renderer::Submit(const std::shared_ptr<VertexArray>& vertexArray,
         const std::shared_ptr<Shader>& shader,
         GLenum primitiveType) 
         {
+        Submit(vertexArray, shader, Transform(), primitiveType);
+    }
+
+    void Renderer::Submit(const std::shared_ptr<VertexArray>& vertexArray,
+        const std::shared_ptr<Shader>& shader,
+        const Transform& transform,
+        GLenum primitiveType) 
+        {
+        shader->Bind();
+        shader->SetMat4("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
+        shader->SetMat4("u_Model", transform.GetModelMatrix());
+        
         RenderCommand command;
         command.vertexArray = vertexArray;
         command.shader = shader;
         command.primitiveType = primitiveType;
+        command.transform = transform;
         m_CommandQueue.push(command);
     }
 
@@ -69,6 +45,7 @@ namespace Engine {
         while (!m_CommandQueue.empty()) {
             const auto& command = m_CommandQueue.front();
             command.shader->Bind();
+            command.shader->SetMat4("u_Model", command.transform.GetModelMatrix());
             command.vertexArray->Bind();
             glDrawElements(command.primitiveType, 
                 command.vertexArray->GetIndexBuffer()->GetCount(), 
@@ -81,9 +58,6 @@ namespace Engine {
     }
 
     void Renderer::Draw() {
-        // Submit the default triangle
-        Submit(m_VertexArray, m_Shader, GL_TRIANGLES);
-        // Execute all queued commands
         Flush();
     }
 }

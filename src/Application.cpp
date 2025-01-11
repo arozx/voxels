@@ -7,6 +7,8 @@
 #include "Events/MouseEvent.h"
 #include "Events/WindowEvent.h"
 #include "Events/KeyCodes.h"
+#include "Camera/OrthographicCamera.h"
+#include "Renderer/VertexArray.h"
 #include <imgui.h>
 
 namespace Engine {
@@ -24,7 +26,51 @@ namespace Engine {
         m_ImGuiLayer->Init(m_Window.get());
 
         m_Renderer.Init();
-    };
+
+        // Create shader
+        const char* vertexShaderSource = R"(
+            #version 330 core
+            layout (location = 0) in vec3 aPos;
+            
+            uniform mat4 u_ViewProjection;
+            uniform mat4 u_Model;
+            
+            void main() {
+                gl_Position = u_ViewProjection * u_Model * vec4(aPos, 1.0);
+            }
+        )";
+        const char* fragmentShaderSource = R"(
+            #version 330 core
+            out vec4 FragColor;
+            void main() {
+                FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+            }
+        )";
+
+        m_Shader = std::make_shared<Shader>(vertexShaderSource, fragmentShaderSource);
+
+        // Create vertex array
+        float vertices[] = {
+            -0.5f, -0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f,
+            0.0f,  0.5f, 0.0f
+        };
+        uint32_t indices[] = { 0, 1, 2 };
+
+        m_VertexArray.reset(VertexArray::Create());
+        
+        std::shared_ptr<VertexBuffer> vertexBuffer(VertexBuffer::Create(vertices, sizeof(vertices)));
+        
+        BufferLayout layout = {
+            { ShaderDataType::Float3, "aPosition" }
+        };
+        
+        vertexBuffer->SetLayout(layout);
+        m_VertexArray->AddVertexBuffer(vertexBuffer);
+
+        std::shared_ptr<IndexBuffer> indexBuffer(IndexBuffer::Create(indices, 3));
+        m_VertexArray->SetIndexBuffer(indexBuffer);
+    }
 
     Application::~Application() {
         if (m_ImGuiLayer) {
@@ -37,8 +83,39 @@ namespace Engine {
         LOG_INFO("Application Starting...");
         
         bool show_demo_window = true;
+        float lastFrameTime = 0.0f;
 
         while (m_Running && m_Window) {
+            float time = (float)glfwGetTime();
+            float deltaTime = time - lastFrameTime;
+            lastFrameTime = time;
+
+            // Toggle mouse control with right mouse button
+            if (glfwGetMouseButton(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
+                if (!m_MouseControlEnabled) {
+                    m_MouseControlEnabled = true;
+                    m_FirstMouse = true;
+                    glfwSetInputMode(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                }
+            } else {
+                m_MouseControlEnabled = false;
+                glfwSetInputMode(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+
+            // Camera Movement
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS) {
+                m_Renderer.GetCamera()->MoveUp(deltaTime);
+            }
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS) {
+                m_Renderer.GetCamera()->MoveDown(deltaTime);
+            }
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS) {
+                m_Renderer.GetCamera()->MoveLeft(deltaTime);
+            }
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS) {
+                m_Renderer.GetCamera()->MoveRight(deltaTime);
+            }
+
             BeginScene();
             
             if (show_demo_window) {
@@ -84,8 +161,22 @@ namespace Engine {
                         break;
                     }
                     case EventType::MouseMoved: {
-                        const auto& me = static_cast<const MouseMovedEvent&>(e);
-                        // LOG_INFO_CONCAT("Mouse moved to: (", me.GetX(), ", ", me.GetY(), ")");
+                        if (m_MouseControlEnabled) {
+                            const auto& me = static_cast<const MouseMovedEvent&>(e);
+                            if (m_FirstMouse) {
+                                m_LastMouseX = me.GetX();
+                                m_LastMouseY = me.GetY();
+                                m_FirstMouse = false;
+                            }
+
+                            float xOffset = me.GetX() - m_LastMouseX;
+                            float yOffset = m_LastMouseY - me.GetY();  // Reversed since y-coordinates range from bottom to top
+
+                            m_LastMouseX = me.GetX();
+                            m_LastMouseY = me.GetY();
+
+                            m_Renderer.GetCamera()->RotateWithMouse(xOffset, yOffset, 0.1f);
+                        }
                         break;
                     }
                     case EventType::MouseButtonPressed: {
@@ -117,7 +208,11 @@ namespace Engine {
     }
 
     void Application::BeginScene() {
-        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f); // R, G, B, Alpha
+        //* OPTIONAL: make magenta to make it clear when clear is rendered
+        // RGB Alpha
+        // m_Window->SetClear(1.0f, 0.0f, 1.0f, 0.0f);
+        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f); // Dark Grey
+        m_Renderer.Submit(m_VertexArray, m_Shader);
         m_Renderer.Draw();
 
         m_ImGuiLayer->Begin();
