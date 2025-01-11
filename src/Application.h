@@ -27,10 +27,16 @@ namespace Engine {
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
         
-        // Add FPS counter variables
+        bool m_ShowFPSCounter = true;
+        static const size_t FPS_SAMPLE_COUNT = 200; // Store last ~3.3 seconds at 60fps
+        std::vector<float> m_FPSSamples;
         float m_FPS = 0.0f;
+        float m_CurrentFPS = 0.0f;
+        float m_FPS1PercentHigh = 0.0f;
+        float m_FPS1PercentLow = 0.0f;
         float m_FrameTime = 0.0f;
         float m_FPSUpdateTimer = 0.0f;
+        size_t m_CurrentFPSSample = 0;
 
         std::shared_ptr<VertexArray> m_VertexArray;
         std::shared_ptr<Shader> m_Shader;

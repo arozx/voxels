@@ -93,6 +93,8 @@ namespace Engine {
         m_SquareTransform.position = glm::vec3(0.5f, 0.5f, 0.5f);
         // m_SquareTransform.rotation = glm::vec3(0.0f); // In radians
         m_SquareTransform.scale = glm::vec3(0.5f);
+
+        m_FPSSamples.resize(FPS_SAMPLE_COUNT, 0.0f);
     }
 
     Application::~Application() {
@@ -117,11 +119,51 @@ namespace Engine {
             float deltaTime = time - lastFrameTime;
             lastFrameTime = time;
 
+            // Toggle FPS counter with F3
+            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_F3) == GLFW_PRESS) {
+                static float lastPress = 0.0f;
+                if (time - lastPress > 0.2f) { // Debounce
+                    m_ShowFPSCounter = !m_ShowFPSCounter;
+                    lastPress = time;
+                }
+            }
+
             // Calculate FPS
             m_FrameTime = deltaTime;
+            m_CurrentFPS = 1.0f / m_FrameTime;
+            m_FPSSamples[m_CurrentFPSSample] = m_CurrentFPS;
+            m_CurrentFPSSample = (m_CurrentFPSSample + 1) % FPS_SAMPLE_COUNT;
+
             m_FPSUpdateTimer += deltaTime;
-            if (m_FPSUpdateTimer >= 0.5f) { // Update FPS twice per second
-                m_FPS = 1.0f / m_FrameTime;
+            if (m_FPSUpdateTimer >= 0.5f) {
+                // Calculate average FPS
+                float sum = 0.0f;
+                for (float fps : m_FPSSamples) {
+                    sum += fps;
+                }
+                m_FPS = sum / FPS_SAMPLE_COUNT;
+
+                // Calculate 1% highs and lows
+                std::vector<float> sortedFPS = m_FPSSamples;
+                std::sort(sortedFPS.begin(), sortedFPS.end());
+                
+                size_t onePercent = FPS_SAMPLE_COUNT / 100;
+                if (onePercent < 1) onePercent = 1;
+
+                // Calculate 1% lows (average of bottom 1%)
+                float lowSum = 0.0f;
+                for (size_t i = 0; i < onePercent; i++) {
+                    lowSum += sortedFPS[i];
+                }
+                m_FPS1PercentLow = lowSum / onePercent;
+
+                // Calculate 1% highs (average of top 1%)
+                float highSum = 0.0f;
+                for (size_t i = 0; i < onePercent; i++) {
+                    highSum += sortedFPS[FPS_SAMPLE_COUNT - 1 - i];
+                }
+                m_FPS1PercentHigh = highSum / onePercent;
+
                 m_FPSUpdateTimer = 0.0f;
             }
 
@@ -197,16 +239,25 @@ namespace Engine {
             BeginScene();
             
             if (ImGuiEnabled) {
-                ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-                ImGui::Text("Camera Type: %s", m_Renderer.GetCameraType() == Renderer::CameraType::Orthographic ? "Orthographic" : "Perspective");
-                ImGui::Text("FPS: %.1f (%.2f ms)", m_FPS, m_FrameTime * 1000.0f);
-                
-                bool vsync = m_Window->IsVSync();
-                if (ImGui::Checkbox("VSync", &vsync)) {
-                    m_Window->SetVSync(vsync);
+                if (m_ShowFPSCounter) {
+                    ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+                    ImGui::Text("Camera Type: %s", m_Renderer.GetCameraType() == Renderer::CameraType::Orthographic ? "Orthographic" : "Perspective");
+                    ImGui::Separator();
+                    ImGui::Text("Current FPS: %.1f", m_CurrentFPS);
+                    ImGui::Text("Average FPS: %.1f", m_FPS);
+                    ImGui::Text("Frame Time: %.2f ms", m_FrameTime * 1000.0f);
+                    ImGui::Text("1%% Low: %.1f", m_FPS1PercentLow);
+                    ImGui::Text("1%% High: %.1f", m_FPS1PercentHigh);
+                    ImGui::Separator();
+                    
+                    bool vsync = m_Window->IsVSync();
+                    if (ImGui::Checkbox("VSync", &vsync)) {
+                        m_Window->SetVSync(vsync);
+                    }
+                    
+                    ImGui::Text("Press F3 to toggle FPS counter");
+                    ImGui::End();
                 }
-                
-                ImGui::End();
 
                 ImGui::Begin("Transform Controls");
                 ImGui::DragFloat3("Position", &m_SquareTransform.position[0], 0.1f);
