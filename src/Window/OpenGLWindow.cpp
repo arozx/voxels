@@ -1,5 +1,5 @@
+#include <pch.h>
 #include "OpenGLWindow.h"
-#include "../Logging.h"
 #include "../Events/WindowEvent.h"
 #include "../Events/KeyEvent.h"
 #include "../Events/MouseEvent.h"

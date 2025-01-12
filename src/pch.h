@@ -23,6 +23,13 @@
 #include <condition_variable>
 #include <future>
 #include <queue>
+
+// OpenGL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+// Engine
+#include "Logging.h"
 #endif
 
 // Platform detection

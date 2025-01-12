@@ -1,7 +1,6 @@
+#include <pch.h>
 #include "Shader.h"
 #include <glad/glad.h>
-#include "pch.h"
-#include "../Logging.h"
 
 namespace Engine {
     Shader::Shader(const char* vertexSrc, const char* fragmentSrc) {
