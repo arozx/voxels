@@ -100,7 +100,8 @@ namespace Engine {
         m_TransparentTransform.position.z -= 0.1f;
 
         CreateFileShaderSquare();
-
+        CreatePixelatedSquare();
+        
         m_FPSSamples.resize(FPS_SAMPLE_COUNT, 0.0f);
     }
 
@@ -403,6 +404,7 @@ namespace Engine {
         m_Renderer.Submit(m_SquareVA, m_SquareMaterial, m_SquareTransform);
         m_Renderer.Submit(m_TransparentSquareVA, m_TransparentMaterial, m_TransparentTransform);
         m_Renderer.Submit(m_FileShaderSquareVA, m_FileShaderSquareMaterial, m_FileShaderSquareTransform);
+        m_Renderer.Submit(m_PixelatedSquareVA, m_PixelatedMaterial, m_PixelatedTransform);
         m_Renderer.Draw();
 
         m_ImGuiLayer->Begin();
@@ -455,5 +457,19 @@ namespace Engine {
         // Position the square to the left of the original square
         m_FileShaderSquareTransform.position = glm::vec3(-0.5f, 0.5f, 0.5f);
         m_FileShaderSquareTransform.scale = glm::vec3(0.5f);
+    }
+
+    void Application::CreatePixelatedSquare() {
+        m_PixelatedSquareVA = m_SquareVA;
+        
+        m_PixelatedShader = DefaultShaders::LoadPixelShader();
+        m_PixelatedMaterial = std::make_shared<Material>(m_PixelatedShader);
+        
+        m_PixelatedMaterial->SetFloat("u_PixelSize", 8.0f);
+        m_PixelatedMaterial->SetTexture("u_Texture", m_TestTexture);
+        m_PixelatedMaterial->SetVector4("u_Color", glm::vec4(1.0f));
+        
+        m_PixelatedTransform.position = glm::vec3(1.5f, 0.5f, 0.5f);
+        m_PixelatedTransform.scale = glm::vec3(0.5f);
     }
 }

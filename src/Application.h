@@ -65,10 +65,18 @@ namespace Engine {
         std::shared_ptr<Material> m_FileShaderSquareMaterial; 
         Transform m_FileShaderSquareTransform;
 
+        // Pixelated square
+        std::shared_ptr<VertexArray> m_PixelatedSquareVA;
+        std::shared_ptr<Shader> m_PixelatedShader;
+        std::shared_ptr<Material> m_PixelatedMaterial;
+        Transform m_PixelatedTransform;
+        
         float m_LastMouseX = 0.0f;
         float m_LastMouseY = 0.0f;
         bool m_FirstMouse = true;
         bool m_MouseControlEnabled = false;
+
+        void CreatePixelatedSquare();
     };
 
     // To be defined by client application

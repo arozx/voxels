@@ -23,5 +23,12 @@ namespace Engine {
                 "assets/shaders/textured.frag"
             ));
         }
+
+        static std::shared_ptr<Shader> LoadPixelShader() {
+            return std::shared_ptr<Shader>(Shader::CreateFromFiles(
+                "assets/shaders/textured.vert", // Reuse the textured vertex shader
+                "assets/shaders/pixel.frag"
+            ));
+        }
     }
 }
