@@ -30,5 +30,19 @@ namespace Engine {
                 "assets/shaders/pixel.frag"
             ));
         }
+
+        static std::shared_ptr<Shader> LoadWaveDissolveShader() {
+            return std::shared_ptr<Shader>(Shader::CreateFromFiles(
+                "assets/shaders/textured.vert",
+                "assets/shaders/wave_dissolve.frag"
+            ));
+        }
+
+        static std::shared_ptr<Shader> LoadBlurShader() {
+            return std::shared_ptr<Shader>(Shader::CreateFromFiles(
+                "assets/shaders/textured.vert",
+                "assets/shaders/blur.frag"
+            ));
+        }
     }
 }

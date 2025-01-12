@@ -70,6 +70,18 @@ namespace Engine {
         std::shared_ptr<Shader> m_PixelatedShader;
         std::shared_ptr<Material> m_PixelatedMaterial;
         Transform m_PixelatedTransform;
+
+        // Wave dissolve square
+        std::shared_ptr<VertexArray> m_WaveDissolveVA;
+        std::shared_ptr<Shader> m_WaveDissolveShader;
+        std::shared_ptr<Material> m_WaveDissolveMaterial;
+        Transform m_WaveDissolveTransform;
+
+        // Blur square
+        std::shared_ptr<VertexArray> m_BlurVA;
+        std::shared_ptr<Shader> m_BlurShader;
+        std::shared_ptr<Material> m_BlurMaterial;
+        Transform m_BlurTransform;
         
         float m_LastMouseX = 0.0f;
         float m_LastMouseY = 0.0f;
@@ -77,6 +89,8 @@ namespace Engine {
         bool m_MouseControlEnabled = false;
 
         void CreatePixelatedSquare();
+        void CreateWaveDissolveSquare();
+        void CreateBlurSquare();
     };
 
     // To be defined by client application

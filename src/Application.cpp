@@ -101,6 +101,8 @@ namespace Engine {
 
         CreateFileShaderSquare();
         CreatePixelatedSquare();
+        CreateWaveDissolveSquare();
+        CreateBlurSquare();
         
         m_FPSSamples.resize(FPS_SAMPLE_COUNT, 0.0f);
     }
@@ -243,6 +245,9 @@ namespace Engine {
                 m_SquareTransform.rotation.z += 2.0f * deltaTime;
             if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_E) == GLFW_PRESS)
                 m_SquareTransform.rotation.z -= 2.0f * deltaTime;
+
+            // Update wave dissolve effect
+            m_WaveDissolveMaterial->SetFloat("u_Time", time);
 
             BeginScene();
             
@@ -405,6 +410,8 @@ namespace Engine {
         m_Renderer.Submit(m_TransparentSquareVA, m_TransparentMaterial, m_TransparentTransform);
         m_Renderer.Submit(m_FileShaderSquareVA, m_FileShaderSquareMaterial, m_FileShaderSquareTransform);
         m_Renderer.Submit(m_PixelatedSquareVA, m_PixelatedMaterial, m_PixelatedTransform);
+        m_Renderer.Submit(m_WaveDissolveVA, m_WaveDissolveMaterial, m_WaveDissolveTransform);
+        m_Renderer.Submit(m_BlurVA, m_BlurMaterial, m_BlurTransform);
         m_Renderer.Draw();
 
         m_ImGuiLayer->Begin();
@@ -471,5 +478,33 @@ namespace Engine {
         
         m_PixelatedTransform.position = glm::vec3(1.5f, 0.5f, 0.5f);
         m_PixelatedTransform.scale = glm::vec3(0.5f);
+    }
+
+    void Application::CreateWaveDissolveSquare() {
+        m_WaveDissolveVA = m_SquareVA; // Reuse square mesh
+        m_WaveDissolveShader = DefaultShaders::LoadWaveDissolveShader();
+        m_WaveDissolveMaterial = std::make_shared<Material>(m_WaveDissolveShader);
+        
+        m_WaveDissolveMaterial->SetTexture("u_Texture", m_TestTexture);
+        m_WaveDissolveMaterial->SetVector4("u_Color", glm::vec4(1.0f));
+        m_WaveDissolveMaterial->SetFloat("u_WaveSpeed", 2.0f);
+        m_WaveDissolveMaterial->SetFloat("u_WaveFrequency", 10.0f);
+        m_WaveDissolveMaterial->SetFloat("u_DissolveAmount", 0.5f);
+        
+        m_WaveDissolveTransform.position = glm::vec3(-1.5f, -0.5f, 0.5f);
+        m_WaveDissolveTransform.scale = glm::vec3(0.5f);
+    }
+
+    void Application::CreateBlurSquare() {
+        m_BlurVA = m_SquareVA; // Reuse square mesh
+        m_BlurShader = DefaultShaders::LoadBlurShader();
+        m_BlurMaterial = std::make_shared<Material>(m_BlurShader);
+        
+        m_BlurMaterial->SetTexture("u_Texture", m_TestTexture);
+        m_BlurMaterial->SetVector4("u_Color", glm::vec4(1.0f));
+        m_BlurMaterial->SetFloat("u_BlurStrength", 0.005f);
+        
+        m_BlurTransform.position = glm::vec3(0.0f, -0.5f, 0.5f);
+        m_BlurTransform.scale = glm::vec3(0.5f);
     }
 }
