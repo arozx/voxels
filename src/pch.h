@@ -17,6 +17,7 @@
 #include <ctime>
 #include <chrono>
 #include <fstream>
+#include <sstream>
 #include <thread>
 #include <mutex>
 #include <condition_variable>

@@ -19,6 +19,9 @@ namespace Engine {
         void SetVector3(const std::string& name, const glm::vec3& value);
         void SetVector4(const std::string& name, const glm::vec4& value);
 
+        static Shader* CreateFromFiles(const std::string& vertexPath, const std::string& fragmentPath);
+        static std::string ReadFile(const std::string& filepath);
+
     private:
         uint32_t m_Program;
         bool CompileShader(const char* source, uint32_t type, uint32_t& shader);

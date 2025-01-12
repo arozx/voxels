@@ -22,6 +22,9 @@ namespace Engine {
         void Present();
         void SetViewport(int x, int y, int width, int height);
         
+        // Add new function to create a test square using file shaders
+        void CreateFileShaderSquare();
+
     private:
         bool m_Running = true;
         std::unique_ptr<Window> m_Window;
@@ -49,6 +52,18 @@ namespace Engine {
         Transform m_SquareTransform;
 
         std::shared_ptr<Texture> m_TestTexture;
+
+        // Transparent square
+        std::shared_ptr<VertexArray> m_TransparentSquareVA;
+        std::shared_ptr<Shader> m_TransparentShader;
+        std::shared_ptr<Material> m_TransparentMaterial;
+        Transform m_TransparentTransform;
+
+        // Add new members for file shader square
+        std::shared_ptr<VertexArray> m_FileShaderSquareVA;
+        std::shared_ptr<Shader> m_FileShaderSquareShader;
+        std::shared_ptr<Material> m_FileShaderSquareMaterial; 
+        Transform m_FileShaderSquareTransform;
 
         float m_LastMouseX = 0.0f;
         float m_LastMouseY = 0.0f;

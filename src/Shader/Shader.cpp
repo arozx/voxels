@@ -1,6 +1,8 @@
 #include "Shader.h"
 #include <glad/glad.h>
 #include "pch.h"
+#include "../Logging.h"
+
 namespace Engine {
     Shader::Shader(const char* vertexSrc, const char* fragmentSrc) {
         uint32_t vertexShader = 0, fragmentShader = 0;
@@ -86,5 +88,32 @@ namespace Engine {
     void Shader::SetVector4(const std::string& name, const glm::vec4& value) {
         GLint location = glGetUniformLocation(m_Program, name.c_str());
         glUniform4f(location, value.x, value.y, value.z, value.w);
+    }
+
+    Shader* Shader::CreateFromFiles(const std::string& vertexPath, const std::string& fragmentPath) {
+        std::string vertexSrc = ReadFile(vertexPath);
+        std::string fragmentSrc = ReadFile(fragmentPath);
+        
+        if (vertexSrc.empty() || fragmentSrc.empty()) {
+            return nullptr;
+        }
+        
+        return new Shader(vertexSrc.c_str(), fragmentSrc.c_str());
+    }
+
+    std::string Shader::ReadFile(const std::string& filepath) {
+        std::string result;
+        std::ifstream in(filepath, std::ios::in | std::ios::binary);
+        if (in) {
+            in.seekg(0, std::ios::end);
+            result.resize(in.tellg());
+            in.seekg(0, std::ios::beg);
+            in.read(&result[0], result.size());
+            in.close();
+        } else {
+            LOG_ERROR("Could not open file: {0}", filepath);
+            return "";
+        }
+        return result;
     }
 }

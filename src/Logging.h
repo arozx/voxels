@@ -2,6 +2,10 @@
 #include "pch.h"
 
 namespace Engine {
+    class Window;
+}
+
+namespace Engine {
     enum class LogLevel {
         Trace,
         Info,
@@ -39,12 +43,8 @@ namespace Engine {
         return "unique_ptr(nullptr)";
     }
 
-    // Add Window toString support
-    inline std::string ToString(const Window& window) {
-        std::stringstream ss;
-        ss << "Window[" << window.GetWidth() << "x" << window.GetHeight() << "]";
-        return ss.str(); 
-    }
+    // Move this specialization to a separate cpp file or inline header
+    inline std::string ToString(const Window& window);
 
     class Logger {
     public:

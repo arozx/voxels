@@ -94,6 +94,20 @@ namespace Engine {
         // m_SquareTransform.rotation = glm::vec3(0.0f); // In radians
         m_SquareTransform.scale = glm::vec3(0.5f);
 
+        // Transparent square
+        m_TransparentSquareVA = m_SquareVA; // Reuse the square geometry
+        m_TransparentShader = std::make_shared<Shader>(
+            DefaultShaders::TexturedVertexShader,
+            DefaultShaders::TexturedFragmentShader);
+        m_TransparentMaterial = std::make_shared<Material>(m_TransparentShader);
+        m_TransparentMaterial->SetVector4("u_Color", glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent red
+        
+        // Position transparent square slightly in front of the textured square
+        m_TransparentTransform = m_SquareTransform;
+        m_TransparentTransform.position.z -= 0.1f;
+
+        CreateFileShaderSquare();
+
         m_FPSSamples.resize(FPS_SAMPLE_COUNT, 0.0f);
     }
 
@@ -394,6 +408,8 @@ namespace Engine {
         m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f); // Dark Grey
         m_Renderer.Submit(m_VertexArray, m_Material);
         m_Renderer.Submit(m_SquareVA, m_SquareMaterial, m_SquareTransform);
+        m_Renderer.Submit(m_TransparentSquareVA, m_TransparentMaterial, m_TransparentTransform);
+        m_Renderer.Submit(m_FileShaderSquareVA, m_FileShaderSquareMaterial, m_FileShaderSquareTransform);
         m_Renderer.Draw();
 
         m_ImGuiLayer->Begin();
@@ -409,5 +425,42 @@ namespace Engine {
 
     void Application::SetViewport(int x, int y, int width, int height) {
         LOG_TRACE_CONCAT("Set Viewport: ", x, ",", y, ",", width, ",", height);
+    }
+
+    void Application::CreateFileShaderSquare() {
+        // Create vertex array using existing square mesh
+        m_FileShaderSquareVA.reset(VertexArray::Create());
+        
+        std::shared_ptr<VertexBuffer> squareVB(
+            VertexBuffer::Create(MeshTemplates::TexturedSquare.data(), 
+            MeshTemplates::TexturedSquare.size() * sizeof(float)));
+
+        BufferLayout squareLayout = {
+            { ShaderDataType::Float3, "aPosition" },
+            { ShaderDataType::Float2, "aTexCoord" }
+        };
+        
+        squareVB->SetLayout(squareLayout);
+        m_FileShaderSquareVA->AddVertexBuffer(squareVB);
+
+        std::shared_ptr<IndexBuffer> squareIB(
+            IndexBuffer::Create(MeshTemplates::SquareIndices.data(), 
+            MeshTemplates::SquareIndices.size()));
+        m_FileShaderSquareVA->SetIndexBuffer(squareIB);
+
+        // Load shader from files
+        m_FileShaderSquareShader = std::shared_ptr<Shader>(
+            Shader::CreateFromFiles(
+                "assets/shaders/basic.vert", 
+                "assets/shaders/basic.frag"
+            )
+        );
+
+        m_FileShaderSquareMaterial = std::make_shared<Material>(m_FileShaderSquareShader);
+        m_FileShaderSquareMaterial->SetVector4("u_Color", glm::vec4(0.2f, 0.8f, 0.3f, 1.0f));
+
+        // Position the square to the left of the original square
+        m_FileShaderSquareTransform.position = glm::vec3(-0.5f, 0.5f, 0.5f);
+        m_FileShaderSquareTransform.scale = glm::vec3(0.5f);
     }
 }
