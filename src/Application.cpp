@@ -30,9 +30,7 @@ namespace Engine {
         m_Renderer.Init();
 
         // Create shader for triangle
-        m_Shader = std::make_shared<Shader>(
-            DefaultShaders::BasicVertexShader, 
-            DefaultShaders::SimpleColorFragmentShader);
+        m_Shader = DefaultShaders::LoadSimpleColorShader();
         m_Material = std::make_shared<Material>(m_Shader);
         m_Material->SetVector4("u_Color", glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
 
@@ -81,9 +79,7 @@ namespace Engine {
         m_TestTexture = Texture::Create("assets/textures/test.png");
 
         // Create shader for textured square
-        m_SquareShader = std::make_shared<Shader>(
-            DefaultShaders::TexturedVertexShader, 
-            DefaultShaders::TexturedFragmentShader);
+        m_SquareShader = DefaultShaders::LoadTexturedShader();
         m_SquareMaterial = std::make_shared<Material>(m_SquareShader);
         m_SquareMaterial->SetTexture("u_Texture", m_TestTexture);
         m_SquareMaterial->SetVector4("u_Color", glm::vec4(1.0f));
@@ -95,9 +91,7 @@ namespace Engine {
 
         // Transparent square
         m_TransparentSquareVA = m_SquareVA; // Reuse the square geometry
-        m_TransparentShader = std::make_shared<Shader>(
-            DefaultShaders::TexturedVertexShader,
-            DefaultShaders::TexturedFragmentShader);
+        m_TransparentShader = DefaultShaders::LoadTexturedShader();
         m_TransparentMaterial = std::make_shared<Material>(m_TransparentShader);
         m_TransparentMaterial->SetVector4("u_Color", glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent red
         
