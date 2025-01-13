@@ -12,6 +12,7 @@
 #include "Shader/DefaultShaders.h"
 #include "Renderer/MeshTemplates.h"
 #include "Debug/Profiler.h"
+#include "Scene/SceneManager.h"
 
 namespace Engine {
     Application::Application() {
@@ -105,6 +106,11 @@ namespace Engine {
         CreateBlurSquare();
         
         m_FPSSamples.resize(FPS_SAMPLE_COUNT, 0.0f);
+
+        // Initialize terrain system
+        m_TerrainSystem = std::make_unique<TerrainSystem>();
+
+        m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), m_Renderer);
     }
 
     Application::~Application() {
@@ -128,6 +134,10 @@ namespace Engine {
             float time = (float)glfwGetTime();
             float deltaTime = time - lastFrameTime;
             lastFrameTime = time;
+
+            m_TerrainSystem->Update(deltaTime);
+            m_InputSystem->Update(deltaTime);
+            SceneManager::Get().Update(deltaTime);
 
             // Toggle FPS counter with F3
             if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_F3) == GLFW_PRESS) {
@@ -175,53 +185,6 @@ namespace Engine {
                 m_FPS1PercentHigh = highSum / onePercent;
 
                 m_FPSUpdateTimer = 0.0f;
-            }
-
-            // Toggle mouse control with right mouse button
-            if (glfwGetMouseButton(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
-                if (!m_MouseControlEnabled) {
-                    m_MouseControlEnabled = true;
-                    m_FirstMouse = true;
-                    glfwSetInputMode(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-                }
-            } else {
-                m_MouseControlEnabled = false;
-                glfwSetInputMode(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            }
-
-            // Camera type switching
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_1) == GLFW_PRESS) {
-                m_Renderer.SetCameraType(Renderer::CameraType::Orthographic);
-                LOG_INFO("Switched to Orthographic Camera");
-            }
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_2) == GLFW_PRESS) {
-                m_Renderer.SetCameraType(Renderer::CameraType::Perspective);
-                LOG_INFO("Switched to Perspective Camera");
-            }
-
-            // Camera Movement
-            if (m_Renderer.GetCameraType() == Renderer::CameraType::Orthographic) {
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS)
-                    m_Renderer.GetCamera()->MoveUp(deltaTime);
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS)
-                    m_Renderer.GetCamera()->MoveDown(deltaTime);
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS)
-                    m_Renderer.GetCamera()->MoveLeft(deltaTime);
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS)
-                    m_Renderer.GetCamera()->MoveRight(deltaTime);
-            } else {
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS)
-                    m_Renderer.GetPerspectiveCamera()->MoveForward(deltaTime);
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS)
-                    m_Renderer.GetPerspectiveCamera()->MoveBackward(deltaTime);
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS)
-                    m_Renderer.GetPerspectiveCamera()->MoveLeft(deltaTime);
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS)
-                    m_Renderer.GetPerspectiveCamera()->MoveRight(deltaTime);
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_SPACE) == GLFW_PRESS)
-                    m_Renderer.GetPerspectiveCamera()->MoveUp(deltaTime);
-                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-                    m_Renderer.GetPerspectiveCamera()->MoveDown(deltaTime);
             }
 
             // Update transform (TRS)
@@ -279,7 +242,6 @@ namespace Engine {
                 ImGui::End();
 
                 ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-                
                 bool enabled = Profiler::Get().IsEnabled();
                 if (ImGui::Checkbox("Enable Profiling", &enabled)) {
                     Profiler::Get().SetEnabled(enabled);
@@ -311,10 +273,23 @@ namespace Engine {
                     ImGui::Separator();
                 }
                 ImGui::End();
+
+                ImGui::Begin("Renderer");
+                bool cullingEnabled = glIsEnabled(GL_CULL_FACE);
+                if (ImGui::Checkbox("Enable Back-face Culling", &cullingEnabled)) {
+                    if (cullingEnabled) {
+                        glEnable(GL_CULL_FACE);
+                        glCullFace(GL_BACK);
+                        glFrontFace(GL_CCW); // Counter-clockwise winding order
+                    } else {
+                        glDisable(GL_CULL_FACE);
+                    }
+                }
+                ImGui::End();
             }
 
+            SceneManager::Get().Render(m_Renderer);
             EndScene();
-
             Present();
         }
     }
@@ -336,61 +311,9 @@ namespace Engine {
                 })
             );
 
+            // Forward events to InputSystem
             if (!e.IsHandled()) {
-                switch (e.GetEventType()) {
-                    case EventType::KeyPressed: {
-                        const auto& ke = static_cast<const KeyPressedEvent&>(e);
-                        std::string keyName = KeyCodeToString(ke.GetKeyCode());
-                        // LOG_INFO_CONCAT("Key pressed: ", keyName, " (keycode: ", ke.GetKeyCode(), ")",
-                        //     ke.IsRepeat() ? " (repeat)" : "");
-                        break;
-                    }
-                    case EventType::KeyReleased: {
-                        const auto& ke = static_cast<const KeyReleasedEvent&>(e);
-                        std::string keyName = KeyCodeToString(ke.GetKeyCode());
-                        // LOG_INFO_CONCAT("Key released: ", keyName, " (keycode: ", ke.GetKeyCode(), ")");
-                        break;
-                    }
-                    case EventType::MouseMoved: {
-                        if (m_MouseControlEnabled) {
-                            const auto& me = static_cast<const MouseMovedEvent&>(e);
-                            if (m_FirstMouse) {
-                                m_LastMouseX = me.GetX();
-                                m_LastMouseY = me.GetY();
-                                m_FirstMouse = false;
-                            }
-
-                            float xOffset = me.GetX() - m_LastMouseX;
-                            float yOffset = m_LastMouseY - me.GetY();
-
-                            m_LastMouseX = me.GetX();
-                            m_LastMouseY = me.GetY();
-
-                            if (m_Renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-                                m_Renderer.GetPerspectiveCamera()->RotateWithMouse(xOffset, yOffset, 0.1f);
-                            }
-                        }
-                        break;
-                    }
-                    case EventType::MouseButtonPressed: {
-                        const auto& me = static_cast<const MouseButtonPressedEvent&>(e);
-                        LOG_INFO_CONCAT("Mouse button pressed: ", me.GetButton());
-                        break;
-                    }
-                    case EventType::MouseButtonReleased: {
-                        const auto& me = static_cast<const MouseButtonReleasedEvent&>(e);
-                        // LOG_INFO_CONCAT("Mouse button released: ", me.GetButton());
-                        break;
-                    }
-                    case EventType::MouseScrolled: {
-                        const auto& me = static_cast<const MouseScrolledEvent&>(e);
-                        // LOG_INFO_CONCAT("Mouse scrolled: X:", me.GetXOffset(), " Y:", me.GetYOffset());
-                        break;
-                    }
-                    default:
-                        LOG_INFO_CONCAT("Event: ", e.GetName());
-                        break;
-                }
+                m_InputSystem->OnEvent(e);
             }
         });
     }
@@ -403,8 +326,9 @@ namespace Engine {
     void Application::BeginScene() {
         //* OPTIONAL: make magenta to make it clear when clear is rendered
         // RGB Alpha
-        // m_Window->SetClear(1.0f, 0.0f, 1.0f, 0.0f);
-        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f); // Dark Grey
+        m_Window->SetClear(1.0f, 0.0f, 1.0f, 0.0f);
+        // m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f); // Dark Grey
+        
         m_Renderer.Submit(m_VertexArray, m_Material);
         m_Renderer.Submit(m_SquareVA, m_SquareMaterial, m_SquareTransform);
         m_Renderer.Submit(m_TransparentSquareVA, m_TransparentMaterial, m_TransparentTransform);
@@ -412,6 +336,9 @@ namespace Engine {
         m_Renderer.Submit(m_PixelatedSquareVA, m_PixelatedMaterial, m_PixelatedTransform);
         m_Renderer.Submit(m_WaveDissolveVA, m_WaveDissolveMaterial, m_WaveDissolveTransform);
         m_Renderer.Submit(m_BlurVA, m_BlurMaterial, m_BlurTransform);
+        
+        m_TerrainSystem->Render(m_Renderer);
+
         m_Renderer.Draw();
 
         m_ImGuiLayer->Begin();
