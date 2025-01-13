@@ -58,6 +58,7 @@ set(SOURCES
     src/VoidNoise.cpp
     src/Input/InputSystem.cpp
     src/TerrainSystem/TerrainSystem.cpp
+    src/UI/ImGuiOverlay.cpp
     ${IMGUI_SOURCES}
 )
 

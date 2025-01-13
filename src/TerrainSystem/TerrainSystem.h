@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Renderer/VertexArray.h"
 #include "Renderer/Material.h"
 #include "Renderer/Renderer.h"
@@ -10,12 +11,14 @@ namespace Engine {
         TerrainSystem();
         ~TerrainSystem() = default;
 
+        void Initialize(Renderer& renderer);
         void Update(float deltaTime);
         void Render(Renderer& renderer);
         void RegenerateTerrain(uint32_t seed);
-        void GenerateMesh();
 
     private:
+        void GenerateMesh();
+
         std::unique_ptr<VoxelTerrain> m_Terrain;
         std::shared_ptr<VertexArray> m_TerrainVA;
         std::shared_ptr<Shader> m_TerrainShader;

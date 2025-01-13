@@ -1,6 +1,7 @@
+#include <pch.h>
 #include "TerrainSystem.h"
 #include "Shader/DefaultShaders.h"
-#include <glm/glm.hpp>
+#include "Renderer/MeshTemplates.h"
 
 namespace Engine {
     TerrainSystem::TerrainSystem() {
@@ -10,7 +11,7 @@ namespace Engine {
         // Load terrain texture
         m_TerrainTexture = Texture::Create("assets/textures/kenny_simple/PNG/Orange/texture_01.png");
         
-        m_TerrainShader = DefaultShaders::LoadTexturedShader();
+        m_TerrainShader = DefaultShaders::LoadTexturedShader();  // Using textured shader for now
         m_TerrainMaterial = std::make_shared<Material>(m_TerrainShader);
         m_TerrainMaterial->SetTexture("u_Texture", m_TerrainTexture);
         m_TerrainMaterial->SetVector4("u_Color", glm::vec4(1.0f));
@@ -21,12 +22,18 @@ namespace Engine {
         GenerateMesh();
     }
 
+    void TerrainSystem::Initialize(Renderer& renderer) {
+        // Already initialized in constructor, but could be used for renderer-specific setup
+    }
+
     void TerrainSystem::Update(float deltaTime) {
-        // Add any terrain update logic here
+        // Add terrain update logic here if needed
     }
 
     void TerrainSystem::Render(Renderer& renderer) {
-        renderer.Submit(m_TerrainVA, m_TerrainMaterial, m_TerrainTransform);
+        if (m_TerrainVA && m_TerrainMaterial) {
+            renderer.Submit(m_TerrainVA, m_TerrainMaterial, m_TerrainTransform);
+        }
     }
 
     void TerrainSystem::RegenerateTerrain(uint32_t seed) {
@@ -35,7 +42,6 @@ namespace Engine {
     }
 
     void TerrainSystem::GenerateMesh() {
-        // ...existing terrain mesh generation code from Application::GenerateTerrainMesh()...
         std::vector<float> vertices;
         std::vector<uint32_t> indices;
         uint32_t currentIndex = 0;
@@ -155,20 +161,22 @@ namespace Engine {
 
         m_TerrainVA.reset(VertexArray::Create());
         
-        std::shared_ptr<VertexBuffer> vertexBuffer(
-            VertexBuffer::Create(vertices.data(), 
-            vertices.size() * sizeof(float)));
-        
-        BufferLayout layout = {
-            { ShaderDataType::Float3, "aPosition" },
-            { ShaderDataType::Float2, "aTexCoord" }  // Add texture coordinates to layout
-        };
-        
-        vertexBuffer->SetLayout(layout);
-        m_TerrainVA->AddVertexBuffer(vertexBuffer);
+        if (!vertices.empty()) {
+            std::shared_ptr<VertexBuffer> vertexBuffer(
+                VertexBuffer::Create(vertices.data(), 
+                vertices.size() * sizeof(float)));
+            
+            BufferLayout layout = {
+                { ShaderDataType::Float3, "aPosition" },
+                { ShaderDataType::Float2, "aTexCoord" }
+            };
+            
+            vertexBuffer->SetLayout(layout);
+            m_TerrainVA->AddVertexBuffer(vertexBuffer);
 
-        std::shared_ptr<IndexBuffer> indexBuffer(
-            IndexBuffer::Create(indices.data(), indices.size()));
-        m_TerrainVA->SetIndexBuffer(indexBuffer);
+            std::shared_ptr<IndexBuffer> indexBuffer(
+                IndexBuffer::Create(indices.data(), indices.size()));
+            m_TerrainVA->SetIndexBuffer(indexBuffer);
+        }
     }
 }

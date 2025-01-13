@@ -2,6 +2,7 @@
 
 #include <pch.h>
 #include "../Core/Transform.h"
+#include "../Renderer/RenderObject.h"
 #include "../Window/Window.h"
 #include "../Renderer/Renderer.h"
 
@@ -11,9 +12,10 @@ namespace Engine {
         ImGuiOverlay(Window* window);
         ~ImGuiOverlay() = default;
 
-        void OnRender(const Transform& transform, bool& showFPSCounter, float currentFPS, 
-            float avgFPS, float frameTime, float fps1Low, float fps1High);
-        void RenderTransformControls(Transform& transform);
+        void OnRender(RenderObject& renderObject, bool showFPSCounter, 
+            float currentFPS, float averageFPS, float frameTime, 
+            float fps1PercentLow, float fps1PercentHigh);
+        void RenderTransformControls(RenderObject& renderObject);
         void RenderProfiler();
         void RenderRendererSettings();
 

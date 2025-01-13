@@ -31,75 +31,90 @@ namespace Engine {
 
         m_Renderer.Init();
 
-        // Create shader for triangle
-        m_Shader = DefaultShaders::LoadSimpleColorShader();
-        m_Material = std::make_shared<Material>(m_Shader);
-        m_Material->SetVector4("u_Color", glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
+        // Initialize terrain system before other rendering objects
+        m_TerrainSystem = std::make_unique<TerrainSystem>();
+        m_TerrainSystem->Initialize(m_Renderer);  // Make sure TerrainSystem has this method
 
-        // Create triangle mesh using template
+        // Create triangle
+        m_Triangle = std::make_unique<RenderableObject>();
+        auto triangleShader = DefaultShaders::LoadSimpleColorShader();
+        auto triangleMaterial = std::make_shared<Material>(triangleShader);
+        triangleMaterial->SetVector4("u_Color", glm::vec4(1.0f, 0.5f, 0.2f, 1.0f));
+
+        auto triangleVA = std::shared_ptr<VertexArray>(VertexArray::Create());
         auto triangleVertices = MeshTemplates::GetVertexData(MeshTemplates::Triangle);
-        m_VertexArray.reset(VertexArray::Create());
         
-        std::shared_ptr<VertexBuffer> vertexBuffer(
+        std::shared_ptr<VertexBuffer> triangleVB(
             VertexBuffer::Create(triangleVertices.data(), 
             triangleVertices.size() * sizeof(float)));
         
-        BufferLayout layout = {
+        BufferLayout triangleLayout = {
             { ShaderDataType::Float3, "aPosition" }
         };
         
-        vertexBuffer->SetLayout(layout);
-        m_VertexArray->AddVertexBuffer(vertexBuffer);
+        triangleVB->SetLayout(triangleLayout);
+        triangleVA->AddVertexBuffer(triangleVB);
 
-        std::shared_ptr<IndexBuffer> indexBuffer(
+        std::shared_ptr<IndexBuffer> triangleIB(
             IndexBuffer::Create(MeshTemplates::TriangleIndices.data(), 
             MeshTemplates::TriangleIndices.size()));
-        m_VertexArray->SetIndexBuffer(indexBuffer);
+        triangleVA->SetIndexBuffer(triangleIB);
 
-        // Create textured square
-        auto squareVertices = MeshTemplates::TexturedSquare;
-        m_SquareVA.reset(VertexArray::Create());
-        
-        std::shared_ptr<VertexBuffer> squareVB(
-            VertexBuffer::Create(squareVertices.data(), 
-            squareVertices.size() * sizeof(float)));
+        m_Triangle->SetRenderObject(std::make_unique<RenderObject>(
+            triangleVA, triangleMaterial, Transform()));
 
-        BufferLayout squareLayout = {
-            { ShaderDataType::Float3, "aPosition" },
-            { ShaderDataType::Float2, "aTexCoord" }
-        };
-        
-        squareVB->SetLayout(squareLayout);
-        m_SquareVA->AddVertexBuffer(squareVB);
-
-        std::shared_ptr<IndexBuffer> squareIB(
-            IndexBuffer::Create(MeshTemplates::SquareIndices.data(), 
-            MeshTemplates::SquareIndices.size()));
-        m_SquareVA->SetIndexBuffer(squareIB);
-
-        // Load texture
+        // Load shared texture
         m_TestTexture = Texture::Create("assets/textures/test.png");
 
-        // Create shader for textured square
-        m_SquareShader = DefaultShaders::LoadTexturedShader();
-        m_SquareMaterial = std::make_shared<Material>(m_SquareShader);
-        m_SquareMaterial->SetTexture("u_Texture", m_TestTexture);
-        m_SquareMaterial->SetVector4("u_Color", glm::vec4(1.0f));
+        // Create textured square
+        auto createSquare = [this](const glm::vec3& position, 
+            const std::shared_ptr<Shader>& shader,
+            const glm::vec4& color = glm::vec4(1.0f)) -> std::unique_ptr<RenderableObject> {
+            auto object = std::make_unique<RenderableObject>();
+            
+            auto va = std::shared_ptr<VertexArray>(VertexArray::Create());
+            auto vertices = MeshTemplates::TexturedSquare;
+            
+            std::shared_ptr<VertexBuffer> vb(
+                VertexBuffer::Create(vertices.data(), 
+                vertices.size() * sizeof(float)));
+                
+            BufferLayout layout = {
+                { ShaderDataType::Float3, "aPosition" },
+                { ShaderDataType::Float2, "aTexCoord" }
+            };
+            
+            vb->SetLayout(layout);
+            va->AddVertexBuffer(vb);
+            
+            std::shared_ptr<IndexBuffer> ib(
+                IndexBuffer::Create(MeshTemplates::SquareIndices.data(), 
+                MeshTemplates::SquareIndices.size()));
+            va->SetIndexBuffer(ib);
+            
+            auto material = std::make_shared<Material>(shader);
+            material->SetTexture("u_Texture", m_TestTexture);
+            material->SetVector4("u_Color", color);
+            
+            Transform transform;
+            transform.position = position;
+            transform.scale = glm::vec3(0.5f);
+            
+            object->SetRenderObject(std::make_unique<RenderObject>(va, material, transform));
+            return object;
+        };
 
-        // Create transform for square
-        m_SquareTransform.position = glm::vec3(0.5f, 0.5f, 0.5f);
-        // m_SquareTransform.rotation = glm::vec3(0.0f); // In radians
-        m_SquareTransform.scale = glm::vec3(0.5f);
+        // Create all squares using the helper function
+        m_TexturedSquare = createSquare(
+            glm::vec3(0.5f, 0.5f, 0.5f),
+            DefaultShaders::LoadTexturedShader()
+        );
 
-        // Transparent square
-        m_TransparentSquareVA = m_SquareVA; // Reuse the square geometry
-        m_TransparentShader = DefaultShaders::LoadTexturedShader();
-        m_TransparentMaterial = std::make_shared<Material>(m_TransparentShader);
-        m_TransparentMaterial->SetVector4("u_Color", glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent red
-        
-        // Position transparent square slightly in front of the textured square
-        m_TransparentTransform = m_SquareTransform;
-        m_TransparentTransform.position.z -= 0.1f;
+        m_TransparentSquare = createSquare(
+            glm::vec3(0.5f, 0.5f, 0.4f),
+            DefaultShaders::LoadTexturedShader(),
+            glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)
+        );
 
         CreateFileShaderSquare();
         CreatePixelatedSquare();
@@ -108,12 +123,49 @@ namespace Engine {
         
         m_FPSSamples.resize(FPS_SAMPLE_COUNT, 0.0f);
 
-        // Initialize terrain system
-        m_TerrainSystem = std::make_unique<TerrainSystem>();
-
         m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), m_Renderer);
 
         m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
+
+        // Instead of creating raw rendering resources, create RenderableObjects
+        auto createTexturedSquare = [](const glm::vec3& position, const glm::vec4& color) {
+            auto object = std::make_unique<RenderableObject>();
+            
+            auto vertexArray = std::shared_ptr<VertexArray>(VertexArray::Create());
+            auto vertices = MeshTemplates::TexturedSquare;
+            
+            std::shared_ptr<VertexBuffer> vertexBuffer(
+                VertexBuffer::Create(vertices.data(), vertices.size() * sizeof(float)));
+                
+            BufferLayout layout = {
+                { ShaderDataType::Float3, "aPosition" },
+                { ShaderDataType::Float2, "aTexCoord" }
+            };
+            
+            vertexBuffer->SetLayout(layout);
+            vertexArray->AddVertexBuffer(vertexBuffer);
+            
+            std::shared_ptr<IndexBuffer> indexBuffer(
+                IndexBuffer::Create(MeshTemplates::SquareIndices.data(), 
+                MeshTemplates::SquareIndices.size()));
+            vertexArray->SetIndexBuffer(indexBuffer);
+            
+            auto shader = DefaultShaders::LoadTexturedShader();
+            auto material = std::make_shared<Material>(shader);
+            material->SetVector4("u_Color", color);
+            
+            Transform transform;
+            transform.position = position;
+            transform.scale = glm::vec3(0.5f);
+            
+            object->SetRenderObject(std::make_unique<RenderObject>(vertexArray, material, transform));
+            return object;
+        };
+
+        // Create renderable objects
+        m_RenderableObjects.push_back(createTexturedSquare(glm::vec3(0.5f), glm::vec4(1.0f)));
+        m_RenderableObjects.push_back(createTexturedSquare(glm::vec3(-0.5f), glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)));
+        // Add more objects as needed...
     }
 
     Application::~Application() {
@@ -152,37 +204,41 @@ namespace Engine {
 
             UpdateFPSCounter(deltaTime, time);
 
-            // Update transform (TRS)
-            // m_SquareTransform.rotation.z = time; // Rotate around Z axis
-            // float scale = (sin(time) + 2.0f) * 0.5f; // Scale between 0.5 and 1.5
-            // m_SquareTransform.scale = glm::vec3(scale);
-            m_SquareTransform.scale = glm::vec3(1.0f); // Or whatever fixed scale you want
+            // Update active square transform
+            if (m_TexturedSquare) {
+                auto& transform = m_TexturedSquare->GetRenderObject().GetTransform();
+                
+                // Update scale
+                transform.scale = glm::vec3(1.0f);
 
-            // Add WASD movement for the square
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS)
-                m_SquareTransform.position.x -= 2.0f * deltaTime;
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS)
-                m_SquareTransform.position.x += 2.0f * deltaTime;
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS)
-                m_SquareTransform.position.y += 2.0f * deltaTime;
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS)
-                m_SquareTransform.position.y -= 2.0f * deltaTime;
+                // WASD movement
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_A) == GLFW_PRESS)
+                    transform.position.x -= 2.0f * deltaTime;
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_D) == GLFW_PRESS)
+                    transform.position.x += 2.0f * deltaTime;
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_W) == GLFW_PRESS)
+                    transform.position.y += 2.0f * deltaTime;
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_S) == GLFW_PRESS)
+                    transform.position.y -= 2.0f * deltaTime;
 
-            // Add manual rotation controls with Q and E keys
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_Q) == GLFW_PRESS)
-                m_SquareTransform.rotation.z += 2.0f * deltaTime;
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_E) == GLFW_PRESS)
-                m_SquareTransform.rotation.z -= 2.0f * deltaTime;
+                // QE rotation
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_Q) == GLFW_PRESS)
+                    transform.rotation.z += 2.0f * deltaTime;
+                if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_E) == GLFW_PRESS)
+                    transform.rotation.z -= 2.0f * deltaTime;
+            }
 
             // Update wave dissolve effect
-            m_WaveDissolveMaterial->SetFloat("u_Time", time);
+            if (m_WaveDissolveSquare) {
+                m_WaveDissolveSquare->GetRenderObject().GetMaterial()->SetFloat("u_Time", time);
+            }
 
             BeginScene();
             
-            if (ImGuiEnabled) {
-                m_ImGuiOverlay->OnRender(m_SquareTransform, m_ShowFPSCounter, 
+            if (ImGuiEnabled && m_TexturedSquare) {
+                m_ImGuiOverlay->OnRender(m_TexturedSquare->GetRenderObject(), m_ShowFPSCounter, 
                     m_CurrentFPS, m_FPS, m_FrameTime, m_FPS1PercentLow, m_FPS1PercentHigh);
-                m_ImGuiOverlay->RenderTransformControls(m_SquareTransform);
+                m_ImGuiOverlay->RenderTransformControls(m_TexturedSquare->GetRenderObject());
                 m_ImGuiOverlay->RenderProfiler();
                 m_ImGuiOverlay->RenderRendererSettings();
             }
@@ -263,23 +319,19 @@ namespace Engine {
     }
 
     void Application::BeginScene() {
-        //* OPTIONAL: make magenta to make it clear when clear is rendered
-        // RGB Alpha
-        m_Window->SetClear(1.0f, 0.0f, 1.0f, 0.0f);
-        // m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f); // Dark Grey
-        
-        m_Renderer.Submit(m_VertexArray, m_Material);
-        m_Renderer.Submit(m_SquareVA, m_SquareMaterial, m_SquareTransform);
-        m_Renderer.Submit(m_TransparentSquareVA, m_TransparentMaterial, m_TransparentTransform);
-        m_Renderer.Submit(m_FileShaderSquareVA, m_FileShaderSquareMaterial, m_FileShaderSquareTransform);
-        m_Renderer.Submit(m_PixelatedSquareVA, m_PixelatedMaterial, m_PixelatedTransform);
-        m_Renderer.Submit(m_WaveDissolveVA, m_WaveDissolveMaterial, m_WaveDissolveTransform);
-        m_Renderer.Submit(m_BlurVA, m_BlurMaterial, m_BlurTransform);
+        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
         
         m_TerrainSystem->Render(m_Renderer);
+        
+        if (m_Triangle) m_Triangle->OnRender(m_Renderer);
+        if (m_TexturedSquare) m_TexturedSquare->OnRender(m_Renderer);
+        if (m_TransparentSquare) m_TransparentSquare->OnRender(m_Renderer);
+        if (m_FileShaderSquare) m_FileShaderSquare->OnRender(m_Renderer);
+        if (m_PixelatedSquare) m_PixelatedSquare->OnRender(m_Renderer);
+        if (m_WaveDissolveSquare) m_WaveDissolveSquare->OnRender(m_Renderer);
+        if (m_BlurSquare) m_BlurSquare->OnRender(m_Renderer);
 
         m_Renderer.Draw();
-
         m_ImGuiLayer->Begin();
     }
 
@@ -296,8 +348,8 @@ namespace Engine {
     }
 
     void Application::CreateFileShaderSquare() {
-        // Create vertex array using existing square mesh
-        m_FileShaderSquareVA.reset(VertexArray::Create());
+        m_FileShaderSquare = std::make_unique<RenderableObject>();
+        auto va = std::shared_ptr<VertexArray>(VertexArray::Create());
         
         std::shared_ptr<VertexBuffer> squareVB(
             VertexBuffer::Create(MeshTemplates::TexturedSquare.data(), 
@@ -309,68 +361,86 @@ namespace Engine {
         };
         
         squareVB->SetLayout(squareLayout);
-        m_FileShaderSquareVA->AddVertexBuffer(squareVB);
+        va->AddVertexBuffer(squareVB);
 
         std::shared_ptr<IndexBuffer> squareIB(
             IndexBuffer::Create(MeshTemplates::SquareIndices.data(), 
             MeshTemplates::SquareIndices.size()));
-        m_FileShaderSquareVA->SetIndexBuffer(squareIB);
+        va->SetIndexBuffer(squareIB);
 
         // Load shader from files
-        m_FileShaderSquareShader = std::shared_ptr<Shader>(
+        auto shader = std::shared_ptr<Shader>(
             Shader::CreateFromFiles(
                 "assets/shaders/basic.vert", 
                 "assets/shaders/basic.frag"
             )
         );
 
-        m_FileShaderSquareMaterial = std::make_shared<Material>(m_FileShaderSquareShader);
-        m_FileShaderSquareMaterial->SetVector4("u_Color", glm::vec4(0.2f, 0.8f, 0.3f, 1.0f));
+        auto material = std::make_shared<Material>(shader);
+        material->SetVector4("u_Color", glm::vec4(0.2f, 0.8f, 0.3f, 1.0f));
 
-        // Position the square to the left of the original square
-        m_FileShaderSquareTransform.position = glm::vec3(-0.5f, 0.5f, 0.5f);
-        m_FileShaderSquareTransform.scale = glm::vec3(0.5f);
+        Transform transform;
+        transform.position = glm::vec3(-0.5f, 0.5f, 0.5f);
+        transform.scale = glm::vec3(0.5f);
+
+        m_FileShaderSquare->SetRenderObject(std::make_unique<RenderObject>(va, material, transform));
     }
 
     void Application::CreatePixelatedSquare() {
-        m_PixelatedSquareVA = m_SquareVA;
+        m_PixelatedSquare = std::make_unique<RenderableObject>();
         
-        m_PixelatedShader = DefaultShaders::LoadPixelShader();
-        m_PixelatedMaterial = std::make_shared<Material>(m_PixelatedShader);
+        auto shader = DefaultShaders::LoadPixelShader();
+        auto material = std::make_shared<Material>(shader);
         
-        m_PixelatedMaterial->SetFloat("u_PixelSize", 8.0f);
-        m_PixelatedMaterial->SetTexture("u_Texture", m_TestTexture);
-        m_PixelatedMaterial->SetVector4("u_Color", glm::vec4(1.0f));
+        material->SetFloat("u_PixelSize", 8.0f);
+        material->SetTexture("u_Texture", m_TestTexture);
+        material->SetVector4("u_Color", glm::vec4(1.0f));
         
-        m_PixelatedTransform.position = glm::vec3(1.5f, 0.5f, 0.5f);
-        m_PixelatedTransform.scale = glm::vec3(0.5f);
+        Transform transform;
+        transform.position = glm::vec3(1.5f, 0.5f, 0.5f);
+        transform.scale = glm::vec3(0.5f);
+
+        // Use the same vertex array as textured square
+        auto va = m_TexturedSquare ? m_TexturedSquare->GetRenderObject().GetVertexArray() : nullptr;
+        m_PixelatedSquare->SetRenderObject(std::make_unique<RenderObject>(va, material, transform));
     }
 
     void Application::CreateWaveDissolveSquare() {
-        m_WaveDissolveVA = m_SquareVA; // Reuse square mesh
-        m_WaveDissolveShader = DefaultShaders::LoadWaveDissolveShader();
-        m_WaveDissolveMaterial = std::make_shared<Material>(m_WaveDissolveShader);
+        m_WaveDissolveSquare = std::make_unique<RenderableObject>();
         
-        m_WaveDissolveMaterial->SetTexture("u_Texture", m_TestTexture);
-        m_WaveDissolveMaterial->SetVector4("u_Color", glm::vec4(1.0f));
-        m_WaveDissolveMaterial->SetFloat("u_WaveSpeed", 2.0f);
-        m_WaveDissolveMaterial->SetFloat("u_WaveFrequency", 10.0f);
-        m_WaveDissolveMaterial->SetFloat("u_DissolveAmount", 0.5f);
+        auto shader = DefaultShaders::LoadWaveDissolveShader();
+        auto material = std::make_shared<Material>(shader);
         
-        m_WaveDissolveTransform.position = glm::vec3(-1.5f, -0.5f, 0.5f);
-        m_WaveDissolveTransform.scale = glm::vec3(0.5f);
+        material->SetTexture("u_Texture", m_TestTexture);
+        material->SetVector4("u_Color", glm::vec4(1.0f));
+        material->SetFloat("u_WaveSpeed", 2.0f);
+        material->SetFloat("u_WaveFrequency", 10.0f);
+        material->SetFloat("u_DissolveAmount", 0.5f);
+        
+        Transform transform;
+        transform.position = glm::vec3(-1.5f, -0.5f, 0.5f);
+        transform.scale = glm::vec3(0.5f);
+
+        // Use the same vertex array as textured square
+        auto va = m_TexturedSquare ? m_TexturedSquare->GetRenderObject().GetVertexArray() : nullptr;
+        m_WaveDissolveSquare->SetRenderObject(std::make_unique<RenderObject>(va, material, transform));
     }
 
     void Application::CreateBlurSquare() {
-        m_BlurVA = m_SquareVA; // Reuse square mesh
-        m_BlurShader = DefaultShaders::LoadBlurShader();
-        m_BlurMaterial = std::make_shared<Material>(m_BlurShader);
+        m_BlurSquare = std::make_unique<RenderableObject>();
         
-        m_BlurMaterial->SetTexture("u_Texture", m_TestTexture);
-        m_BlurMaterial->SetVector4("u_Color", glm::vec4(1.0f));
-        m_BlurMaterial->SetFloat("u_BlurStrength", 0.005f);
+        auto shader = DefaultShaders::LoadBlurShader();
+        auto material = std::make_shared<Material>(shader);
         
-        m_BlurTransform.position = glm::vec3(0.0f, -0.5f, 0.5f);
-        m_BlurTransform.scale = glm::vec3(0.5f);
+        material->SetTexture("u_Texture", m_TestTexture);
+        material->SetVector4("u_Color", glm::vec4(1.0f));
+        material->SetFloat("u_BlurStrength", 0.005f);
+        
+        Transform transform;
+        transform.position = glm::vec3(0.0f, -0.5f, 0.5f);
+        transform.scale = glm::vec3(0.5f);
+        // Use the same vertex array as textured square
+        auto va = m_TexturedSquare ? m_TexturedSquare->GetRenderObject().GetVertexArray() : nullptr;
+        m_BlurSquare->SetRenderObject(std::make_unique<RenderObject>(va, material, transform));
     }
 }

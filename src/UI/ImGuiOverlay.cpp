@@ -8,19 +8,19 @@ namespace Engine {
     ImGuiOverlay::ImGuiOverlay(Window* window) 
         : m_Window(window), m_Renderer(&Renderer::Get()) {}
 
-    void ImGuiOverlay::OnRender(const Transform& transform, bool& showFPSCounter, 
-        float currentFPS, float avgFPS, float frameTime, 
-        float fps1Low, float fps1High) 
+    void ImGuiOverlay::OnRender(RenderObject& renderObject, bool showFPSCounter,
+        float currentFPS, float averageFPS, float frameTime,
+        float fps1PercentLow, float fps1PercentHigh) 
     {
         if (showFPSCounter) {
             ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
             ImGui::Text("Camera Type: %s", m_Renderer->GetCameraType() == Renderer::CameraType::Orthographic ? "Orthographic" : "Perspective");
             ImGui::Separator();
             ImGui::Text("Current FPS: %.1f", currentFPS);
-            ImGui::Text("Average FPS: %.1f", avgFPS);
+            ImGui::Text("Average FPS: %.1f", averageFPS);
             ImGui::Text("Frame Time: %.2f ms", frameTime * 1000.0f);
-            ImGui::Text("1%% Low: %.1f", fps1Low);
-            ImGui::Text("1%% High: %.1f", fps1High);
+            ImGui::Text("1%% Low: %.1f", fps1PercentLow);
+            ImGui::Text("1%% High: %.1f", fps1PercentHigh);
             ImGui::Separator();
             
             bool vsync = m_Window->IsVSync();
@@ -33,11 +33,14 @@ namespace Engine {
         }
     }
 
-    void ImGuiOverlay::RenderTransformControls(Transform& transform) {
-        ImGui::Begin("Transform Controls");
-        ImGui::DragFloat3("Position", &transform.position[0], 0.1f);
-        ImGui::DragFloat3("Rotation", &transform.rotation[0], 0.1f);
-        ImGui::DragFloat3("Scale", &transform.scale[0], 0.1f);
+    void ImGuiOverlay::RenderTransformControls(RenderObject& renderObject) {
+        if (ImGui::Begin("Transform Controls")) {
+            auto& transform = renderObject.GetTransform();
+            
+            ImGui::DragFloat3("Position", &transform.position[0], 0.1f);
+            ImGui::DragFloat3("Rotation", &transform.rotation[0], 0.1f);
+            ImGui::DragFloat3("Scale", &transform.scale[0], 0.1f);
+        }
         ImGui::End();
     }
 

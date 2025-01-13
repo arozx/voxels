@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Shader.h"
 
 namespace Engine {
@@ -43,6 +44,10 @@ namespace Engine {
                 "assets/shaders/textured.vert",
                 "assets/shaders/blur.frag"
             ));
+        }
+
+        static std::shared_ptr<Shader> LoadTerrainShader() {
+            return LoadTexturedShader();
         }
     }
 }

@@ -9,6 +9,7 @@
 #include "Input/InputSystem.h"
 #include "Scene/SceneManager.h"
 #include "UI/ImGuiOverlay.h"
+#include "Renderer/RenderableObject.h"
 
 namespace Engine {
     class Application {
@@ -44,41 +45,17 @@ namespace Engine {
         std::unique_ptr<TerrainSystem> m_TerrainSystem;
         Renderer m_Renderer;
 
-        // Add all the missing member variables
-        std::shared_ptr<VertexArray> m_VertexArray;
-        std::shared_ptr<Shader> m_Shader;
-        std::shared_ptr<Material> m_Material;
+        // Rendering objects
+        std::vector<std::unique_ptr<RenderableObject>> m_RenderableObjects;
+        std::unique_ptr<RenderableObject> m_Triangle;
+        std::unique_ptr<RenderableObject> m_TexturedSquare;  // This will be our active square for movement
+        std::unique_ptr<RenderableObject> m_TransparentSquare;
+        std::unique_ptr<RenderableObject> m_FileShaderSquare;
+        std::unique_ptr<RenderableObject> m_PixelatedSquare;
+        std::unique_ptr<RenderableObject> m_WaveDissolveSquare;
+        std::unique_ptr<RenderableObject> m_BlurSquare;
 
-        std::shared_ptr<VertexArray> m_SquareVA;
-        std::shared_ptr<Shader> m_SquareShader;
-        std::shared_ptr<Material> m_SquareMaterial;
         std::shared_ptr<Texture> m_TestTexture;
-        Transform m_SquareTransform;
-
-        std::shared_ptr<VertexArray> m_TransparentSquareVA;
-        std::shared_ptr<Shader> m_TransparentShader;
-        std::shared_ptr<Material> m_TransparentMaterial;
-        Transform m_TransparentTransform;
-
-        std::shared_ptr<VertexArray> m_FileShaderSquareVA;
-        std::shared_ptr<Shader> m_FileShaderSquareShader;
-        std::shared_ptr<Material> m_FileShaderSquareMaterial;
-        Transform m_FileShaderSquareTransform;
-
-        std::shared_ptr<VertexArray> m_PixelatedSquareVA;
-        std::shared_ptr<Shader> m_PixelatedShader;
-        std::shared_ptr<Material> m_PixelatedMaterial;
-        Transform m_PixelatedTransform;
-
-        std::shared_ptr<VertexArray> m_WaveDissolveVA;
-        std::shared_ptr<Shader> m_WaveDissolveShader;
-        std::shared_ptr<Material> m_WaveDissolveMaterial;
-        Transform m_WaveDissolveTransform;
-
-        std::shared_ptr<VertexArray> m_BlurVA;
-        std::shared_ptr<Shader> m_BlurShader;
-        std::shared_ptr<Material> m_BlurMaterial;
-        Transform m_BlurTransform;
 
         // FPS tracking members
         bool m_ShowFPSCounter = true;
