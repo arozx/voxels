@@ -13,6 +13,7 @@
 #include "Renderer/MeshTemplates.h"
 #include "Debug/Profiler.h"
 #include "Scene/SceneManager.h"
+#include "UI/ImGuiOverlay.h"
 
 namespace Engine {
     Application::Application() {
@@ -111,6 +112,8 @@ namespace Engine {
         m_TerrainSystem = std::make_unique<TerrainSystem>();
 
         m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), m_Renderer);
+
+        m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
     }
 
     Application::~Application() {
@@ -127,7 +130,6 @@ namespace Engine {
         Profiler::Get().BeginSession("Runtime");
         
         bool ImGuiEnabled = true;
-
         float lastFrameTime = 0.0f;
 
         while (m_Running && m_Window) {
@@ -148,44 +150,7 @@ namespace Engine {
                 }
             }
 
-            // Calculate FPS
-            m_FrameTime = deltaTime;
-            m_CurrentFPS = 1.0f / m_FrameTime;
-            m_FPSSamples[m_CurrentFPSSample] = m_CurrentFPS;
-            m_CurrentFPSSample = (m_CurrentFPSSample + 1) % FPS_SAMPLE_COUNT;
-
-            m_FPSUpdateTimer += deltaTime;
-            if (m_FPSUpdateTimer >= 0.5f) {
-                // Calculate average FPS
-                float sum = 0.0f;
-                for (float fps : m_FPSSamples) {
-                    sum += fps;
-                }
-                m_FPS = sum / FPS_SAMPLE_COUNT;
-
-                // Calculate 1% highs and lows
-                std::vector<float> sortedFPS = m_FPSSamples;
-                std::sort(sortedFPS.begin(), sortedFPS.end());
-                
-                size_t onePercent = FPS_SAMPLE_COUNT / 100;
-                if (onePercent < 1) onePercent = 1;
-
-                // Calculate 1% lows (average of bottom 1%)
-                float lowSum = 0.0f;
-                for (size_t i = 0; i < onePercent; i++) {
-                    lowSum += sortedFPS[i];
-                }
-                m_FPS1PercentLow = lowSum / onePercent;
-
-                // Calculate 1% highs (average of top 1%)
-                float highSum = 0.0f;
-                for (size_t i = 0; i < onePercent; i++) {
-                    highSum += sortedFPS[FPS_SAMPLE_COUNT - 1 - i];
-                }
-                m_FPS1PercentHigh = highSum / onePercent;
-
-                m_FPSUpdateTimer = 0.0f;
-            }
+            UpdateFPSCounter(deltaTime, time);
 
             // Update transform (TRS)
             // m_SquareTransform.rotation.z = time; // Rotate around Z axis
@@ -215,82 +180,56 @@ namespace Engine {
             BeginScene();
             
             if (ImGuiEnabled) {
-                if (m_ShowFPSCounter) {
-                    ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-                    ImGui::Text("Camera Type: %s", m_Renderer.GetCameraType() == Renderer::CameraType::Orthographic ? "Orthographic" : "Perspective");
-                    ImGui::Separator();
-                    ImGui::Text("Current FPS: %.1f", m_CurrentFPS);
-                    ImGui::Text("Average FPS: %.1f", m_FPS);
-                    ImGui::Text("Frame Time: %.2f ms", m_FrameTime * 1000.0f);
-                    ImGui::Text("1%% Low: %.1f", m_FPS1PercentLow);
-                    ImGui::Text("1%% High: %.1f", m_FPS1PercentHigh);
-                    ImGui::Separator();
-                    
-                    bool vsync = m_Window->IsVSync();
-                    if (ImGui::Checkbox("VSync", &vsync)) {
-                        m_Window->SetVSync(vsync);
-                    }
-                    
-                    ImGui::Text("Press F3 to toggle FPS counter");
-                    ImGui::End();
-                }
-
-                ImGui::Begin("Transform Controls");
-                ImGui::DragFloat3("Position", &m_SquareTransform.position[0], 0.1f);
-                ImGui::DragFloat3("Rotation", &m_SquareTransform.rotation[0], 0.1f);
-                ImGui::DragFloat3("Scale", &m_SquareTransform.scale[0], 0.1f);
-                ImGui::End();
-
-                ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-                bool enabled = Profiler::Get().IsEnabled();
-                if (ImGui::Checkbox("Enable Profiling", &enabled)) {
-                    Profiler::Get().SetEnabled(enabled);
-                }
-
-                if (ImGui::Button("Clear Profiling Data")) {
-                    Profiler::Get().ClearProfiles();
-                }
-
-                ImGui::Separator();
-
-                for (const auto& [name, timings] : Profiler::Get().GetProfiles()) {
-                    if (timings.empty()) continue;
-                    
-                    float total = 0.0f;
-                    for (float time : timings) {
-                        total += time;
-                    }
-                    
-                    float avg = total / static_cast<float>(timings.size());
-                    float min = *std::min_element(timings.begin(), timings.end());
-                    float max = *std::max_element(timings.begin(), timings.end());
-                    
-                    ImGui::Text("%s:", name.c_str());
-                    ImGui::Text("  Avg: %.3f ms", avg);
-                    ImGui::Text("  Min: %.3f ms", min);
-                    ImGui::Text("  Max: %.3f ms", max);
-                    ImGui::Text("  Calls: %zu", timings.size());
-                    ImGui::Separator();
-                }
-                ImGui::End();
-
-                ImGui::Begin("Renderer");
-                bool cullingEnabled = glIsEnabled(GL_CULL_FACE);
-                if (ImGui::Checkbox("Enable Back-face Culling", &cullingEnabled)) {
-                    if (cullingEnabled) {
-                        glEnable(GL_CULL_FACE);
-                        glCullFace(GL_BACK);
-                        glFrontFace(GL_CCW); // Counter-clockwise winding order
-                    } else {
-                        glDisable(GL_CULL_FACE);
-                    }
-                }
-                ImGui::End();
+                m_ImGuiOverlay->OnRender(m_SquareTransform, m_ShowFPSCounter, 
+                    m_CurrentFPS, m_FPS, m_FrameTime, m_FPS1PercentLow, m_FPS1PercentHigh);
+                m_ImGuiOverlay->RenderTransformControls(m_SquareTransform);
+                m_ImGuiOverlay->RenderProfiler();
+                m_ImGuiOverlay->RenderRendererSettings();
             }
 
             SceneManager::Get().Render(m_Renderer);
             EndScene();
             Present();
+        }
+    }
+
+    void Application::UpdateFPSCounter(float deltaTime, float currentTime) {
+        m_FrameTime = deltaTime;
+        m_CurrentFPS = 1.0f / m_FrameTime;
+        m_FPSSamples[m_CurrentFPSSample] = m_CurrentFPS;
+        m_CurrentFPSSample = (m_CurrentFPSSample + 1) % FPS_SAMPLE_COUNT;
+
+        m_FPSUpdateTimer += deltaTime;
+        if (m_FPSUpdateTimer >= 0.5f) {
+            // Calculate average FPS
+            float sum = 0.0f;
+            for (float fps : m_FPSSamples) {
+                sum += fps;
+            }
+            m_FPS = sum / FPS_SAMPLE_COUNT;
+
+            // Calculate 1% highs and lows
+            std::vector<float> sortedFPS = m_FPSSamples;
+            std::sort(sortedFPS.begin(), sortedFPS.end());
+            
+            size_t onePercent = FPS_SAMPLE_COUNT / 100;
+            if (onePercent < 1) onePercent = 1;
+
+            // Calculate 1% lows (average of bottom 1%)
+            float lowSum = 0.0f;
+            for (size_t i = 0; i < onePercent; i++) {
+                lowSum += sortedFPS[i];
+            }
+            m_FPS1PercentLow = lowSum / onePercent;
+
+            // Calculate 1% highs (average of top 1%)
+            float highSum = 0.0f;
+            for (size_t i = 0; i < onePercent; i++) {
+                highSum += sortedFPS[FPS_SAMPLE_COUNT - 1 - i];
+            }
+            m_FPS1PercentHigh = highSum / onePercent;
+
+            m_FPSUpdateTimer = 0.0f;
         }
     }
 

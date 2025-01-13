@@ -8,6 +8,7 @@
 #include "TerrainSystem/TerrainSystem.h"
 #include "Input/InputSystem.h"
 #include "Scene/SceneManager.h"
+#include "UI/ImGuiOverlay.h"
 
 namespace Engine {
     class Application {
@@ -90,6 +91,10 @@ namespace Engine {
         float m_FrameTime = 0.0f;
         float m_FPSUpdateTimer = 0.0f;
         size_t m_CurrentFPSSample = 0;
+
+        std::unique_ptr<ImGuiOverlay> m_ImGuiOverlay;
+
+        void UpdateFPSCounter(float deltaTime, float currentTime);
     };
     
     // To be defined by client application
