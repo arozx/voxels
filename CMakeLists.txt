@@ -12,14 +12,14 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 
 # Find FreeType
-find_package(Freetype REQUIRED)
+# find_package(Freetype REQUIRED)
 
 include_directories(/usr/include)
-include_directories(${FREETYPE_INCLUDE_DIRS})
+# include_directories(${FREETYPE_INCLUDE_DIRS})
 link_directories(/usr/lib)
 
 # Copy the INI file to the build directory
-file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
+# file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
 
 # Add ImGui source files
 set(IMGUI_DIR external/imgui)
@@ -54,6 +54,10 @@ set(SOURCES
     src/Renderer/MeshTemplates.h
     src/Debug/Profiler.cpp
     src/Threading/ThreadPool.cpp
+    src/VoxelTerrain.cpp
+    src/VoidNoise.cpp
+    src/Input/InputSystem.cpp
+    src/TerrainSystem/TerrainSystem.cpp
     ${IMGUI_SOURCES}
 )
 
