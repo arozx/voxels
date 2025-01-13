@@ -23,6 +23,9 @@
 #include <condition_variable>
 #include <future>
 #include <queue>
+#include <random>
+#include <cmath>
+#include <numeric>
 
 // OpenGL
 #include <glm/glm.hpp>
