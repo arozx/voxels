@@ -5,9 +5,23 @@
 #include "Debug/Profiler.h"
 
 namespace Engine {
+    /**
+     * @brief Constructor for ImGui overlay
+     * @param window Pointer to the window instance
+     */
     ImGuiOverlay::ImGuiOverlay(Window* window) 
         : m_Window(window), m_Renderer(&Renderer::Get()) {}
 
+    /**
+     * @brief Render performance statistics overlay
+     * @param renderObject The object being rendered
+     * @param showFPSCounter Whether to show FPS counter
+     * @param currentFPS Current frames per second
+     * @param averageFPS Average frames per second
+     * @param frameTime Time taken for last frame
+     * @param fps1PercentLow 1% low FPS value
+     * @param fps1PercentHigh 1% high FPS value
+     */
     void ImGuiOverlay::OnRender(RenderObject& renderObject, bool showFPSCounter,
         float currentFPS, float averageFPS, float frameTime,
         float fps1PercentLow, float fps1PercentHigh) 
@@ -33,6 +47,10 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Render transform controls for an object
+     * @param renderObject Object whose transform is being controlled
+     */
     void ImGuiOverlay::RenderTransformControls(RenderObject& renderObject) {
         if (ImGui::Begin("Transform Controls")) {
             auto& transform = renderObject.GetTransform();
@@ -44,6 +62,9 @@ namespace Engine {
         ImGui::End();
     }
 
+    /**
+     * @brief Render profiler window showing performance metrics
+     */
     void ImGuiOverlay::RenderProfiler() {
         ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
         bool enabled = Profiler::Get().IsEnabled();
@@ -79,6 +100,10 @@ namespace Engine {
         ImGui::End();
     }
 
+    /**
+     * @brief Render renderer settings window
+     * @details Controls settings like back-face culling
+     */
     void ImGuiOverlay::RenderRendererSettings() {
         ImGui::Begin("Renderer");
         bool cullingEnabled = glIsEnabled(GL_CULL_FACE);
@@ -94,6 +119,10 @@ namespace Engine {
         ImGui::End();
     }
 
+    /**
+     * @brief Render event debugger window
+     * @details Shows recent events and their details
+     */
     void ImGuiOverlay::RenderEventDebugger() {
         if (ImGui::Begin("Recent Events", &m_ShowEventDebugger)) {
             ImGui::Text("Last 5 Events:");
@@ -125,6 +154,11 @@ namespace Engine {
         ImGui::End();
     }
 
+    /**
+     * @brief Render terrain generation controls
+     * @param terrainSystem Reference to the terrain system
+     * @details Controls terrain parameters like chunk range, seed, and height settings
+     */
     void ImGuiOverlay::RenderTerrainControls(TerrainSystem& terrainSystem) {
         if (ImGui::Begin("Terrain Controls")) {
             // Chunk range control

@@ -1,5 +1,11 @@
 #pragma once
 
+/**
+ * @file pch.h
+ * @brief Precompiled header file
+ * @details Contains commonly used standard library includes and platform definitions
+ */
+
 #ifdef __cplusplus
 
 // Standard Library

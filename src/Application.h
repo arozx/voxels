@@ -13,30 +13,66 @@
 #include "Core/AssetManager.h"
 
 namespace Engine {
-    // Add this struct before the Application class
+    /**
+     * @brief Stores state for key toggle functionality
+     */
     struct KeyToggleState {
-        bool previousState = false;
-        float pressStartTime = 0.0f;
-        bool currentValue = false;  // Store the actual toggle value (e.g., m_ShowFPSCounter)
+        bool previousState = false;     ///< Previous key state
+        float pressStartTime = 0.0f;    ///< Time when key was pressed
+        bool currentValue = false;      ///< Current toggle state
     };
 
+    /**
+     * @brief Main application class handling window, rendering and game loop
+     */
     class Application {
     public:
         Application();
         virtual ~Application();
         
+        /**
+         * @brief Main application loop
+         */
         void Run();
         
         unsigned int indicies;
     protected:
+        /**
+         * @brief Initialize the application window
+         * @param title Window title
+         * @param width Window width
+         * @param height Window height
+         */
         void InitWindow(const char* title = "Voxel Engine", int width = 1280, int height = 720);
+
+        /**
+         * @brief Clean up window resources
+         */
         void ShutdownWindow();
         
+        /**
+         * @brief Begin a new frame
+         */
         void BeginScene();
+
+        /**
+         * @brief End the current frame
+         */
         void EndScene();
+
+        /**
+         * @brief Present the rendered frame
+         */
         void Present();
+
+        /**
+         * @brief Set the viewport dimensions
+         */
         void SetViewport(int x, int y, int width, int height);
         
+        /**
+         * @brief Process pending events
+         */
         void ProcessEvents();
 
         // Add new function to create a test square using file shaders
@@ -47,12 +83,44 @@ namespace Engine {
         void CreateBlurSquare();
 
     private:
+        /**
+         * @brief Handle key toggle state changes
+         * @param key GLFW key code
+         * @param currentTime Current time
+         * @return bool True if toggle state changed
+         */
         bool HandleKeyToggle(int key, float currentTime);
+
+        /**
+         * @brief Initialize toggle states for keys
+         */
         void InitializeToggleStates();
 
+        /**
+         * @brief Add a new key toggle state
+         * @param key GLFW key code
+         * @param defaultValue Initial toggle state
+         */
         void AddToggleState(int key, bool defaultValue = false);
+
+        /**
+         * @brief Remove a key toggle state
+         * @param key GLFW key code
+         */
         void RemoveToggleState(int key);
+
+        /**
+         * @brief Get current toggle state for a key
+         * @param key GLFW key code
+         * @return bool Current toggle state
+         */
         bool GetToggleState(int key) const;
+
+        /**
+         * @brief Set toggle state for a key
+         * @param key GLFW key code
+         * @param value New toggle state
+         */
         void SetToggleState(int key, bool value);
 
         bool m_Running = true;

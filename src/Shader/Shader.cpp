@@ -1,3 +1,10 @@
+/**
+ * @file Shader.cpp
+ * @brief Implementation of OpenGL shader program management
+ * 
+ * Handles shader compilation, linking, and uniform management
+ * for OpenGL shader programs.
+ */
 #include <pch.h>
 #include "Shader.h"
 #include <glad/glad.h>

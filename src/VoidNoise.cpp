@@ -1,6 +1,10 @@
 #include "VoidNoise.h"
 #include <pch.h>
 
+/**
+ * @brief Initialize the Perlin noise generator
+ * @param seed Random seed value for noise generation
+ */
 VoidNoise::VoidNoise(unsigned int seed) : rng(seed) {
     // Initialize array with ordered values
     std::vector<int> p(PERM_SIZE);
@@ -15,14 +19,33 @@ VoidNoise::VoidNoise(unsigned int seed) : rng(seed) {
     }
 }
 
+/**
+ * @brief Apply smoothstep function for noise interpolation
+ * @param t Input value to be smoothed (0-1)
+ * @return Smoothed value
+ */
 float VoidNoise::fade(float t) const {
     return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
 }
 
+/**
+ * @brief Linear interpolation between two values
+ * @param a First value
+ * @param b Second value
+ * @param t Interpolation factor (0-1)
+ * @return Interpolated value
+ */
 float VoidNoise::lerp(float a, float b, float t) const {
     return a + t * (b - a);
 }
 
+/**
+ * @brief Generate gradient value for noise calculation
+ * @param hash Hash value for pseudo-random direction
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @return Gradient value
+ */
 float VoidNoise::grad(int hash, float x, float y) const {
     int h = hash & 15;
     float u = h < 8 ? x : y;
@@ -30,6 +53,12 @@ float VoidNoise::grad(int hash, float x, float y) const {
     return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
 }
 
+/**
+ * @brief Generate 2D Perlin noise value
+ * @param x X coordinate in noise space
+ * @param y Y coordinate in noise space
+ * @return Noise value between 0 and 1
+ */
 float VoidNoise::noise(float x, float y) const {
     int X = static_cast<int>(std::floor(x)) & 255;
     int Y = static_cast<int>(std::floor(y)) & 255;
@@ -58,6 +87,13 @@ float VoidNoise::noise(float x, float y) const {
     ) * 0.5f + 0.5f;
 }
 
+/**
+ * @brief Generate a heightmap using multiple octaves of noise
+ * @param width Width of the heightmap
+ * @param height Height of the heightmap
+ * @param scale Scale factor for noise coordinates
+ * @return Vector containing heightmap values
+ */
 std::vector<float> VoidNoise::generateHeightmap(int width, int height, float scale) const {
     std::vector<float> heightmap(width * height);
     

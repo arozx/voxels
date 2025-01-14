@@ -18,6 +18,9 @@
 #include "Core/AssetManager.h"
 
 namespace Engine {
+    /**
+     * @brief Initialize the application and all subsystems
+     */
     Application::Application() {
         LOG_INFO("Creating Application");
         InitWindow("Voxel Engine", 1280, 720);
@@ -183,6 +186,9 @@ namespace Engine {
         InitializeToggleStates();
     }
 
+    /**
+     * @brief Clean up application resources
+     */
     Application::~Application() {
         if (m_ImGuiLayer) {
             m_ImGuiLayer->Shutdown();
@@ -195,6 +201,10 @@ namespace Engine {
         AssetManager::Get().UnloadUnused();
     }
 
+    /**
+     * @brief Main application loop
+     * @details Handles rendering, input processing, and event management
+     */
     void Application::Run() {
         PROFILE_FUNCTION();
         LOG_INFO("Application Starting...");
@@ -271,6 +281,9 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Process pending events in the event queue
+     */
     void Application::ProcessEvents() {
         static float eventTimer = 0.0f;
         eventTimer += 0.016f; // Approximate for 60fps
@@ -308,6 +321,11 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Update FPS counter and related statistics
+     * @param deltaTime Time since last frame
+     * @param currentTime Current application time
+     */
     void Application::UpdateFPSCounter(float deltaTime, float currentTime) {
         m_FrameTime = deltaTime;
         m_CurrentFPS = 1.0f / m_FrameTime;
@@ -348,6 +366,12 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Initialize window with specified parameters
+     * @param title Window title
+     * @param width Window width
+     * @param height Window height
+     */
     void Application::InitWindow(const char* title, int width, int height) {
         LOG_INFO("Initializing window: {0} ({1}x{2})", title, width, height);
         WindowProps props(title, width, height);

@@ -1,10 +1,24 @@
 #include "VoxelChunk.h"
 
+/**
+ * @brief Initialize chunk with empty voxels
+ * @param chunkX X coordinate in chunk space
+ * @param chunkY Y coordinate in chunk space
+ * @param chunkZ Z coordinate in chunk space
+ * @details Voxel data is initialized to false (air)
+ */
+
 VoxelChunk::VoxelChunk(int chunkX, int chunkY, int chunkZ)
     : m_ChunkX(chunkX), m_ChunkY(chunkY), m_ChunkZ(chunkZ) {
     m_VoxelData.fill(false);
 }
 
+/**
+ * @brief Generate terrain data for the chunk
+ * @param noiseGenerator Noise generator instance
+ * @param scale Scale factor for noise generation
+ * @details Uses multiple noise octaves for terrain height and cave generation
+ */
 void VoxelChunk::generate(const VoidNoise& noiseGenerator, float scale) {
     // Ground level (adjust this to change the base height of the terrain)
     const int BASE_HEIGHT = 32;
@@ -67,4 +81,8 @@ void VoxelChunk::generate(const VoidNoise& noiseGenerator, float scale) {
             }
         }
     }
+}
+
+int VoxelChunk::getIndex(int x, int y, int z) const {
+    return x + CHUNK_SIZE * (y + CHUNK_SIZE * z);
 }

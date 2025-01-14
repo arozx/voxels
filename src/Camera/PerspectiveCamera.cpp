@@ -1,4 +1,8 @@
-#include "../pch.h"
+/**
+ * @file PerspectiveCamera.cpp
+ * @brief Implementation of the PerspectiveCamera class
+ */
+#include <pch.h>
 #include "PerspectiveCamera.h"
 
 namespace Engine {

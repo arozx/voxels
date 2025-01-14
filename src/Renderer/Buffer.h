@@ -1,11 +1,30 @@
 #pragma once
-#include "../pch.h"
+#include <pch.h>
 
 namespace Engine {
+    /**
+     * @brief Types of data that can be stored in shader buffers
+     */
     enum class ShaderDataType {
-        None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool
+        None = 0,    ///< No type specified
+        Float,       ///< Single precision float
+        Float2,      ///< 2D vector of floats
+        Float3,      ///< 3D vector of floats
+        Float4,      ///< 4D vector of floats
+        Mat3,        ///< 3x3 matrix
+        Mat4,        ///< 4x4 matrix
+        Int,         ///< 32-bit integer
+        Int2,        ///< 2D vector of integers
+        Int3,        ///< 3D vector of integers
+        Int4,        ///< 4D vector of integers
+        Bool         ///< Boolean value
     };
 
+    /**
+     * @brief Gets the size in bytes of a shader data type
+     * @param type The shader data type
+     * @return Size in bytes
+     */
     static uint32_t ShaderDataTypeSize(ShaderDataType type) {
         switch (type) {
             case ShaderDataType::Float:  return 4;
@@ -23,6 +42,11 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Gets the number of components in a shader data type
+     * @param type The shader data type
+     * @return Number of components
+     */
     static uint32_t GetComponentCount(ShaderDataType type) {
         switch (type) {
             case ShaderDataType::Float:  return 1;
@@ -40,17 +64,29 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Describes a single element in a buffer layout
+     */
     struct BufferElement {
-        std::string Name;
-        ShaderDataType Type;
-        uint32_t Size;
-        uint32_t Offset;
-        bool Normalized;
+        std::string Name;      ///< Element name in shader
+        ShaderDataType Type;   ///< Data type
+        uint32_t Size;        ///< Size in bytes
+        uint32_t Offset;      ///< Offset in buffer
+        bool Normalized;      ///< Whether to normalize
 
+        /**
+         * @brief Constructs a buffer element
+         * @param type Data type of the element
+         * @param name Name in the shader
+         * @param normalized Whether to normalize the data
+         */
         BufferElement(ShaderDataType type, const std::string& name, bool normalized = false)
             : Name(name), Type(type), Size(ShaderDataTypeSize(type)), Offset(0), Normalized(normalized) {}
     };
 
+    /**
+     * @brief Describes the layout of a vertex buffer
+     */
     class BufferLayout {
     public:
         BufferLayout() {}
@@ -71,6 +107,7 @@ namespace Engine {
         void CalculateOffsetsAndStride() {
             uint32_t offset = 0;
             m_Stride = 0;
+            
             for (auto& element : m_Elements) {
                 element.Offset = offset;
                 offset += element.Size;
@@ -82,6 +119,9 @@ namespace Engine {
         uint32_t m_Stride = 0;
     };
 
+    /**
+     * @brief Abstract vertex buffer interface
+     */
     class VertexBuffer {
     public:
         virtual ~VertexBuffer() = default;
@@ -95,6 +135,9 @@ namespace Engine {
         static VertexBuffer* Create(const float* vertices, uint32_t size);
     };
 
+    /**
+     * @brief Abstract index buffer interface
+     */
     class IndexBuffer {
     public:
         virtual ~IndexBuffer() = default;

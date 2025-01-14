@@ -1,3 +1,10 @@
+/**
+ * @file InputSystem.cpp
+ * @brief Implementation of the input processing system
+ * 
+ * Handles keyboard and mouse input processing, camera controls,
+ * and input event handling for the application.
+ */
 #include "Window/Window.h"
 #include "Renderer/Renderer.h"
 #include "Events/Event.h"

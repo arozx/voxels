@@ -1,3 +1,10 @@
+/**
+ * @file TerrainSystem.cpp
+ * @brief Implementation of the voxel terrain system
+ * 
+ * Provides implementation for terrain generation, mesh creation,
+ * and rendering of voxel-based terrain.
+ */
 #include <pch.h>
 #include "TerrainSystem.h"
 #include "Shader/DefaultShaders.h"
@@ -5,6 +12,12 @@
 #include "Core/AssetManager.h"
 
 namespace Engine {
+    /**
+     * @brief Constructs terrain system with default parameters
+     * 
+     * Initializes terrain with random seed, loads textures and shaders,
+     * and generates initial terrain mesh.
+     */
     TerrainSystem::TerrainSystem() {
         // Initialize terrain with random seed
         m_Terrain = std::make_unique<VoxelTerrain>(std::random_device{}());
@@ -23,6 +36,7 @@ namespace Engine {
         GenerateMesh();
     }
 
+    // Core functionality
     void TerrainSystem::Initialize(Renderer& renderer) {
         // Already initialized in constructor, but could be used for renderer-specific setup
     }
@@ -42,6 +56,12 @@ namespace Engine {
         GenerateMesh();
     }
 
+    /**
+     * @brief Generates terrain mesh for all visible chunks
+     * 
+     * Creates vertex and index buffers for terrain geometry,
+     * handling face culling and texture coordinates.
+     */
     void TerrainSystem::GenerateMesh() {
         std::vector<float> vertices;
         std::vector<uint32_t> indices;
@@ -200,6 +220,7 @@ namespace Engine {
         }
     }
 
+    // Parameter setters with mesh regeneration
     void TerrainSystem::SetBaseHeight(float height) {
         m_BaseHeight = height;
         GenerateMesh();

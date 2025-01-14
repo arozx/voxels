@@ -1,8 +1,13 @@
-
 #pragma once
+
 #include "pch.h"
 
 namespace Engine {
+    /**
+     * @brief Key codes for keyboard input
+     * 
+     * Maps to GLFW key codes for consistent cross-platform behavior
+     */
     enum KeyCode {
         // From glfw3.h
         Key_Space              = 32,
@@ -51,6 +56,11 @@ namespace Engine {
         Key_Z                = 90,
     };
 
+    /**
+     * @brief Converts a key code to its string representation
+     * @param keycode Key code to convert
+     * @return String representation of the key
+     */
     inline std::string KeyCodeToString(int keycode) {
         if (keycode >= Key_A && keycode <= Key_Z) {
             return std::string(1, static_cast<char>(keycode));

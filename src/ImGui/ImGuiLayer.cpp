@@ -1,3 +1,7 @@
+/**
+ * @file ImGuiLayer.cpp
+ * @brief Implementation of the ImGui integration layer
+ */
 #include <pch.h>
 #include "ImGuiLayer.h"
 #include <imgui.h>

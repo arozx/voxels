@@ -1,3 +1,9 @@
+/**
+ * @file OpenGLBuffer.cpp
+ * @brief Implementation of OpenGL vertex and index buffers
+ * 
+ * Provides concrete implementations of buffer interfaces for OpenGL.
+ */
 #include "OpenGLBuffer.h"
 #include <glad/glad.h>
 

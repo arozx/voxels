@@ -1,23 +1,30 @@
 #pragma once
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <ctime>
+
+#include <pch.h>
 
 namespace Engine {
     class Window;
 }
 
 namespace Engine {
+    /**
+     * @brief Logging severity levels
+     */
     enum class LogLevel {
-        Trace,
-        Info,
-        Warn,
-        Error,
-        Fatal
+        Trace,  ///< Detailed debugging information
+        Info,   ///< General information messages
+        Warn,   ///< Warning messages
+        Error,  ///< Error messages
+        Fatal   ///< Critical errors that require immediate attention
     };
 
     // Add ToString helper functions
+    /**
+     * @brief Converts any type to its string representation
+     * @tparam T Type to convert
+     * @param value Value to convert
+     * @return String representation
+     */
     template<typename T>
     std::string ToString(const T& value) {
         std::stringstream ss;
@@ -49,14 +56,23 @@ namespace Engine {
     // Move this specialization to a separate cpp file or inline header
     inline std::string ToString(const Window& window);
 
+    /**
+     * @brief Singleton logger class for application-wide logging
+     */
     class Logger {
     public:
+        /** @return Reference to the logger instance */
         static Logger& Get() {
             static Logger instance;
             return instance;
         }
 
-        // Simple string concat version
+        /**
+         * @brief Logs a concatenated message
+         * @tparam Args Types of arguments to concatenate
+         * @param level Severity level of the message
+         * @param args Arguments to concatenate into message
+         */
         template<typename... Args>
         void LogConcat(LogLevel level, Args&&... args) {
             std::stringstream ss;
@@ -65,7 +81,13 @@ namespace Engine {
             Log(level, ss.str());
         }
 
-        // Format string version
+        /**
+         * @brief Logs a formatted message
+         * @tparam Args Types of format arguments
+         * @param level Severity level of the message
+         * @param format Format string
+         * @param args Format arguments
+         */
         template<typename... Args>
         void LogFormat(LogLevel level, const char* format, Args... args) {
             Log(level, format);  // For now, just output the format string
@@ -89,7 +111,13 @@ namespace Engine {
             std::cout << "[" << timestamp << "] [" << levelStr << "]: " << message << std::endl;
         }
 
-        // Enhanced LogConcat with variable names
+        /**
+         * @brief Logs a variable's name and value
+         * @tparam T Type of the variable
+         * @param level Severity level of the message
+         * @param varName Name of the variable
+         * @param value Value of the variable
+         */
         template<typename T>
         void LogValue(LogLevel level, const char* varName, const T& value) {
             std::stringstream ss;
@@ -97,7 +125,12 @@ namespace Engine {
             Log(level, ss.str());
         }
 
-        // Variadic version for multiple variables
+        /**
+         * @brief Logs multiple variables' names and values
+         * @tparam Args Types of the variables
+         * @param level Severity level of the message
+         * @param args Pairs of variable names and values
+         */
         template<typename... Args>
         void LogValues(LogLevel level, Args&&... args) {
             std::stringstream ss;

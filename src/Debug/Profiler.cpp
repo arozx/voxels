@@ -1,13 +1,22 @@
+/**
+ * @file Profiler.cpp
+ * @brief Implementation of the performance profiling system
+ * 
+ * Provides implementation for the ProfilerTimer and Profiler classes,
+ * handling timing measurements and statistical analysis of profiled code blocks.
+ */
 #include "pch.h"
 #include "Profiler.h"
 
 namespace Engine {
 
+// Constructor starts timing measurement
 ProfilerTimer::ProfilerTimer(const std::string& name)
     : m_Name(name), m_StartTimepoint(std::chrono::high_resolution_clock::now()) 
 {
 }
 
+// Destructor calculates duration and reports to Profiler
 ProfilerTimer::~ProfilerTimer() {
     if (!Profiler::Get().IsEnabled())
         return;
@@ -19,16 +28,19 @@ ProfilerTimer::~ProfilerTimer() {
     Profiler::Get().WriteProfile(m_Name, duration);
 }
 
+// Returns singleton instance
 Profiler& Profiler::Get() {
     static Profiler instance;
     return instance;
 }
 
+// Begins a new profiling session
 void Profiler::BeginSession(const std::string& name) {
     m_CurrentSession = name;
     m_Profiles.clear();
 }
 
+// Ends session and outputs statistical results
 void Profiler::EndSession() {
     if (!m_Enabled) return;
 
@@ -49,6 +61,7 @@ void Profiler::EndSession() {
     }
 }
 
+// Records a timing measurement
 void Profiler::WriteProfile(const std::string& name, float duration) {
     if (!m_Enabled) return;
     m_Profiles[name].push_back(duration);

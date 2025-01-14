@@ -2,13 +2,27 @@
 #include "../pch.h"
 
 namespace Engine {
+    /**
+     * @brief Thread pool-based task system for concurrent execution
+     * 
+     * Provides a simple interface for executing tasks asynchronously using
+     * a pool of worker threads.
+     */
     class TaskSystem {
     public:
+        /**
+         * @brief Gets the singleton instance of the task system
+         * @return Reference to the task system instance
+         */
         static TaskSystem& Get() {
             static TaskSystem instance;
             return instance;
         }
 
+        /**
+         * @brief Initializes the task system with worker threads
+         * @param threadCount Number of worker threads (0 for automatic)
+         */
         void Initialize(size_t threadCount = 0) {
             if (threadCount == 0) {
                 // Use physical cores only, not hyperthreaded
@@ -37,6 +51,12 @@ namespace Engine {
             }
         }
 
+        /**
+         * @brief Submits a task for asynchronous execution
+         * @tparam F Function type of the task
+         * @param task Task to be executed
+         * @return Future containing the task's result
+         */
         template<typename F>
         auto EnqueueTask(F&& task) -> std::future<typename std::invoke_result<F>::type> {
             using ReturnType = typename std::invoke_result<F>::type;
@@ -66,6 +86,9 @@ namespace Engine {
     private:
         TaskSystem() = default;
         
+        /**
+         * @brief Worker thread function that processes tasks from the queue
+         */
         void WorkerThread() {
             while (true) {
                 std::function<void()> task;

@@ -7,10 +7,18 @@
 #include "Renderer/MeshTemplates.h"
 
 namespace Engine {
+    /**
+     * @brief Example game scene implementation
+     * 
+     * Demonstrates scene setup with textured objects and
+     * parent-child relationships.
+     */
     class GameScene : public Scene {
     public:
+        /** @brief Creates a new game scene */
         GameScene() : Scene("Game") {}
 
+        /** @brief Sets up initial scene objects and materials */
         virtual void OnCreate() override {
             // Create a textured square
             auto square = CreateObject("Square");
@@ -26,11 +34,16 @@ namespace Engine {
             square->AddChild(childSquare);
         }
 
+        /** @brief Updates scene logic */
         virtual void OnUpdate(float deltaTime) override {
             // Update scene logic
         }
 
     private:
+        /**
+         * @brief Creates a vertex array for a square
+         * @return Configured vertex array
+         */
         std::shared_ptr<VertexArray> createSquareVA() {
             auto squareVertices = MeshTemplates::TexturedSquare;
             std::shared_ptr<VertexArray> squareVA(VertexArray::Create());
@@ -55,6 +68,10 @@ namespace Engine {
             return squareVA;
         }
 
+        /**
+         * @brief Creates a textured material
+         * @return Configured material
+         */
         std::shared_ptr<Material> createSquareMaterial() {
             auto shader = DefaultShaders::LoadTexturedShader();
             auto material = std::make_shared<Material>(shader);
@@ -63,6 +80,10 @@ namespace Engine {
             return material;
         }
 
+        /**
+         * @brief Creates a semi-transparent material
+         * @return Configured material
+         */
         std::shared_ptr<Material> createTransparentMaterial() {
             auto shader = DefaultShaders::LoadTexturedShader();
             auto material = std::make_shared<Material>(shader);
