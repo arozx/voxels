@@ -13,7 +13,7 @@ namespace Engine {
         virtual EventType GetEventType() const override { return EventType::WindowResize; }
         virtual const char* GetName() const override { return "WindowResize"; }
         virtual int GetCategoryFlags() const override { 
-            return EventCategoryApplication; 
+            return static_cast<int>(EventCategory::Application); 
         }
 
     private:
@@ -28,7 +28,7 @@ namespace Engine {
         virtual EventType GetEventType() const override { return GetStaticType(); }
         virtual const char* GetName() const override { return "WindowClose"; }
         virtual int GetCategoryFlags() const override { 
-            return EventCategoryApplication; 
+            return static_cast<int>(EventCategory::Application); 
         }
     };
 }

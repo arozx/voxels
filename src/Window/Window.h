@@ -1,9 +1,11 @@
 #pragma once
 
-#include "../pch.h"
+#include <pch.h>
 #include "../Events/Event.h"
 
 namespace Engine {
+    using EventCallbackFn = std::function<bool(Event&)>;
+
     enum class RenderAPI {
         None = 0,
         OpenGL,

@@ -5,6 +5,7 @@
 #include "../Renderer/RenderObject.h"
 #include "../Window/Window.h"
 #include "../Renderer/Renderer.h"
+#include "../Events/EventDebugger.h"
 
 namespace Engine {
     class ImGuiOverlay {
@@ -18,9 +19,11 @@ namespace Engine {
         void RenderTransformControls(RenderObject& renderObject);
         void RenderProfiler();
         void RenderRendererSettings();
+        void RenderEventDebugger();
 
     private:
         Window* m_Window;
         Renderer* m_Renderer;
+        bool m_ShowEventDebugger = true;
     };
 }

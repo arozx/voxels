@@ -1,62 +1,59 @@
 #pragma once
 
-#include "../pch.h"
+#include <pch.h>
 
 namespace Engine {
     enum class EventType {
         None = 0,
         WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
         KeyPressed, KeyReleased, KeyTyped,
-        MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
+        MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled,
+        AppTick, AppUpdate, AppRender
     };
 
-    enum EventCategory {
+    enum class EventCategory {
         None = 0,
-        EventCategoryApplication = 1 << 0,
-        EventCategoryInput      = 1 << 1,
-        EventCategoryKeyboard   = 1 << 2,
-        EventCategoryMouse      = 1 << 3,
-        EventCategoryMouseButton = 1 << 4
+        Application  = 1 << 0,
+        Input       = 1 << 1,
+        Keyboard    = 1 << 2,
+        Mouse       = 1 << 3,
+        MouseButton = 1 << 4
+    };
+
+    enum class EventPriority {
+        Low = 0,
+        Normal = 1,
+        High = 2
     };
 
     class Event {
     public:
         virtual ~Event() = default;
-        virtual EventType GetEventType() const = 0;
-        virtual const char* GetName() const = 0;
-        virtual int GetCategoryFlags() const = 0;
-        virtual std::string ToString() const { return GetName(); }
-
-        bool IsInCategory(EventCategory category) {
-            return GetCategoryFlags() & category;
-        }
 
         bool IsHandled() const { return m_Handled; }
         void SetHandled(bool handled) { m_Handled = handled; }
 
-    protected:
-        bool m_Handled = false;
-    };
+        virtual EventType GetEventType() const = 0;
+        virtual const char* GetName() const = 0;
+        virtual int GetCategoryFlags() const = 0;
+        virtual std::string ToString() const { return GetName(); }
+        virtual EventPriority GetPriority() const { return m_Priority; }
+        virtual void SetPriority(EventPriority priority) { m_Priority = priority; }
 
-    using EventCallbackFn = std::function<void(Event&)>;
-
-    class EventDispatcher {
-    public:
-        EventDispatcher(Event& event) : m_Event(event) {}
-
-        template<typename T>
-        bool Dispatch(const std::function<bool(T&)>& func) {
-            if (m_Event.GetEventType() == T::GetStaticType()) {
-                bool handled = func(static_cast<T&>(m_Event));
-                if (handled) {
-                    m_Event.SetHandled(true);
-                }
-                return true;
-            }
-            return false;
+        bool IsInCategory(EventCategory category) const {
+            return GetCategoryFlags() & static_cast<int>(category);
         }
 
-    private:
-        Event& m_Event;
+        uint64_t GetTimestamp() const { return m_Timestamp; }
+        void SetTimestamp(uint64_t timestamp) { m_Timestamp = timestamp; }
+        virtual std::string GetDebugInfo() const { return ToString(); }
+
+    protected:
+        Event() : m_Timestamp(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count()) {}
+
+        bool m_Handled = false;
+        EventPriority m_Priority = EventPriority::Normal;
+        uint64_t m_Timestamp;
     };
 }

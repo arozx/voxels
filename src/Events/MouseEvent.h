@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Event.h"
 
 namespace Engine {
@@ -12,7 +13,8 @@ namespace Engine {
         virtual EventType GetEventType() const override { return EventType::MouseMoved; }
         virtual const char* GetName() const override { return "MouseMoved"; }
         virtual int GetCategoryFlags() const override { 
-            return EventCategoryMouse | EventCategoryInput; 
+            return static_cast<int>(EventCategory::Mouse) | 
+                static_cast<int>(EventCategory::Input); 
         }
 
     private:
@@ -24,7 +26,9 @@ namespace Engine {
         int GetButton() const { return m_Button; }
         
         virtual int GetCategoryFlags() const override { 
-            return EventCategoryMouse | EventCategoryInput | EventCategoryMouseButton; 
+            return static_cast<int>(EventCategory::Mouse) | 
+                static_cast<int>(EventCategory::Input) | 
+                static_cast<int>(EventCategory::MouseButton); 
         }
 
     protected:
@@ -58,7 +62,10 @@ namespace Engine {
 
         virtual EventType GetEventType() const override { return EventType::MouseScrolled; }
         virtual const char* GetName() const override { return "MouseScrolled"; }
-        virtual int GetCategoryFlags() const override { return EventCategoryMouse | EventCategoryInput; }
+        virtual int GetCategoryFlags() const override { 
+            return static_cast<int>(EventCategory::Mouse) | 
+                static_cast<int>(EventCategory::Input); 
+        }
 
     private:
         float m_XOffset, m_YOffset;

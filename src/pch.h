@@ -23,6 +23,7 @@
 #include <condition_variable>
 #include <future>
 #include <queue>
+#include <deque>
 #include <random>
 #include <cmath>
 #include <numeric>
@@ -32,7 +33,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Engine
-#include "Logging.h"
+#include "Core/Logging.h"
 #endif
 
 // Platform detection

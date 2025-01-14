@@ -29,10 +29,11 @@ namespace Engine {
         void Present();
         void SetViewport(int x, int y, int width, int height);
         
+        void ProcessEvents();
+
         // Add new function to create a test square using file shaders
         void CreateFileShaderSquare();
 
-        // Add missing function declarations
         void CreatePixelatedSquare();
         void CreateWaveDissolveSquare();
         void CreateBlurSquare();

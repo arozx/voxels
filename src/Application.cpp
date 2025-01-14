@@ -6,6 +6,7 @@
 #include "Events/MouseEvent.h"
 #include "Events/WindowEvent.h"
 #include "Events/KeyCodes.h"
+#include "Events/EventDispatcher.h"
 #include "Camera/OrthographicCamera.h"
 #include "Renderer/VertexArray.h"
 #include <imgui.h>
@@ -33,7 +34,7 @@ namespace Engine {
 
         // Initialize terrain system before other rendering objects
         m_TerrainSystem = std::make_unique<TerrainSystem>();
-        m_TerrainSystem->Initialize(m_Renderer);  // Make sure TerrainSystem has this method
+        m_TerrainSystem->Initialize(m_Renderer);
 
         // Create triangle
         m_Triangle = std::make_unique<RenderableObject>();
@@ -162,10 +163,8 @@ namespace Engine {
             return object;
         };
 
-        // Create renderable objects
         m_RenderableObjects.push_back(createTexturedSquare(glm::vec3(0.5f), glm::vec4(1.0f)));
         m_RenderableObjects.push_back(createTexturedSquare(glm::vec3(-0.5f), glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)));
-        // Add more objects as needed...
     }
 
     Application::~Application() {
@@ -188,6 +187,10 @@ namespace Engine {
             float time = (float)glfwGetTime();
             float deltaTime = time - lastFrameTime;
             lastFrameTime = time;
+
+            EventDebugger::Get().UpdateTimestamps(deltaTime);
+
+            ProcessEvents();
 
             m_TerrainSystem->Update(deltaTime);
             m_InputSystem->Update(deltaTime);
@@ -241,11 +244,39 @@ namespace Engine {
                 m_ImGuiOverlay->RenderTransformControls(m_TexturedSquare->GetRenderObject());
                 m_ImGuiOverlay->RenderProfiler();
                 m_ImGuiOverlay->RenderRendererSettings();
+                m_ImGuiOverlay->RenderEventDebugger();  // Add event debugger window
             }
 
             SceneManager::Get().Render(m_Renderer);
             EndScene();
             Present();
+        }
+    }
+
+    void Application::ProcessEvents() {
+        static float eventTimer = 0.0f;
+        eventTimer += 0.016f; // Approximate for 60fps
+        
+        if (eventTimer >= 1.0f) { // Create a test event every second
+            auto testEvent = std::make_shared<KeyPressedEvent>(GLFW_KEY_T);
+            testEvent->SetPriority(EventPriority::Normal);
+            EventQueue::Get().PushEvent(testEvent);
+            eventTimer = 0.0f;
+        }
+
+        std::shared_ptr<Event> event;
+        while (EventQueue::Get().PopEvent(event)) {
+            EventDispatcher dispatcher(*event.get());
+            
+            dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& e) -> bool {
+                LOG_INFO("Window Close Event received");
+                m_Running = false;
+                return true;
+            });
+
+            if (!event->IsHandled()) {
+                m_InputSystem->OnEvent(*event);
+            }
         }
     }
 
@@ -294,22 +325,24 @@ namespace Engine {
         WindowProps props(title, width, height);
         m_Window = std::unique_ptr<Window>(Window::Create(props));
         
-        // Set event callback
-        m_Window->SetEventCallback([this](Event& e) {
-            EventDispatcher dispatcher(e);
+        m_Window->SetEventCallback([this](Event& e) -> bool {
+            std::shared_ptr<Event> eventPtr = nullptr;
             
-            dispatcher.Dispatch<WindowCloseEvent>(
-                std::function<bool(WindowCloseEvent&)>([this](WindowCloseEvent& e) {
-                    LOG_INFO("Window Close Event received");
-                    m_Running = false;
-                    return true;
-                })
-            );
-
-            // Forward events to InputSystem
-            if (!e.IsHandled()) {
-                m_InputSystem->OnEvent(e);
+            // Clone the event based on its type
+            if (e.GetEventType() == EventType::KeyPressed) {
+                auto& keyEvent = static_cast<KeyPressedEvent&>(e);
+                eventPtr = std::make_shared<KeyPressedEvent>(keyEvent.GetKeyCode(), keyEvent.IsRepeat());
             }
+            else if (e.GetEventType() == EventType::MouseMoved) {
+                auto& mouseEvent = static_cast<MouseMovedEvent&>(e);
+                eventPtr = std::make_shared<MouseMovedEvent>(mouseEvent.GetX(), mouseEvent.GetY());
+            }
+            // TODO: add more event types
+            
+            if (eventPtr) {
+                EventQueue::Get().PushEvent(eventPtr);
+            }
+            return false;
         });
     }
 

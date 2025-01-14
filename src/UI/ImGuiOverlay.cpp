@@ -93,4 +93,35 @@ namespace Engine {
         }
         ImGui::End();
     }
+
+    void ImGuiOverlay::RenderEventDebugger() {
+        if (ImGui::Begin("Recent Events", &m_ShowEventDebugger)) {
+            ImGui::Text("Last 5 Events:");
+            ImGui::Separator();
+
+            const auto& history = EventDebugger::Get().GetEventHistory();
+            for (const auto& eventInfo : history) {
+                ImGui::PushStyleColor(ImGuiCol_Header, 
+                    eventInfo.timeAgo < 1.0f ? ImVec4(0.2f, 0.7f, 0.2f, 1.0f) : ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+                
+                if (ImGui::CollapsingHeader(
+                    (eventInfo.name + " [" + std::to_string(eventInfo.timeAgo).substr(0, 4) + "s ago]").c_str())) 
+                {
+                    ImGui::Indent();
+                    ImGui::Text("Priority: %s", 
+                        eventInfo.priority == EventPriority::High ? "High" :
+                        eventInfo.priority == EventPriority::Normal ? "Normal" : "Low");
+                    ImGui::Text("Handled: %s", eventInfo.handled ? "Yes" : "No");
+                    ImGui::TextWrapped("Details: %s", eventInfo.debugInfo.c_str());
+                    ImGui::Unindent();
+                }
+                ImGui::PopStyleColor();
+            }
+
+            if (history.empty()) {
+                ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "No events recorded yet");
+            }
+        }
+        ImGui::End();
+    }
 }

@@ -7,7 +7,8 @@ namespace Engine {
         int GetKeyCode() const { return m_KeyCode; }
         
         virtual int GetCategoryFlags() const override {
-            return EventCategoryKeyboard | EventCategoryInput;
+            return static_cast<int>(EventCategory::Keyboard) | 
+                   static_cast<int>(EventCategory::Input);
         }
 
     protected:
