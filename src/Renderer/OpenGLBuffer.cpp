@@ -1,8 +1,14 @@
+/**
+ * @file OpenGLBuffer.cpp
+ * @brief Implementation of OpenGL vertex and index buffers
+ * 
+ * Provides concrete implementations of buffer interfaces for OpenGL.
+ */
 #include "OpenGLBuffer.h"
 #include <glad/glad.h>
 
 namespace Engine {
-    OpenGLVertexBuffer::OpenGLVertexBuffer(float* vertices, uint32_t size)
+    OpenGLVertexBuffer::OpenGLVertexBuffer(const float* vertices, uint32_t size)
     {
         glGenBuffers(1, &m_RendererID);
         glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -14,23 +20,17 @@ namespace Engine {
         glDeleteBuffers(1, &m_RendererID);
     }
 
-    void OpenGLVertexBuffer::SetData(float* vertices, uint32_t size)
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-        glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
-    }
-
     void OpenGLVertexBuffer::Bind() const
     {
         glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
     }
 
-    void OpenGLVertexBuffer::UnBind() const
+    void OpenGLVertexBuffer::Unbind() const
     {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    OpenGLIndexBuffer::OpenGLIndexBuffer(uint32_t* indices, uint32_t count)
+    OpenGLIndexBuffer::OpenGLIndexBuffer(const uint32_t* indices, uint32_t count)
         : m_Count(count)
     {
         glGenBuffers(1, &m_RendererID);
@@ -48,7 +48,7 @@ namespace Engine {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
     }
 
-    void OpenGLIndexBuffer::UnBind() const
+    void OpenGLIndexBuffer::Unbind() const
     {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }

@@ -29,7 +29,10 @@ jobs:
           sudo apt update
           sudo apt install -y cmake build-essential pkg-config \
             libglfw3-dev libgl1-mesa-dev libx11-dev libgl-dev libglm-dev libfreetype6-dev
-      
+
+      - name: Update submodules
+        run: git submodule update --init --recursive
+
       # Step 3: Generate and build the project using CMake
       - name: Configure and build project
         run: |

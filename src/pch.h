@@ -1,5 +1,11 @@
 #pragma once
 
+/**
+ * @file pch.h
+ * @brief Precompiled header file
+ * @details Contains commonly used standard library includes and platform definitions
+ */
+
 #ifdef __cplusplus
 
 // Standard Library
@@ -17,6 +23,23 @@
 #include <ctime>
 #include <chrono>
 #include <fstream>
+#include <sstream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <future>
+#include <queue>
+#include <deque>
+#include <random>
+#include <cmath>
+#include <numeric>
+
+// OpenGL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+// Engine
+#include "Core/Logging.h"
 #endif
 
 // Platform detection

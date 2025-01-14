@@ -12,14 +12,14 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 
 # Find FreeType
-find_package(Freetype REQUIRED)
+# find_package(Freetype REQUIRED)
 
 include_directories(/usr/include)
-include_directories(${FREETYPE_INCLUDE_DIRS})
+# include_directories(${FREETYPE_INCLUDE_DIRS})
 link_directories(/usr/lib)
 
 # Copy the INI file to the build directory
-file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
+# file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
 
 # Add ImGui source files
 set(IMGUI_DIR external/imgui)
@@ -36,6 +36,7 @@ set(IMGUI_SOURCES
 # Add source files
 set(SOURCES
     external/glad/src/glad.c
+    external/stb_image/src/stb_image.cpp
     src/EntryPoint.cpp
     src/Application.cpp
     src/Window/OpenGLWindow.cpp
@@ -44,6 +45,21 @@ set(SOURCES
     src/Renderer/Renderer.cpp
     src/Shader/Shader.cpp
     src/ImGui/ImGuiLayer.cpp
+    src/Renderer/VertexArray.cpp
+    src/Renderer/OpenGLVertexArray.cpp
+    src/Camera/PerspectiveCamera.cpp
+    src/Renderer/Material.cpp
+    src/Renderer/Texture.cpp
+    src/Shader/DefaultShaders.h
+    src/Renderer/MeshTemplates.h
+    src/Debug/Profiler.cpp
+    src/Threading/ThreadPool.cpp
+    src/VoxelTerrain.cpp
+    src/VoidNoise.cpp
+    src/Input/InputSystem.cpp
+    src/TerrainSystem/TerrainSystem.cpp
+    src/UI/ImGuiOverlay.cpp
+    src/VoxelChunk.cpp
     ${IMGUI_SOURCES}
 )
 
@@ -62,6 +78,7 @@ target_include_directories(voxel-engine PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${CMAKE_SOURCE_DIR}/external/stb_image/src
 )
 
 # Enable precompiled headers - specify C++ explicitly

@@ -1,9 +1,13 @@
+/**
+ * @file ImGuiLayer.cpp
+ * @brief Implementation of the ImGui integration layer
+ */
+#include <pch.h>
 #include "ImGuiLayer.h"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
-#include "../Logging.h"
 
 namespace Engine {
     void ImGuiLayer::Init(Window* window) {
