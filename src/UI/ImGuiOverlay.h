@@ -6,6 +6,7 @@
 #include "../Window/Window.h"
 #include "../Renderer/Renderer.h"
 #include "../Events/EventDebugger.h"
+#include "../TerrainSystem/TerrainSystem.h"
 
 namespace Engine {
     class ImGuiOverlay {
@@ -20,6 +21,7 @@ namespace Engine {
         void RenderProfiler();
         void RenderRendererSettings();
         void RenderEventDebugger();
+        void RenderTerrainControls(TerrainSystem& terrainSystem);
 
     private:
         Window* m_Window;

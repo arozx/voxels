@@ -59,6 +59,7 @@ set(SOURCES
     src/Input/InputSystem.cpp
     src/TerrainSystem/TerrainSystem.cpp
     src/UI/ImGuiOverlay.cpp
+    src/VoxelChunk.cpp
     ${IMGUI_SOURCES}
 )
 

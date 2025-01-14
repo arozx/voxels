@@ -10,8 +10,16 @@
 #include "Scene/SceneManager.h"
 #include "UI/ImGuiOverlay.h"
 #include "Renderer/RenderableObject.h"
+#include "Core/AssetManager.h"
 
 namespace Engine {
+    // Add this struct before the Application class
+    struct KeyToggleState {
+        bool previousState = false;
+        float pressStartTime = 0.0f;
+        bool currentValue = false;  // Store the actual toggle value (e.g., m_ShowFPSCounter)
+    };
+
     class Application {
     public:
         Application();
@@ -39,7 +47,23 @@ namespace Engine {
         void CreateBlurSquare();
 
     private:
+        bool HandleKeyToggle(int key, float currentTime);
+        void InitializeToggleStates();
+
+        void AddToggleState(int key, bool defaultValue = false);
+        void RemoveToggleState(int key);
+        bool GetToggleState(int key) const;
+        void SetToggleState(int key, bool value);
+
         bool m_Running = true;
+        bool m_ImGuiEnabled = true;
+        
+        float m_DebounceTime = 0.3f;
+
+        std::unordered_map<int, KeyToggleState> m_KeyToggles;
+
+        const float MAX_TOGGLE_HOLD_TIME = 1.5f;
+
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
         std::unique_ptr<InputSystem> m_InputSystem;
@@ -57,6 +81,7 @@ namespace Engine {
         std::unique_ptr<RenderableObject> m_BlurSquare;
 
         std::shared_ptr<Texture> m_TestTexture;
+        std::shared_ptr<Texture> m_LargeTexture;
 
         // FPS tracking members
         bool m_ShowFPSCounter = true;

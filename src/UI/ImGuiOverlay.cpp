@@ -124,4 +124,52 @@ namespace Engine {
         }
         ImGui::End();
     }
+
+    void ImGuiOverlay::RenderTerrainControls(TerrainSystem& terrainSystem) {
+        if (ImGui::Begin("Terrain Controls")) {
+            // Chunk range control
+            int chunkRange = terrainSystem.GetChunkRange();
+            if (ImGui::SliderInt("Chunk Range", &chunkRange, 0, 5)) {
+                terrainSystem.SetChunkRange(chunkRange);
+            }
+
+            // Terrain seed control
+            static uint32_t seed = 1234;
+            if (ImGui::InputScalar("Terrain Seed", ImGuiDataType_U32, &seed)) {
+                // No need for validation since uint32_t can't be negative
+            }
+            if (ImGui::Button("Regenerate Terrain")) {
+                terrainSystem.RegenerateTerrain(seed);
+            }
+
+            // Terrain parameters
+            ImGui::Separator();
+            ImGui::Text("Terrain Parameters:");
+            
+            static float baseHeight = 32.0f;
+            static float heightScale = 32.0f;
+            static float noiseScale = 0.05f;
+            static bool autoUpdate = false;
+
+            if (ImGui::SliderFloat("Base Height", &baseHeight, 0.0f, 64.0f) && autoUpdate) {
+                terrainSystem.SetBaseHeight(baseHeight);
+            }
+            if (ImGui::SliderFloat("Height Scale", &heightScale, 1.0f, 64.0f) && autoUpdate) {
+                terrainSystem.SetHeightScale(heightScale);
+            }
+            if (ImGui::SliderFloat("Noise Scale", &noiseScale, 0.01f, 0.2f) && autoUpdate) {
+                terrainSystem.SetNoiseScale(noiseScale);
+            }
+
+            ImGui::Checkbox("Auto Update", &autoUpdate);
+
+            if (!autoUpdate && ImGui::Button("Apply Parameters")) {
+                terrainSystem.SetBaseHeight(baseHeight);
+                terrainSystem.SetHeightScale(heightScale);
+                terrainSystem.SetNoiseScale(noiseScale);
+                terrainSystem.RegenerateTerrain(seed);  // Fixed: Added seed parameter
+            }
+        }
+        ImGui::End();
+    }
 }

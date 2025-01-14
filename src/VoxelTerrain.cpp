@@ -1,51 +1,47 @@
-
 #include "VoxelTerrain.h"
 
 VoxelTerrain::VoxelTerrain(unsigned int seed) : m_NoiseGenerator(seed) {
-    generate();
 }
 
-void VoxelTerrain::generate() {
-    // Generate 2D heightmap
-    float scale = 4.0f; // Adjust this to change terrain frequency
-    auto heightmap = m_NoiseGenerator.generateHeightmap(TERRAIN_SIZE, TERRAIN_SIZE, scale);
+void VoxelTerrain::generateChunk(int chunkX, int chunkY, int chunkZ) {
+    uint64_t key = getChunkKey(chunkX, chunkY, chunkZ);
+    auto chunk = std::make_unique<VoxelChunk>(chunkX, chunkY, chunkZ);
+    chunk->generate(m_NoiseGenerator, m_TerrainScale);
+    m_Chunks[key] = std::move(chunk);
+}
 
-    // Clear voxel data
-    m_VoxelData.fill(false);
+bool VoxelTerrain::getVoxel(int x, int y, int z) const {
+    int chunkX = x / VoxelChunk::CHUNK_SIZE;
+    int chunkY = y / VoxelChunk::CHUNK_SIZE;
+    int chunkZ = z / VoxelChunk::CHUNK_SIZE;
+    
+    VoxelChunk* chunk = getChunk(chunkX, chunkY, chunkZ);
+    if (!chunk) return false;
+    
+    int localX = x % VoxelChunk::CHUNK_SIZE;
+    int localY = y % VoxelChunk::CHUNK_SIZE;
+    int localZ = z % VoxelChunk::CHUNK_SIZE;
+    
+    if (localX < 0) localX += VoxelChunk::CHUNK_SIZE;
+    if (localY < 0) localY += VoxelChunk::CHUNK_SIZE;
+    if (localZ < 0) localZ += VoxelChunk::CHUNK_SIZE;
+    
+    return chunk->getData()[localX + VoxelChunk::CHUNK_SIZE * (localY + VoxelChunk::CHUNK_SIZE * localZ)];
+}
 
-    // Generate terrain from heightmap
-    for (int x = 0; x < TERRAIN_SIZE; x++) {
-        for (int z = 0; z < TERRAIN_SIZE; z++) {
-            // Get height value from heightmap (normalized 0-1)
-            float heightValue = heightmap[z * TERRAIN_SIZE + x];
-            
-            // Convert to voxel height (0 to TERRAIN_SIZE)
-            int height = static_cast<int>(heightValue * TERRAIN_SIZE);
-            
-            // Fill voxels from bottom up to height
-            for (int y = 0; y < height; y++) {
-                m_VoxelData[getIndex(x, y, z)] = true;
-            }
-        }
+void VoxelTerrain::setVoxel(int x, int y, int z, bool value) {
+    int chunkX = x / VoxelChunk::CHUNK_SIZE;
+    int chunkY = y / VoxelChunk::CHUNK_SIZE;
+    int chunkZ = z / VoxelChunk::CHUNK_SIZE;
+    
+    uint64_t key = getChunkKey(chunkX, chunkY, chunkZ);
+    if (m_Chunks.find(key) == m_Chunks.end()) {
+        generateChunk(chunkX, chunkY, chunkZ);
     }
+}
 
-    // Add some noise to the terrain using 3D sampling
-    for (int x = 0; x < TERRAIN_SIZE; x++) {
-        for (int y = 0; y < TERRAIN_SIZE; y++) {
-            for (int z = 0; z < TERRAIN_SIZE; z++) {
-                // Sample 3D noise
-                float nx = static_cast<float>(x) * scale / TERRAIN_SIZE;
-                float ny = static_cast<float>(y) * scale / TERRAIN_SIZE;
-                float nz = static_cast<float>(z) * scale / TERRAIN_SIZE;
-                
-                // Use 2D noise for each layer
-                float caveNoise = m_NoiseGenerator.noise(nx + nz, ny);
-                
-                // Create caves where noise value is high
-                if (caveNoise > 0.75f && m_VoxelData[getIndex(x, y, z)]) {
-                    m_VoxelData[getIndex(x, y, z)] = false;
-                }
-            }
-        }
-    }
+VoxelChunk* VoxelTerrain::getChunk(int chunkX, int chunkY, int chunkZ) const {
+    uint64_t key = getChunkKey(chunkX, chunkY, chunkZ);
+    auto it = m_Chunks.find(key);
+    return it != m_Chunks.end() ? it->second.get() : nullptr;
 }

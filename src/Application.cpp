@@ -15,6 +15,7 @@
 #include "Debug/Profiler.h"
 #include "Scene/SceneManager.h"
 #include "UI/ImGuiOverlay.h"
+#include "Core/AssetManager.h"
 
 namespace Engine {
     Application::Application() {
@@ -35,6 +36,9 @@ namespace Engine {
         // Initialize terrain system before other rendering objects
         m_TerrainSystem = std::make_unique<TerrainSystem>();
         m_TerrainSystem->Initialize(m_Renderer);
+
+        // Preload frequently used assets
+        AssetManager::Get().PreloadFrequentAssets();
 
         // Create triangle
         m_Triangle = std::make_unique<RenderableObject>();
@@ -64,8 +68,11 @@ namespace Engine {
         m_Triangle->SetRenderObject(std::make_unique<RenderObject>(
             triangleVA, triangleMaterial, Transform()));
 
-        // Load shared texture
-        m_TestTexture = Texture::Create("assets/textures/test.png");
+        m_TestTexture = AssetManager::Get().LoadResource<Texture>("assets/textures/test.png");
+
+        if (m_TestTexture) {
+            AssetManager::Get().MarkAsFrequentlyUsed<Texture>("assets/textures/test.png");
+        }
 
         // Create textured square
         auto createSquare = [this](const glm::vec3& position, 
@@ -165,6 +172,15 @@ namespace Engine {
 
         m_RenderableObjects.push_back(createTexturedSquare(glm::vec3(0.5f), glm::vec4(1.0f)));
         m_RenderableObjects.push_back(createTexturedSquare(glm::vec3(-0.5f), glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)));
+
+        
+        // TODO: use async when loading see example
+        /*Example
+        auto futureTexture = AssetManager::Get().LoadResourceAsync<Texture>("assets/textures/large.png");
+    
+        m_LargeTexture = futureTexture.get(); 
+        */
+        InitializeToggleStates();
     }
 
     Application::~Application() {
@@ -172,6 +188,11 @@ namespace Engine {
             m_ImGuiLayer->Shutdown();
         }
         LOG_INFO("Application Destroyed");
+
+        // Resources automatically unloaded when reference count hits 0
+        m_TestTexture = nullptr;
+        
+        AssetManager::Get().UnloadUnused();
     }
 
     void Application::Run() {
@@ -196,13 +217,12 @@ namespace Engine {
             m_InputSystem->Update(deltaTime);
             SceneManager::Get().Update(deltaTime);
 
-            // Toggle FPS counter with F3
-            if (glfwGetKey(static_cast<GLFWwindow*>(m_Window->GetNativeWindow()), GLFW_KEY_F3) == GLFW_PRESS) {
-                static float lastPress = 0.0f;
-                if (time - lastPress > 0.2f) { // Debounce
-                    m_ShowFPSCounter = !m_ShowFPSCounter;
-                    lastPress = time;
-                }
+            if (HandleKeyToggle(GLFW_KEY_F3, time)) {
+                m_ShowFPSCounter = m_KeyToggles[GLFW_KEY_F3].currentValue;
+            }
+
+            if (HandleKeyToggle(GLFW_KEY_F2, time)) {
+                m_ImGuiEnabled = m_KeyToggles[GLFW_KEY_F2].currentValue;
             }
 
             UpdateFPSCounter(deltaTime, time);
@@ -238,18 +258,16 @@ namespace Engine {
 
             BeginScene();
             
-            if (ImGuiEnabled && m_TexturedSquare) {
-                m_ImGuiOverlay->OnRender(m_TexturedSquare->GetRenderObject(), m_ShowFPSCounter, 
-                    m_CurrentFPS, m_FPS, m_FrameTime, m_FPS1PercentLow, m_FPS1PercentHigh);
-                m_ImGuiOverlay->RenderTransformControls(m_TexturedSquare->GetRenderObject());
-                m_ImGuiOverlay->RenderProfiler();
-                m_ImGuiOverlay->RenderRendererSettings();
-                m_ImGuiOverlay->RenderEventDebugger();  // Add event debugger window
-            }
-
-            SceneManager::Get().Render(m_Renderer);
+            // Render scene objects
+            if (m_Triangle) m_Triangle->OnRender(m_Renderer);
+            if (m_TexturedSquare) m_TexturedSquare->OnRender(m_Renderer);
+            if (m_TransparentSquare) m_TransparentSquare->OnRender(m_Renderer);
+            if (m_FileShaderSquare) m_FileShaderSquare->OnRender(m_Renderer);
+            if (m_PixelatedSquare) m_PixelatedSquare->OnRender(m_Renderer);
+            if (m_WaveDissolveSquare) m_WaveDissolveSquare->OnRender(m_Renderer);
+            if (m_BlurSquare) m_BlurSquare->OnRender(m_Renderer);
+            
             EndScene();
-            Present();
         }
     }
 
@@ -276,6 +294,16 @@ namespace Engine {
 
             if (!event->IsHandled()) {
                 m_InputSystem->OnEvent(*event);
+            }
+        }
+
+        // Add chunk range control with number keys
+        if (auto* window = static_cast<GLFWwindow*>(m_Window->GetNativeWindow())) {
+            for (int i = 0; i <= 9; i++) {
+                if (glfwGetKey(window, GLFW_KEY_0 + i) == GLFW_PRESS) {
+                    m_TerrainSystem->SetChunkRange(i);
+                    break;
+                }
             }
         }
     }
@@ -360,25 +388,28 @@ namespace Engine {
         m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
         
         m_TerrainSystem->Render(m_Renderer);
-        
-        if (m_Triangle) m_Triangle->OnRender(m_Renderer);
-        if (m_TexturedSquare) m_TexturedSquare->OnRender(m_Renderer);
-        if (m_TransparentSquare) m_TransparentSquare->OnRender(m_Renderer);
-        if (m_FileShaderSquare) m_FileShaderSquare->OnRender(m_Renderer);
-        if (m_PixelatedSquare) m_PixelatedSquare->OnRender(m_Renderer);
-        if (m_WaveDissolveSquare) m_WaveDissolveSquare->OnRender(m_Renderer);
-        if (m_BlurSquare) m_BlurSquare->OnRender(m_Renderer);
-
         m_Renderer.Draw();
+        
         m_ImGuiLayer->Begin();
+        
+        if (m_ImGuiEnabled && m_TexturedSquare) {
+            m_ImGuiOverlay->OnRender(m_TexturedSquare->GetRenderObject(), m_ShowFPSCounter, 
+                m_CurrentFPS, m_FPS, m_FrameTime, m_FPS1PercentLow, m_FPS1PercentHigh);
+            m_ImGuiOverlay->RenderTransformControls(m_TexturedSquare->GetRenderObject());
+            m_ImGuiOverlay->RenderProfiler();
+            m_ImGuiOverlay->RenderRendererSettings();
+            m_ImGuiOverlay->RenderEventDebugger();
+            m_ImGuiOverlay->RenderTerrainControls(*m_TerrainSystem);
+        }
     }
 
     void Application::EndScene() {
         m_ImGuiLayer->End();
+        m_Window->OnUpdate();
     }
 
     void Application::Present() {
-        m_Window->OnUpdate();
+        
     }
 
     void Application::SetViewport(int x, int y, int width, int height) {
@@ -481,5 +512,55 @@ namespace Engine {
         // Use the same vertex array as textured square
         auto va = m_TexturedSquare ? m_TexturedSquare->GetRenderObject().GetVertexArray() : nullptr;
         m_BlurSquare->SetRenderObject(std::make_unique<RenderObject>(va, material, transform));
+    }
+
+    void Application::InitializeToggleStates() {
+        AddToggleState(GLFW_KEY_F2, true);  // ImGui enabled by default
+        AddToggleState(GLFW_KEY_F3, true);  // FPS counter enabled by default
+    }
+
+    bool Application::HandleKeyToggle(int key, float currentTime) {
+        if (auto* window = static_cast<GLFWwindow*>(m_Window->GetNativeWindow())) {
+            auto& state = m_KeyToggles[key];
+            bool currentState = glfwGetKey(window, key) == GLFW_PRESS;
+            
+            // Track when key is first pressed
+            if (currentState && !state.previousState) {
+                state.pressStartTime = currentTime;
+            }
+            
+            // Check for toggle condition on release
+            if (state.previousState && !currentState) {
+                bool shouldToggle = (currentTime - state.pressStartTime) < MAX_TOGGLE_HOLD_TIME;
+                state.previousState = currentState;
+                if (shouldToggle) {
+                    state.currentValue = !state.currentValue;
+                    return true;
+                }
+            }
+            
+            state.previousState = currentState;
+        }
+        return false;
+    }
+
+    void Application::AddToggleState(int key, bool defaultValue) {
+        m_KeyToggles[key] = KeyToggleState{false, 0.0f, defaultValue};
+    }
+
+    void Application::RemoveToggleState(int key) {
+        m_KeyToggles.erase(key);
+    }
+
+    bool Application::GetToggleState(int key) const {
+        auto it = m_KeyToggles.find(key);
+        return it != m_KeyToggles.end() ? it->second.currentValue : false;
+    }
+
+    void Application::SetToggleState(int key, bool value) {
+        auto it = m_KeyToggles.find(key);
+        if (it != m_KeyToggles.end()) {
+            it->second.currentValue = value;
+        }
     }
 }
