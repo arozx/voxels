@@ -328,6 +328,11 @@ namespace Engine {
         m_Window->SetEventCallback([this](Event& e) -> bool {
             std::shared_ptr<Event> eventPtr = nullptr;
             
+            if (e.GetEventType() == EventType::WindowResize) {
+                auto& resizeEvent = static_cast<WindowResizeEvent&>(e);
+                SetViewport(0, 0, resizeEvent.GetWidth(), resizeEvent.GetHeight());
+            }
+            
             // Clone the event based on its type
             if (e.GetEventType() == EventType::KeyPressed) {
                 auto& keyEvent = static_cast<KeyPressedEvent&>(e);
@@ -377,6 +382,7 @@ namespace Engine {
     }
 
     void Application::SetViewport(int x, int y, int width, int height) {
+        glViewport(x, y, width, height);
         LOG_TRACE_CONCAT("Set Viewport: ", x, ",", y, ",", width, ",", height);
     }
 
