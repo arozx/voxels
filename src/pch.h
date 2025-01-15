@@ -40,6 +40,7 @@
 
 // Engine
 #include "Core/Logging.h"
+#include "Debug/Profiler.h"
 #endif
 
 // Platform detection

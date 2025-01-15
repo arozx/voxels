@@ -11,7 +11,31 @@
 #include "UI/ImGuiOverlay.h"
 #include "Renderer/RenderableObject.h"
 #include "Core/AssetManager.h"
+#include "Renderer/Light.h"
+#include "Core/FPSCounter.h"
 
+/**
+ * @namespace Engine
+ * @brief Core engine namespace containing main application and utility classes
+ * 
+ * The Engine namespace encapsulates all core functionality of the voxel engine including:
+ * - Application management and game loop
+ * - Window handling
+ * - Rendering systems
+ * - Input processing
+ * - Scene management
+ * - Terrain generation
+ * 
+ * This namespace provides the foundation for building voxel-based games and applications
+ * by managing the lifecycle, resources, and core systems needed for rendering and interaction.
+ * 
+ * Usage example:
+ * @code
+ * class Game : public Engine::Application {
+ *     // Game implementation
+ * };
+ * @endcode
+ */
 namespace Engine {
     /**
      * @brief Stores state for key toggle functionality
@@ -75,13 +99,6 @@ namespace Engine {
          */
         void ProcessEvents();
 
-        // Add new function to create a test square using file shaders
-        void CreateFileShaderSquare();
-
-        void CreatePixelatedSquare();
-        void CreateWaveDissolveSquare();
-        void CreateBlurSquare();
-
     private:
         /**
          * @brief Handle key toggle state changes
@@ -140,32 +157,16 @@ namespace Engine {
 
         // Rendering objects
         std::vector<std::unique_ptr<RenderableObject>> m_RenderableObjects;
-        std::unique_ptr<RenderableObject> m_Triangle;
-        std::unique_ptr<RenderableObject> m_TexturedSquare;  // This will be our active square for movement
-        std::unique_ptr<RenderableObject> m_TransparentSquare;
-        std::unique_ptr<RenderableObject> m_FileShaderSquare;
-        std::unique_ptr<RenderableObject> m_PixelatedSquare;
-        std::unique_ptr<RenderableObject> m_WaveDissolveSquare;
-        std::unique_ptr<RenderableObject> m_BlurSquare;
-
-        std::shared_ptr<Texture> m_TestTexture;
-        std::shared_ptr<Texture> m_LargeTexture;
 
         // FPS tracking members
         bool m_ShowFPSCounter = true;
-        static const size_t FPS_SAMPLE_COUNT = 200; // Store last ~3.3 seconds at 60fps
-        std::vector<float> m_FPSSamples;
-        float m_FPS = 0.0f;
-        float m_CurrentFPS = 0.0f;
-        float m_FPS1PercentHigh = 0.0f;
-        float m_FPS1PercentLow = 0.0f;
-        float m_FrameTime = 0.0f;
-        float m_FPSUpdateTimer = 0.0f;
-        size_t m_CurrentFPSSample = 0;
+        FPSCounter m_FPSCounter;
 
         std::unique_ptr<ImGuiOverlay> m_ImGuiOverlay;
 
         void UpdateFPSCounter(float deltaTime, float currentTime);
+
+        std::unique_ptr<Light> m_Light;
     };
     
     // To be defined by client application

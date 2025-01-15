@@ -39,6 +39,15 @@ namespace Engine {
         /** @return The shader used by this material */
         std::shared_ptr<Shader> GetShader() const { return m_Shader; }
 
+        /** @brief Sets the shader for this material */
+        void SetShader(const std::shared_ptr<Shader>& shader) { m_Shader = shader; }
+
+        // Add getter for textures
+        std::shared_ptr<Texture> GetTexture(const std::string& name) const {
+            auto it = m_Textures.find(name);
+            return (it != m_Textures.end()) ? it->second : nullptr;
+        }
+
     private:
         std::shared_ptr<Shader> m_Shader;
         std::unordered_map<std::string, glm::vec4> m_VectorProperties;

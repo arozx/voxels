@@ -2,7 +2,7 @@
 
 #include <pch.h>
 #include "Event.h"
-#include "EventDebugger.h"
+#include "../Threading/ThreadPool.h"
 
 namespace Engine {
     /**
@@ -14,6 +14,25 @@ namespace Engine {
         }
     };
 
+    class EventDispatcher {
+    public:
+        using EventCallbackFn = std::function<bool(Event&)>;
+        
+        EventDispatcher(Event& event) : m_Event(event) {}
+
+        template<typename T, typename F>
+        bool Dispatch(const F& func) {
+            if (m_Event.GetEventType() == T::GetStaticType()) {
+                m_Event.SetHandled(func(static_cast<T&>(m_Event)));
+                return true;
+            }
+            return false;
+        }
+
+    private:
+        Event& m_Event;
+    };
+
     /**
      * @brief Thread-safe event queue for storing and processing events
      * 
@@ -21,6 +40,8 @@ namespace Engine {
      */
     class EventQueue {
     public:
+        using EventHandlerFn = std::function<bool(std::shared_ptr<Event>)>;
+
         /** @return Reference to singleton instance */
         static EventQueue& Get() {
             static EventQueue instance;
@@ -70,6 +91,19 @@ namespace Engine {
             return !m_EventQueue.empty();
         }
 
+        /**
+         * @brief Processes all events in the queue
+         * @param handler Event handler function
+         */
+        void ProcessEvents(EventHandlerFn handler) {
+            while (HasEvents()) {
+                std::shared_ptr<Event> event;
+                if (PopEvent(event)) {
+                    handler(event);
+                }
+            }
+        }
+
     private:
         EventQueue() = default;
         uint64_t GetCurrentTimestamp() {
@@ -82,41 +116,5 @@ namespace Engine {
         std::priority_queue<std::shared_ptr<Event>, 
             std::vector<std::shared_ptr<Event>>, 
             EventCompare> m_EventQueue;
-    };
-
-    /**
-     * @brief Handles dispatching events to appropriate handlers
-     * 
-     * Provides type-safe event dispatching to event handlers
-     */
-    class EventDispatcher {
-    public:
-        /** @brief Type alias for event callback functions */
-        using EventCallbackFn = std::function<bool(Event&)>;
-
-        /**
-         * @brief Constructs dispatcher for an event
-         * @param event Event to be dispatched
-         */
-        EventDispatcher(Event& event) : m_Event(event) {}
-
-        /**
-         * @brief Dispatches event to handler if types match
-         * @tparam T Event type to handle
-         * @tparam F Handler function type
-         * @param func Handler function
-         * @return true if event was handled
-         */
-        template<typename T, typename F>
-        bool Dispatch(const F& func) {
-            if (m_Event.GetEventType() == T::GetStaticType()) {
-                m_Event.SetHandled(func(static_cast<T&>(m_Event)));
-                return true;
-            }
-            return false;
-        }
-
-    private:
-        Event& m_Event;
     };
 }

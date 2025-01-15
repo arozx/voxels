@@ -60,6 +60,7 @@ set(SOURCES
     src/TerrainSystem/TerrainSystem.cpp
     src/UI/ImGuiOverlay.cpp
     src/VoxelChunk.cpp
+    src/Core/FPSCounter.cpp
     ${IMGUI_SOURCES}
 )
 
