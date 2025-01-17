@@ -1,7 +1,8 @@
 #pragma once
 
-#include "VoidNoise.h"
 #include <pch.h>
+#include "VoidNoise.h"
+#include "TerrainSystem/BlockTypes.h"
 
 /**
  * @brief Represents a cubic chunk of voxels
@@ -39,8 +40,11 @@ public:
      */
     glm::ivec3 getPosition() const { return glm::ivec3(m_ChunkX, m_ChunkY, m_ChunkZ); }
 
+    BlockType getBlockType(int worldY, int height) const;
+
 private:
     std::array<bool, CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE> m_VoxelData;
+    std::array<BlockType, CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE> m_BlockTypes;
     int m_ChunkX, m_ChunkY, m_ChunkZ;
     
     /**

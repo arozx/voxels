@@ -4,6 +4,7 @@
 #include "Renderer/Material.h"
 #include "Renderer/Renderer.h"
 #include "VoxelTerrain.h"
+#include "BlockTypes.h"
 
 namespace Engine {
     /**

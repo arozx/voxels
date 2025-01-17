@@ -10,6 +10,7 @@
 #include "Shader/DefaultShaders.h"
 #include "Renderer/MeshTemplates.h"
 #include "Core/AssetManager.h"
+#include "BlockTypes.h"
 
 namespace Engine {
     /**
@@ -23,7 +24,7 @@ namespace Engine {
         m_Terrain = std::make_unique<VoxelTerrain>(std::random_device{}());
         
         // Load terrain texture
-        m_TerrainTexture = Texture::Create("assets/textures/kenny_simple/PNG/Orange/texture_01.png");
+        m_TerrainTexture = Texture::Create("assets/textures/terrain_atlas.png");
         
         m_TerrainShader = DefaultShaders::LoadTexturedShader();  // Using textured shader for now
         m_TerrainMaterial = std::make_shared<Material>(m_TerrainShader);
@@ -32,6 +33,14 @@ namespace Engine {
         
         m_TerrainTransform.position = glm::vec3(-5.0f, -2.0f, -5.0f);
         m_TerrainTransform.scale = glm::vec3(0.2f);
+
+        m_Terrain->setTerrainParameters
+        (
+            0.3f,   // noise scale
+            5.0f,   // terrain scale
+            16,     // water level
+            128     // max height
+        );
 
         GenerateMesh();
     }

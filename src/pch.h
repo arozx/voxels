@@ -39,7 +39,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Engine
-#include "Core/Logging.h"
+#include "Core/Utils/Logging.h"
 #include "Debug/Profiler.h"
 #endif
 

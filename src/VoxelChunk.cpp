@@ -20,67 +20,74 @@ VoxelChunk::VoxelChunk(int chunkX, int chunkY, int chunkZ)
  * @details Uses multiple noise octaves for terrain height and cave generation
  */
 void VoxelChunk::generate(const VoidNoise& noiseGenerator, float scale) {
-    // Ground level (adjust this to change the base height of the terrain)
-    const int BASE_HEIGHT = 32;
-    const float NOISE_SCALE = scale * 0.05f;
-    const float HEIGHT_SCALE = 32.0f;         // Maximum height variation
-
-    // Calculate world position of chunk origin
+    const float NOISE_SCALE = scale * 0.01f;
+    const int WATER_LEVEL = 32;
+    const float PEAK_FACTOR = 2.0f;  // Controls how pointy the peaks are
+    
+    // World position of chunk origin
     float worldX = m_ChunkX * CHUNK_SIZE;
     float worldZ = m_ChunkZ * CHUNK_SIZE;
+    int chunkYStart = m_ChunkY * CHUNK_SIZE;
 
-    // Generate terrain for this chunk
+    // Generate heightmap first
+    std::array<int, CHUNK_SIZE * CHUNK_SIZE> heightMap;
+    
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
-            // Sample heightmap at world position
             float wx = (worldX + x) * NOISE_SCALE;
             float wz = (worldZ + z) * NOISE_SCALE;
             
-            // Generate height using multiple noise octaves for more natural terrain
-            float height = 0.0f;
-            float amplitude = 1.0f;
-            float frequency = 1.0f;
+            // Generate terrain height with modified weights
+            float continentNoise = noiseGenerator.noise(wx * 0.5f, wz * 0.5f) * 2.0f - 1.0f;
+            float terrainNoise = (noiseGenerator.noise(wx * 2.0f, wz * 2.0f) * 2.0f - 1.0f) * 0.7f;
+            float detailNoise = (noiseGenerator.noise(wx * 4.0f, wz * 4.0f) * 2.0f - 1.0f) * 0.3f;
             
-            for (int octave = 0; octave < 4; octave++) {
-                height += noiseGenerator.noise(wx * frequency, wz * frequency) * amplitude;
-                amplitude *= 0.5f;
-                frequency *= 2.0f;
-            }
-
-            // Normalize height and scale to desired range
-            height = (height + 1.0f) * 0.5f;  // Normalize to 0-1
-            int terrainHeight = static_cast<int>(height * HEIGHT_SCALE);
-
-            // Fill voxels from bottom up to height
-            for (int y = 0; y < CHUNK_SIZE; y++) {
-                int worldY = m_ChunkY * CHUNK_SIZE + y;
-                
-                // Basic terrain with height variation
-                if (worldY < terrainHeight + BASE_HEIGHT) {
-                    m_VoxelData[getIndex(x, y, z)] = true;
-                }
-            }
+            float combinedNoise = continentNoise + terrainNoise + detailNoise;
+            
+            // Apply exponential function to create peaks
+            float normalizedHeight = (combinedNoise + 1.0f) * 0.5f;
+            float peakHeight = std::pow(normalizedHeight, PEAK_FACTOR);
+            
+            // Convert to final height
+            int height = static_cast<int>(peakHeight * 64.0f) + WATER_LEVEL;
+            
+            heightMap[x + z * CHUNK_SIZE] = height;
         }
     }
-
-    // Add 3D noise features (caves, etc)
+    
+    // Fill voxels and block types based on height
     for (int x = 0; x < CHUNK_SIZE; x++) {
-        for (int y = 0; y < CHUNK_SIZE; y++) {
-            for (int z = 0; z < CHUNK_SIZE; z++) {
-                if (!m_VoxelData[getIndex(x, y, z)]) continue;
-
-                float wx = (worldX + x) * NOISE_SCALE * 2.0f;
-                float wy = (m_ChunkY * CHUNK_SIZE + y) * NOISE_SCALE * 2.0f;
-                float wz = (worldZ + z) * NOISE_SCALE * 2.0f;
+        for (int z = 0; z < CHUNK_SIZE; z++) {
+            int terrainHeight = heightMap[x + z * CHUNK_SIZE];
+            
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                int worldY = chunkYStart + y;
+                int index = getIndex(x, y, z);
                 
-                // Generate 3D noise for caves
-                float caveNoise = noiseGenerator.noise(wx, wy + wz);
-                if (caveNoise > 0.8f) {
-                    m_VoxelData[getIndex(x, y, z)] = false;
+                if (worldY < terrainHeight) {
+                    m_VoxelData[index] = true;
+                    m_BlockTypes[index] = getBlockType(worldY, terrainHeight);
+                } else {
+                    m_VoxelData[index] = false;
+                    m_BlockTypes[index] = BlockType::Air;
                 }
             }
         }
     }
+}
+
+BlockType VoxelChunk::getBlockType(int worldY, int height) const {
+    if (worldY >= height) return BlockType::Air;
+    
+    const int SNOW_HEIGHT = 90;
+    const int STONE_HEIGHT = 40;
+    const int DIRT_DEPTH = 5;
+    
+    if (height >= SNOW_HEIGHT) return BlockType::Snow;
+    if (worldY == height - 1) return BlockType::Grass;
+    if (worldY > height - DIRT_DEPTH) return BlockType::Dirt;
+    if (worldY <= STONE_HEIGHT) return BlockType::Stone;
+    return BlockType::Stone;
 }
 
 int VoxelChunk::getIndex(int x, int y, int z) const {

@@ -58,6 +58,8 @@ set(SOURCES
     src/VoidNoise.cpp
     src/Input/InputSystem.cpp
     src/TerrainSystem/TerrainSystem.cpp
+    src/TerrainSystem/BlockTypes.h
+    src/TerrainSystem/TerrainSystem.h
     src/UI/ImGuiOverlay.cpp
     src/VoxelChunk.cpp
     src/Core/FPSCounter.cpp

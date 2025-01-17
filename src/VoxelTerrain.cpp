@@ -1,4 +1,5 @@
 #include "VoxelTerrain.h"
+#include "Core/Utils/BMPWriter.h"
 
 /**
  * @brief Initialize terrain system with seed
@@ -17,6 +18,12 @@ void VoxelTerrain::generateChunk(int chunkX, int chunkY, int chunkZ) {
     uint64_t key = getChunkKey(chunkX, chunkY, chunkZ);
     auto chunk = std::make_unique<VoxelChunk>(chunkX, chunkY, chunkZ);
     chunk->generate(m_NoiseGenerator, m_TerrainScale);
+    
+    // Debug: Save heightmap when generating chunk at y=0
+    if (chunkY == 0) {
+        SaveHeightmapDebug(chunkX, chunkZ);
+    }
+    
     m_Chunks[key] = std::move(chunk);
 }
 
@@ -81,4 +88,40 @@ uint64_t VoxelTerrain::getChunkKey(int x, int y, int z) {
     return ((uint64_t)x & 0xFFFFF) | 
         (((uint64_t)y & 0xFFFFF) << 20) |
         (((uint64_t)z & 0xFFFFF) << 40);
+}
+
+void VoxelTerrain::SaveHeightmapDebug(int chunkX, int chunkZ) {
+    const int mapSize = VoxelChunk::CHUNK_SIZE * 3;
+    std::vector<uint8_t> heightData(mapSize * mapSize);
+    
+    for (int x = 0; x < mapSize; x++) {
+        for (int z = 0; z < mapSize; z++) {
+            float wx = ((chunkX * VoxelChunk::CHUNK_SIZE) + x) * m_NoiseScale;
+            float wz = ((chunkZ * VoxelChunk::CHUNK_SIZE) + z) * m_NoiseScale;
+            
+            // Generate noise exactly as done in chunk generation
+            float continentNoise = m_NoiseGenerator.noise(wx * 0.5f, wz * 0.5f) * 2.0f - 1.0f;
+            float terrainNoise = (m_NoiseGenerator.noise(wx * 2.0f, wz * 2.0f) * 2.0f - 1.0f) * 0.5f;
+            float detailNoise = (m_NoiseGenerator.noise(wx * 4.0f, wz * 4.0f) * 2.0f - 1.0f) * 0.25f;
+            
+            // Calculate height as done in chunk generation
+            float combinedNoise = continentNoise + terrainNoise + detailNoise;
+            float height = ((combinedNoise + 1.0f) * 32.0f) + m_WaterLevel;
+            
+            // Convert to grayscale (0-255)
+            // Map height range 0-128 to 0-255
+            uint8_t pixelValue = static_cast<uint8_t>(std::min(255.0f, std::max(0.0f, (height / 128.0f) * 255.0f)));
+            heightData[x + z * mapSize] = pixelValue;
+
+            // Debug first few values
+            if (x < 2 && z < 2) {
+                printf("HeightMap Pos(%d,%d) - Height: %.2f, Pixel: %d\n", 
+                    x, z, height, pixelValue);
+            }
+        }
+    }
+    
+    char filename[100];
+    snprintf(filename, sizeof(filename), "heightmap_chunk_%d_%d.bmp", chunkX, chunkZ);
+    BMPWriter::SaveGrayscaleBMP(filename, heightData, mapSize, mapSize);
 }

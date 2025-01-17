@@ -144,6 +144,7 @@ namespace Engine {
      */
     void Application::ProcessEvents() {
         static float eventTimer = 0.0f;
+        // TODO: Sync to FPS
         eventTimer += 0.016f; // Approximate for 60fps
         
         if (eventTimer >= 1.0f) { // Create a test event every second
@@ -232,6 +233,8 @@ namespace Engine {
     }
 
     void Application::BeginScene() {
+        PROFILE_FUNCTION();
+
         m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
         
         m_TerrainSystem->Render(m_Renderer);
@@ -255,6 +258,8 @@ namespace Engine {
     }
 
     void Application::EndScene() {
+        PROFILE_FUNCTION();
+
         m_ImGuiLayer->End();
         m_Window->OnUpdate();
     }

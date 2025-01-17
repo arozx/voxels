@@ -76,7 +76,7 @@ float VoidNoise::noise(float x, float y) const {
     int AB = perm[A + 1];
     int BB = perm[B + 1];
     
-    return lerp(
+    float result = lerp(
         lerp(grad(perm[AA], x, y),
              grad(perm[BA], x-1, y),
              u),
@@ -84,7 +84,16 @@ float VoidNoise::noise(float x, float y) const {
              grad(perm[BB], x-1, y-1),
              u),
         v
-    ) * 0.5f + 0.5f;
+    );
+
+    // Debug output for first few calls
+    static int debugCount = 0;
+    if (debugCount < 5) {
+        printf("Noise input (x,y): %.3f, %.3f, Output: %.3f\n", x, y, result);
+        debugCount++;
+    }
+
+    return result * 0.5f + 0.5f;
 }
 
 /**
