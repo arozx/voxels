@@ -1,7 +1,7 @@
 #pragma once
 
 #include <pch.h>
-#include "VoidNoise.h"
+#include "Noise/VoidNoise/VoidNoise.h"
 #include "TerrainSystem/BlockTypes.h"
 
 /**

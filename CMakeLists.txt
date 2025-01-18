@@ -55,7 +55,7 @@ set(SOURCES
     src/Debug/Profiler.cpp
     src/Threading/ThreadPool.cpp
     src/VoxelTerrain.cpp
-    src/VoidNoise.cpp
+    src/Noise/VoidNoise/VoidNoise.cpp
     src/Input/InputSystem.cpp
     src/TerrainSystem/TerrainSystem.cpp
     src/TerrainSystem/BlockTypes.h

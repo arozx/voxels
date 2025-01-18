@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VoxelChunk.h"
-#include "VoidNoise.h"
+#include "Noise/VoidNoise/VoidNoise.h"
 #include <pch.h>
 
 /**
