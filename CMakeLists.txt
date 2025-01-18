@@ -83,6 +83,7 @@ target_include_directories(voxel-engine PRIVATE
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${CMAKE_SOURCE_DIR}/external/stb_image/src
+    ${CMAKE_SOURCE_DIR}/external/json
 )
 
 # Enable precompiled headers - specify C++ explicitly

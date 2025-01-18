@@ -41,6 +41,7 @@
 // Engine
 #include "Core/Utils/Logging.h"
 #include "Debug/Profiler.h"
+#include <json.hpp>
 #endif
 
 // Platform detection

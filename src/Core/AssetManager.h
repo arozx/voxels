@@ -97,7 +97,6 @@ public:
     /** @brief Preload frequently used assets into memory */
     void PreloadFrequentAssets() {
         // Texture preloading moved to TextureManager
-        // Other asset types can be preloaded here
     }
 
     /**

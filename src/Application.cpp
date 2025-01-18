@@ -61,6 +61,13 @@ namespace Engine {
     {
         LOG_INFO("Creating Application");
         
+        // Configure profiler
+        auto& profiler = Engine::Profiler::Get();
+        profiler.SetMaxSamples(500);
+        profiler.SetPrecision(2);
+        profiler.SetJSONOutputPath("profile_results.json");
+        profiler.SetOutputFormat(Engine::Profiler::OutputFormat::JSON);
+
         InitWindow("Voxel Engine", 1280, 720);
         if (!m_Window) {
             LOG_ERROR("Failed to create window!");
