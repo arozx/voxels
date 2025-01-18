@@ -63,6 +63,7 @@ set(SOURCES
     src/UI/ImGuiOverlay.cpp
     src/VoxelChunk.cpp
     src/Core/FPSCounter.cpp
+    src/Shader/ShaderHotReload.cpp
     ${IMGUI_SOURCES}
 )
 

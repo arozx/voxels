@@ -21,6 +21,10 @@
 #include "Scene/SceneManager.h"
 #include "UI/ImGuiOverlay.h"
 
+// Shader system
+#include "Shader/DefaultShaders.h"
+#include "Shader/ShaderHotReload.h"
+
 /**
  * @namespace Engine
  * @brief Core engine namespace containing the main application and system components
@@ -82,6 +86,9 @@ namespace Engine {
         m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
         
         InitializeToggleStates();
+        
+        // Initialize shader system
+        DefaultShaders::PreloadShaders();
     }
 
     /**
@@ -130,6 +137,11 @@ namespace Engine {
             }
             
             UpdateFPSCounter(deltaTime, time);
+            
+            #ifdef ENGINE_DEBUG
+            // Update hot-reloading system
+            ShaderHotReload::Get().Update();
+            #endif
             
             // Render frame
             BeginScene();

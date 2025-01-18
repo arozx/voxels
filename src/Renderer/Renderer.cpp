@@ -9,9 +9,16 @@
 #include "../Core/TaskSystem.h"
 
 namespace Engine {
+    /**
+     * @brief The Renderer class handles all rendering operations in the engine
+     */
     Renderer::Renderer() {}
     Renderer::~Renderer() {}
 
+    /**
+     * @brief Initialize the renderer and graphics context
+     * @details Sets up GLAD and creates camera instances
+     */
     void Renderer::Init() {
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
             return;
@@ -20,6 +27,13 @@ namespace Engine {
         m_PerspectiveCamera = std::make_shared<PerspectiveCamera>(45.0f, 1280.0f/720.0f);
     }
 
+    /**
+     * @brief Submit a render command to the queue
+     * @param vertexArray The vertex array object to render
+     * @param material The material to use for rendering
+     * @param transform The transform matrix for the object
+     * @param primitiveType The OpenGL primitive type to render
+     */
     void Renderer::Submit(const std::shared_ptr<VertexArray>& vertexArray,
         const std::shared_ptr<Material>& material,
         const Transform& transform,
@@ -36,6 +50,10 @@ namespace Engine {
         m_CommandQueue.push(command);
     }
 
+    /**
+     * @brief Process and execute all queued render commands
+     * @details Processes commands in parallel using the TaskSystem and renders on the main thread
+     */
     void Renderer::Flush() {
         if (m_ProcessingFrame.exchange(true)) {
             return; // Already processing a frame
@@ -104,10 +122,17 @@ namespace Engine {
         m_ProcessingFrame = false;
     }
 
+    /**
+     * @brief Trigger a draw operation by flushing the command queue
+     */
     void Renderer::Draw() {
         Flush();
     }
 
+    /**
+     * @brief Set the active camera type for rendering
+     * @param type The camera type to use (Orthographic or Perspective)
+     */
     void Renderer::SetCameraType(CameraType type) {
         m_CameraType = type;
     }

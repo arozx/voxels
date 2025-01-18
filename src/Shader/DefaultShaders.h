@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shader.h"
+#include "../Core/AssetManager.h"
 
 namespace Engine {
     /**
@@ -10,6 +11,26 @@ namespace Engine {
      * with predefined vertex and fragment shader combinations.
      */
     namespace DefaultShaders {
+        /**
+         * @brief Preloads frequently used shaders
+         */
+        static void PreloadShaders() {
+            // These are prime candidates for caching & hot-reloading
+            std::vector<std::pair<std::string, std::string>> frequentShaders = {
+                {"assets/shaders/basic_mvp.vert", "assets/shaders/color.frag"},
+                {"assets/shaders/basic_mvp.vert", "assets/shaders/simple_color.frag"},
+                {"assets/shaders/textured.vert", "assets/shaders/textured.frag"}
+            };
+
+            for (const auto& [vert, frag] : frequentShaders) {
+                auto shader = Shader::CreateFromFiles(vert, frag);
+                if (shader) {
+                    // Cache the shader and enable hot-reloading in debug builds
+                    AssetManager::Get().MarkAsFrequentlyUsed<Shader>(vert + ";" + frag);
+                }
+            }
+        }
+
         /**
          * @brief Loads basic MVP transformation shader
          * @return Shader for basic vertex transformation

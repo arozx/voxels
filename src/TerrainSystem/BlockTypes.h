@@ -1,22 +1,30 @@
 #pragma once
 
+/**
+ * @enum BlockType
+ * @brief Defines different types of blocks available in the terrain
+ */
 enum class BlockType {
-    Air = 0,
-    Grass,
-    Dirt,
-    Stone,
-    Snow,
-    COUNT
+    Air = 0,    ///< Empty/air block
+    Grass,      ///< Grass block with dirt sides
+    Dirt,       ///< Pure dirt block
+    Stone,      ///< Stone block
+    Snow,       ///< Snow block
+    COUNT       ///< Total number of block types
 };
 
+/**
+ * @struct BlockTexture
+ * @brief Holds UV coordinates for different faces of a block
+ */
 struct BlockTexture {
-    float topU, topV;           // Top face UV coordinates
-    float sideU, sideV;         // Side faces UV coordinates
-    float bottomU, bottomV;     // Bottom face UV coordinates
+    float topU, topV;           ///< Top face UV coordinates
+    float sideU, sideV;         ///< Side faces UV coordinates
+    float bottomU, bottomV;     ///< Bottom face UV coordinates
     
     // Each texture is 16x16 in a 32x48 atlas
-    static constexpr float TEXTURE_SIZE = 0.5f;      // 16/32 = 0.5 for horizontal
-    static constexpr float TEXTURE_V_SIZE = 0.333f;  // 16/48 ≈ 0.333 for vertical
+    static constexpr float TEXTURE_SIZE = 0.5f;      ///< 16/32 = 0.5 for horizontal
+    static constexpr float TEXTURE_V_SIZE = 0.333f;  ///< 16/48 ≈ 0.333 for vertical
 };
 
 // Texture atlas layout:
