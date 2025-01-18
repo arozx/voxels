@@ -13,8 +13,8 @@
 namespace Engine {
 
 // Constructor starts timing measurement
-ProfilerTimer::ProfilerTimer(std::string_view name)
-    : m_Name(name), m_StartTimepoint(std::chrono::steady_clock::now()) 
+ProfilerTimer::ProfilerTimer(const std::string& name)
+    : m_Name(name), m_StartTimepoint(std::chrono::high_resolution_clock::now()) 
 {
 }
 
@@ -23,7 +23,7 @@ ProfilerTimer::~ProfilerTimer() {
     if (!Profiler::Get().IsEnabled())
         return;
 
-    auto endTimepoint = std::chrono::steady_clock::now();
+    auto endTimepoint = std::chrono::high_resolution_clock::now();
     auto start = m_StartTimepoint;
     auto duration = std::chrono::duration<float, std::milli>(endTimepoint - start).count();
     
@@ -44,9 +44,6 @@ Profiler::Profiler()
     , m_JSONOutputPath("profile_results.json")
     , m_HasUnsavedData(false)
 {
-    if (m_AsyncWrites) {
-        m_WriteThread = std::thread([this]() { ProcessAsyncWrites(); });
-    }
 }
 
 void Profiler::InitSignalHandlers() {
@@ -64,14 +61,6 @@ void Profiler::SignalHandler(int signal) {
 }
 
 void Profiler::Cleanup() {
-    if (m_AsyncWrites) {
-        m_StopThread = true;
-        m_QueueCV.notify_one();
-        if (m_WriteThread.joinable()) {
-            m_WriteThread.join();
-        }
-    }
-    
     if (m_HasUnsavedData) {
         WriteCompleteJSON();
         m_HasUnsavedData = false;
@@ -129,19 +118,17 @@ void Profiler::WriteCompleteJSON() const {
         float min = timings[0];
         float max = timings[0];
         
-        std::vector<float> samples;
         for (float time : timings) {
             total += time;
             min = std::min(min, time);
             max = std::max(max, time);
-            samples.push_back(time);
         }
         
         float avg = total / static_cast<float>(timings.size());
         
         json profile = {
             {"name", name},
-            {"samples", samples},
+            {"samples", timings},
             {"calls", timings.size()},
             {"averageMs", avg},
             {"minMs", min},
@@ -164,40 +151,22 @@ void Profiler::WriteCompleteJSON() const {
     }
 }
 
-void Profiler::WriteProfile(std::string_view name, float duration) {
+void Profiler::WriteProfile(const std::string& name, float duration) {
     if (!m_Enabled) return;
-
-    // Sample only every Nth call
-    uint32_t count = m_CallCounter.fetch_add(1);
-    if (count % m_SampleEveryN != 0) return;
-
-    if (m_AsyncWrites) {
-        std::lock_guard<std::mutex> lock(m_QueueMutex);
-        m_WriteQueue.push({std::string(name), duration});
-        m_QueueCV.notify_one();
-    } else {
-        m_Profiles[std::string(name)].push(duration);
-        m_HasUnsavedData = true;
+    
+    auto& samples = m_Profiles[name];
+    samples.push_back(duration);
+    
+    if (m_MaxSamples > 0 && samples.size() > m_MaxSamples) {
+        samples.erase(samples.begin(), samples.begin() + (samples.size() - m_MaxSamples));
     }
-}
+    
+    m_HasUnsavedData = true;
 
-void Profiler::ProcessAsyncWrites() {
-    while (!m_StopThread) {
-        WriteRequest req;
-        {
-            std::unique_lock<std::mutex> lock(m_QueueMutex);
-            m_QueueCV.wait_for(lock, std::chrono::milliseconds(100), 
-                [this] { return !m_WriteQueue.empty() || m_StopThread; });
-            
-            if (m_WriteQueue.empty()) continue;
-            
-            req = m_WriteQueue.front();
-            m_WriteQueue.pop();
-        }
-        
-        // Process write request
-        m_Profiles[std::string(req.name)].push(req.duration);
-        m_HasUnsavedData = true;
+    // Write immediately if in JSON mode
+    if (m_OutputFormat == OutputFormat::JSON) {
+        WriteCompleteJSON();
+        m_HasUnsavedData = false;
     }
 }
 

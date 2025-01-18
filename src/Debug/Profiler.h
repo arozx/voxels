@@ -1,76 +1,33 @@
 #pragma once
 #include <pch.h>
-#include <array>
-#include <string_view>
 
 namespace Engine {
 
-// Ring buffer for storing samples with no allocations
-template<typename T, size_t N>
-class RingBuffer {
-    std::array<T, N> buffer;
-    std::atomic<size_t> head{0};
-    std::atomic<size_t> count{0};
-public:
-    void push(T value) {
-        size_t pos = head.fetch_add(1) % N;
-        buffer[pos] = value;
-        size_t curr_count = count.load();
-        if (curr_count < N) count++;
-    }
-    
-    std::vector<T> get_samples() const {
-        std::vector<T> samples;
-        size_t curr_count = std::min(count.load(), N);
-        samples.reserve(curr_count);
-        size_t curr_head = head.load() % N;
-        for (size_t i = 0; i < curr_count; i++) {
-            samples.push_back(buffer[(curr_head - i - 1) % N]);
-        }
-        return samples;
-    }
-
-    // Add standard container-like methods
-    bool empty() const { return count == 0; }
-    size_t size() const { return count; }
-    
-    // Add array-like access
-    const T& operator[](size_t index) const {
-        size_t curr_head = head.load();
-        return buffer[(curr_head - index - 1) % N];
-    }
-    
-    // Add iterator support
-    class const_iterator {
-        const RingBuffer* rb;
-        size_t index;
-    public:
-        using iterator_category = std::forward_iterator_tag;
-        using value_type = T;
-        using difference_type = std::ptrdiff_t;
-        using pointer = const T*;
-        using reference = const T&;
-
-        const_iterator(const RingBuffer* rb_, size_t index_) : rb(rb_), index(index_) {}
-        const T& operator*() const { return (*rb)[index]; }
-        const_iterator& operator++() { ++index; return *this; }
-        bool operator!=(const const_iterator& other) const { return index != other.index; }
-        bool operator==(const const_iterator& other) const { return index == other.index; }
-    };
-
-    const_iterator begin() const { return const_iterator(this, 0); }
-    const_iterator end() const { return const_iterator(this, count); }
-};
-
+/**
+ * @brief RAII-style timer for profiling code blocks
+ * 
+ * Automatically measures duration between construction and destruction
+ * and reports the timing to the Profiler singleton.
+ */
 class ProfilerTimer {
 public:
-    ProfilerTimer(std::string_view name);
+    /**
+     * @brief Starts timing a named block of code
+     * @param name Identifier for the profiled code block
+     */
+    ProfilerTimer(const std::string& name);
     ~ProfilerTimer();
 private:
-    std::string_view m_Name;
-    std::chrono::time_point<std::chrono::steady_clock> m_StartTimepoint;
+    std::string m_Name;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTimepoint;
 };
 
+/**
+ * @brief Singleton class for managing performance profiling
+ * 
+ * Collects and manages timing data for profiled code blocks.
+ * Provides statistical analysis of collected timing data.
+ */
 class Profiler {
 public:
     enum class OutputFormat {
@@ -78,62 +35,95 @@ public:
         JSON
     };
 
-    static constexpr size_t RING_BUFFER_SIZE = 1000; // Moved before usage
-
+    /** @return Reference to the singleton Profiler instance */
     static Profiler& Get();
     
+    /**
+     * @brief Starts a new profiling session
+     * @param name Name of the profiling session
+     */
     void BeginSession(const std::string& name = "Profile");
+
+    /** @brief Ends current session and outputs results */
     void EndSession();
-    void WriteProfile(std::string_view name, float duration);
+    
+    /**
+     * @brief Records a timing measurement
+     * @param name Name of the profiled block
+     * @param duration Duration in milliseconds
+     */
+    void WriteProfile(const std::string& name, float duration);
+    
+    /** @return Whether profiling is currently enabled */
     bool IsEnabled() const { return m_Enabled; }
+
+    /**
+     * @brief Enables or disables profiling
+     * @param enabled New enabled state
+     */
     void SetEnabled(bool enabled) { m_Enabled = enabled; }
+    
+    /**
+     * @brief Sets the output format for profiling results
+     * @param format The desired output format
+     */
     void SetOutputFormat(OutputFormat format) { m_OutputFormat = format; }
+    
+    /**
+     * @brief Sets the JSON output filepath
+     * @param filepath Path where JSON file will be written
+     */
     void SetJSONOutputPath(const std::string& filepath) { m_JSONOutputPath = filepath; }
-    const std::unordered_map<std::string, RingBuffer<float, RING_BUFFER_SIZE>>& GetProfiles() const { return m_Profiles; }
+
+    /** @return Map of all profile names to their timing measurements */
+    const std::unordered_map<std::string, std::vector<float>>& GetProfiles() const { return m_Profiles; }
+
+    /** @brief Clears all collected profile data */
     void ClearProfiles() { m_Profiles.clear(); }
+
+    /** @brief Cleanup and save results - called during shutdown */
     void Cleanup();
+
+    /** 
+     * @brief Initialize signal handlers - call once at program start
+     * @note This is separate from construction to avoid performance impact
+     */
     static void InitSignalHandlers();
+
+    /** @brief Set maximum number of samples to keep per profile (0 for unlimited) */
     void SetMaxSamples(size_t count) { m_MaxSamples = count; }
+    
+    /** @brief Set decimal precision for timing measurements */
     void SetPrecision(int precision) { m_Precision = precision; }
-    void SetSamplingRate(uint32_t n) { m_SampleEveryN = n; }
-    void SetAsyncWrites(bool async) { m_AsyncWrites = async; }
 
 private:
-    Profiler();
+    Profiler();  // Just declare the constructor, no implementation here
+    
     void WriteCompleteJSON() const;
     static void SignalHandler(int signal);
-    void ProcessAsyncWrites();
-    
-    bool m_Enabled{true};
+
+    bool m_Enabled;
     std::string m_CurrentSession;
-    std::unordered_map<std::string, RingBuffer<float, RING_BUFFER_SIZE>> m_Profiles;
-    OutputFormat m_OutputFormat{OutputFormat::Console};
+    std::unordered_map<std::string, std::vector<float>> m_Profiles;
+    OutputFormat m_OutputFormat;
     std::string m_JSONOutputPath;
-    bool m_HasUnsavedData{false};
+    bool m_HasUnsavedData = false;
     static bool s_SignalsInitialized;
-    size_t m_MaxSamples{1000};       // Added back
-    int m_Precision{3};              // Added back
-    uint32_t m_SampleEveryN{1}; // Sample every Nth call
-    std::atomic<uint32_t> m_CallCounter{0};
-    bool m_AsyncWrites{true};
-    
-    struct WriteRequest {
-        std::string name;
-        float duration;
-    };
-    std::queue<WriteRequest> m_WriteQueue;
-    std::mutex m_QueueMutex;
-    std::condition_variable m_QueueCV;
-    std::thread m_WriteThread;
-    std::atomic<bool> m_StopThread{false};
+    size_t m_MaxSamples = 1000; // Keep last 1000 samples per profile
+    int m_Precision = 3;    // 3 decimal places for ms
 };
 
 }
 
-#ifdef PROFILE_ENABLED
-    #define PROFILE_SCOPE(name) Engine::ProfilerTimer timer##__LINE__(name)
-    #define PROFILE_FUNCTION() PROFILE_SCOPE(__FUNCTION__)
-#else
-    #define PROFILE_SCOPE(name)
-    #define PROFILE_FUNCTION()
-#endif
+/**
+ * @brief Creates a profiler timer for the current scope
+ * @param name Name of the profiled block
+ */
+#define PROFILE_SCOPE(name) Engine::ProfilerTimer timer##__LINE__(name)
+
+/**
+ * @brief Profiles the current function
+ * 
+ * Creates a profiler timer using the current function name
+ */
+#define PROFILE_FUNCTION() PROFILE_SCOPE(__FUNCTION__)
