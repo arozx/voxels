@@ -115,7 +115,7 @@ void VoxelTerrain::SaveHeightmapDebug(int chunkX, int chunkZ) {
 
             // Debug first few values
             if (x < 2 && z < 2) {
-                printf("HeightMap Pos(%d,%d) - Height: %.2f, Pixel: %d\n", 
+                LOG_INFO("HeightMap Pos(%d,%d) - Height: %.2f, Pixel: %d\n", 
                     x, z, height, pixelValue);
             }
         }
