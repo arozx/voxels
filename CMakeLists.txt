@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16) # PCH support requires 3.16+
+cmake_minimum_required(VERSION 3.16)
 project(VoxelEngine)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -7,19 +7,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Export compile commands for SonarQube
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
+
+# Set if windows
+if(WIN32)
+  # Add vcpkg toolchain file
+  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+else()
+  include_directories(/usr/include)
+  # include_directories(${FREETYPE_INCLUDE_DIRS})
+  link_directories(/usr/lib)
+endif()
+
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
-find_package(glfw3 REQUIRED)
-
-# Find FreeType
-# find_package(Freetype REQUIRED)
-
-include_directories(/usr/include)
-# include_directories(${FREETYPE_INCLUDE_DIRS})
-link_directories(/usr/lib)
-
-# Copy the INI file to the build directory
-# file(COPY ${CMAKE_SOURCE_DIR}/conf.ini DESTINATION ${CMAKE_BINARY_DIR})
+find_package(glfw3 CONFIG REQUIRED)
 
 # Add ImGui source files
 set(IMGUI_DIR external/imgui)
@@ -73,7 +75,7 @@ add_executable(voxel-engine ${SOURCES})
 target_include_directories(voxel-engine PRIVATE external/glad/include)
 
 # Link OpenGL and FreeType libraries
-target_link_libraries(voxel-engine PRIVATE glfw OpenGL::GL ${FREETYPE_LIBRARIES})
+target_link_libraries(voxel-engine PRIVATE glfw OpenGL::GL)
 
 # Set Clang-Tidy as the CMake static analysis tool
 set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-modernize-use-auto")
@@ -87,7 +89,7 @@ target_include_directories(voxel-engine PRIVATE
 )
 
 # Enable precompiled headers - specify C++ explicitly
-target_precompile_headers(voxel-engine 
+target_precompile_headers(voxel-engine
   PRIVATE
     $<INSTALL_INTERFACE:pch.h>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h>
