@@ -1,12 +1,75 @@
 #ifndef ASSERT_LIBRARY_H
 #define ASSERT_LIBRARY_H
 
-#include <iostream>
 #include <typeinfo>
-#include <string>
 #include <stdexcept>
-#include <sstream>
 
+/**
+ * @namespace AssertLib
+ * @brief A utility namespace providing assertion functionality for debugging and testing
+ */
+
+/**
+ * @class AssertionError
+ * @brief Custom exception class for handling assertion failures
+ * @extends std::runtime_error
+ */
+
+/**
+ * @brief Constructs an AssertionError with a specific error message
+ * @param message The error message describing the assertion failure
+ */
+
+/**
+ * @brief Creates a formatted error message for assertion failures
+ * @param file The source file where the assertion failed
+ * @param line The line number where the assertion failed
+ * @param msg Additional message describing the failure
+ * @return std::string Formatted error message
+ */
+
+/**
+ * @def ASSERT(condition)
+ * @brief Macro for checking if a condition is true
+ * @param condition The boolean condition to evaluate
+ * @throws AssertionError if the condition is false
+ */
+
+/**
+ * @brief Compares two values for equality
+ * @tparam T The type of values being compared
+ * @param expected The expected value
+ * @param actual The actual value to compare against
+ * @param file The source file where the assertion is made
+ * @param line The line number where the assertion is made
+ * @throws AssertionError if the values are not equal
+ */
+
+/**
+ * @def ASSERT_EQUALS(expected, actual)
+ * @brief Macro for comparing two values for equality
+ * @param expected The expected value
+ * @param actual The actual value to compare against
+ * @throws AssertionError if the values are not equal
+ */
+
+/**
+ * @brief Verifies that a value is of the expected type
+ * @tparam T The expected type
+ * @tparam U The type of the value to check
+ * @param value The value whose type is being checked
+ * @param file The source file where the assertion is made
+ * @param line The line number where the assertion is made
+ * @throws AssertionError if the type doesn't match the expected type
+ */
+
+/**
+ * @def ASSERT_TYPE(expectedType, value)
+ * @brief Macro for checking if a value is of the expected type
+ * @param expectedType The type to check against
+ * @param value The value whose type is being checked
+ * @throws AssertionError if the type doesn't match the expected type
+ */
 namespace AssertLib {
 
     // Custom exception for failed assertions
