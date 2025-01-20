@@ -38,6 +38,8 @@ public:
         JSON
     };
 
+    static constexpr uint32_t MAX_PROFILE_FRAMES = 1000;
+
     /** @return Reference to the singleton Profiler instance */
     static Profiler& Get();
     
@@ -113,6 +115,24 @@ public:
 
     /** @return Whether high precision timing is enabled */
     bool IsHighPrecision() const { return m_HighPrecision; }
+
+    /**
+     * @brief Starts profiling for a specific number of frames
+     * @param frameCount Number of frames to profile (capped at MAX_PROFILE_FRAMES)
+     */
+    void ProfileFrames(uint32_t frameCount);
+
+    /**
+     * @brief Marks the end of a frame, used for frame profiling
+     * @return true if still profiling frames, false if done
+     */
+    bool EndFrame();  // Remove implementation, keep only declaration
+
+    /** @return Whether currently profiling frames */
+    bool IsProfilingFrames() const { return m_ProfilingFrames; }
+
+    /** @return Current frame being profiled */
+    uint32_t GetCurrentProfiledFrame() const { return m_CurrentProfiledFrame; }
 
 private:
     Profiler();
@@ -326,6 +346,22 @@ private:
         size_t size() const { return samples.size(); }
         auto begin() const { return samples.begin(); }
         auto end() const { return samples.end(); }
+
+        // Add copy constructor and assignment operator
+        ProfileData& operator=(const ProfileData& other) {
+            if (this != &other) {
+                samples = other.samples;
+                calls = other.calls;
+                localCount = other.localCount;
+                minTime = other.minTime;
+                maxTime = other.maxTime;
+                totalTime = other.totalTime;
+                avgTime = other.avgTime;
+                recentAvg = other.recentAvg;
+                std::memcpy(localSamples, other.localSamples, sizeof(localSamples));
+            }
+            return *this;
+        }
     };
 
     class ProfileDataPool {
@@ -361,6 +397,9 @@ private:
     
     using ProfileMap = std::unordered_map<ProfileName, ProfileData*, ProfileNameHash>;
     ProfileMap m_Profiles;
+    ProfileMap m_RegularProfiles;  // Store regular profiling data
+    void PreserveProfilingState();
+    void RestoreProfilingState();
 
     ~Profiler() {
         for (auto& [name, data] : m_Profiles) {
@@ -400,6 +439,7 @@ private:
     }
 
     std::string m_CurrentSession;
+    std::string m_RegularSession;  // Store original session name
 
     // Thread-local string buffer to avoid allocations
     struct ThreadLocalBuffer {
@@ -461,6 +501,25 @@ private:
 
     static constexpr std::chrono::seconds WRITE_INTERVAL{5};
     std::chrono::steady_clock::time_point m_LastWriteTime{std::chrono::steady_clock::now()};
+
+    bool m_ProfilingFrames{false};
+    uint32_t m_FramesToProfile{0};
+    uint32_t m_CurrentProfiledFrame{0};
+
+    struct FrameData {
+        uint32_t frameNumber;
+        float frameTime;
+        std::chrono::system_clock::time_point timestamp;
+        
+        FrameData(uint32_t num, float time) 
+            : frameNumber(num), frameTime(time),
+              timestamp(std::chrono::system_clock::now()) {}
+    };
+    
+    std::vector<FrameData> m_FrameData;
+    std::string m_FramesJSONPath{"profiler_n_frames.json"};
+    
+    void WriteFrameDataJSON() const;  // New method declaration
 };
 
 }

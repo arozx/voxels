@@ -127,6 +127,9 @@ namespace Engine {
      */
     void Renderer::Draw() {
         Flush();
+        if (Profiler::Get().IsProfilingFrames()) {
+            Profiler::Get().EndFrame();
+        }
     }
 
     /**

@@ -13,6 +13,10 @@
 
 namespace Engine {
 
+thread_local std::vector<Profiler::BatchEntry> Profiler::m_BatchedMeasurements;
+thread_local Profiler::ThreadLocalBuffer Profiler::t_StringBuffer;
+thread_local Profiler::FastPathCache Profiler::t_FastPath;
+
 // Constructor starts timing measurement
 ProfilerTimer::ProfilerTimer(std::string_view name)
     : m_Name(name), m_StartTimepoint(std::chrono::steady_clock::now()) {}
@@ -52,7 +56,7 @@ void Profiler::InitSignalHandlers() {
 }
 
 void Profiler::SignalHandler(int signal) {
-    std::cout << "\nReceived signal " << signal << ", saving profiler results...\n";
+    LOG_INFO_CONCAT("Received signal ", signal, ", saving profiler results...");
     Get().Cleanup();
     std::exit(signal);
 }
@@ -74,43 +78,76 @@ void Profiler::BeginSession(const std::string& name) {
 // Ends session and outputs statistical results
 void Profiler::EndSession() {
     if (!m_Enabled) return;
+    if (m_ProfilingFrames) return;
 
     switch (m_OutputFormat) {
         case OutputFormat::JSON:
             WriteCompleteJSON();
             break;
         case OutputFormat::Console:
-            std::cout << "Profile results for session '" << m_CurrentSession << "':\n";
+            LOG_INFO_CONCAT("Profile results for session", m_CurrentSession);
             for (const auto& [name, data] : m_Profiles) {
                 if (data->empty()) continue;
                 
-                std::cout << std::string_view(name) << ": Avg: " 
-                    << (data->totalTime / data->calls) << "ms, Min: "
-                    << data->minTime << "ms, Max: " << data->maxTime
-                    << "ms, Calls: " << data->calls << "\n";
+                LOG_INFO_CONCAT(std::string_view(name), ": Avg: ", 
+                (data->totalTime / data->calls), "ms, Min: ",
+                data->minTime, "ms, Max: ", data->maxTime,
+                "ms, Calls: ", data->calls);
             }
             break;
     }
 }
 
 void Profiler::WriteCompleteJSON() const {
-    using nlohmann::json;  // Add using declaration here
-    static thread_local json output; // Reuse JSON object
+    using nlohmann::json;
+    static thread_local json output;
     output.clear();
     
     output["session"] = m_CurrentSession;
     output["timestamp"] = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
-    output["profiles"] = json::array();  // Initialize array without reserve
     
-    auto& profiles = output["profiles"];
+    // Add frame profiling data if available
+    if (m_ProfilingFrames || !m_FrameData.empty()) {
+        output["frame_data"] = json::array();
+        for (const auto& frame : m_FrameData) {
+            output["frame_data"].push_back({
+                {"frame_number", frame.frameNumber},
+                {"frame_time_ms", frame.frameTime},
+                {"timestamp", std::chrono::system_clock::to_time_t(frame.timestamp)}
+            });
+        }
+        
+        // Add frame statistics
+        if (!m_FrameData.empty()) {
+            float totalTime = 0.0f;
+            float minTime = std::numeric_limits<float>::max();
+            float maxTime = 0.0f;
+            
+            for (const auto& frame : m_FrameData) {
+                totalTime += frame.frameTime;
+                minTime = std::min(minTime, frame.frameTime);
+                maxTime = std::max(maxTime, frame.frameTime);
+            }
+            
+            output["frame_stats"] = {
+                {"total_frames", m_FrameData.size()},
+                {"average_frame_time_ms", totalTime / m_FrameData.size()},
+                {"min_frame_time_ms", minTime},
+                {"max_frame_time_ms", maxTime}
+            };
+        }
+    }
+    
+    // Add regular profile data
+    output["profiles"] = json::array();
     for (const auto& [name, data] : m_Profiles) {
         if (data->calls == 0) continue;
         
-        profiles.push_back({
+        output["profiles"].push_back({
             {"name", std::string_view(name)},
             {"calls", data->calls},
             {"averageMs", data->avgTime},
-            {"recentMs", data->recentAvg}, // Add recent average
+            {"recentMs", data->recentAvg},
             {"minMs", data->minTime},
             {"maxMs", data->maxTime}
         });
@@ -122,7 +159,58 @@ void Profiler::WriteCompleteJSON() const {
             file << std::setw(2) << output;
         }
     } catch (const std::exception& e) {
-        std::cerr << "Error writing profile data: " << e.what() << std::endl;
+        LOG_ERROR_CONCAT("Error writing profile data", e.what());
+    }
+}
+
+void Profiler::WriteFrameDataJSON() const {
+    using nlohmann::json;
+    json output;
+    
+    output["session"] = m_CurrentSession;
+    output["frames_profiled"] = m_FramesToProfile;
+    output["timestamp"] = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+    
+    // Add detailed frame data
+    output["frames"] = json::array();
+    for (const auto& frame : m_FrameData) {
+        output["frames"].push_back({
+            {"frame_number", frame.frameNumber},
+            {"frame_time_ms", frame.frameTime},
+            {"timestamp", std::chrono::system_clock::to_time_t(frame.timestamp)}
+        });
+    }
+    
+    // Add frame statistics
+    if (!m_FrameData.empty()) {
+        float totalTime = 0.0f;
+        float minTime = std::numeric_limits<float>::max();
+        float maxTime = 0.0f;
+        
+        for (const auto& frame : m_FrameData) {
+            totalTime += frame.frameTime;
+            minTime = std::min(minTime, frame.frameTime);
+            maxTime = std::max(maxTime, frame.frameTime);
+        }
+        
+        output["statistics"] = {
+            {"total_frames", m_FrameData.size()},
+            {"average_frame_time_ms", totalTime / m_FrameData.size()},
+            {"min_frame_time_ms", minTime},
+            {"max_frame_time_ms", maxTime},
+            {"fps_average", 1000.0f / (totalTime / m_FrameData.size())},
+            {"fps_highest", 1000.0f / minTime},
+            {"fps_lowest", 1000.0f / maxTime}
+        };
+    }
+    
+    try {
+        std::ofstream file(m_FramesJSONPath);
+        if (file) {
+            file << std::setw(2) << output;
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR_CONCAT("Error waiting for profile data", e.what());
     }
 }
 
@@ -158,12 +246,15 @@ void Profiler::WriteProfile(std::string_view name, float duration) {
     
     m_HasUnsavedData = true;
     
-    auto now = std::chrono::steady_clock::now();
-    if (m_OutputFormat == OutputFormat::JSON && 
-        (now - m_LastWriteTime) >= WRITE_INTERVAL) {
-        WriteCompleteJSON();
-        m_HasUnsavedData = false;
-        m_LastWriteTime = now;
+    // disable auto-write during frame profiling
+    if (!m_ProfilingFrames) {
+        auto now = std::chrono::steady_clock::now();
+        if (m_OutputFormat == OutputFormat::JSON && 
+            (now - m_LastWriteTime) >= WRITE_INTERVAL) {
+            WriteCompleteJSON();
+            m_HasUnsavedData = false;
+            m_LastWriteTime = now;
+        }
     }
 }
 
@@ -172,7 +263,7 @@ void Profiler::FlushBatch() {
     
     std::unique_lock lock(m_Mutex);
     for (const auto& entry : m_BatchedMeasurements) {
-        auto& profile = m_Profiles[entry.name];  // Use ProfileName directly
+        auto& profile = m_Profiles[entry.name];
         profile->AddSample(entry.duration);
     }
     m_BatchedMeasurements.clear();
@@ -197,10 +288,105 @@ std::string_view Profiler::InternString(std::string_view str) {
     return *m_StringPool.insert(std::string(str)).first;
 }
 
-// Initialize thread local storage
-thread_local Profiler::ThreadLocalBuffer Profiler::t_StringBuffer;
-thread_local Profiler::FastPathCache Profiler::t_FastPath;
+bool Profiler::EndFrame() {
+    if (!m_ProfilingFrames) return false;
+    
+    // Calculate frame time
+    static auto lastFrameTime = std::chrono::steady_clock::now();
+    auto currentTime = std::chrono::steady_clock::now();
+    float frameTime = std::chrono::duration<float, std::milli>(currentTime - lastFrameTime).count();
+    lastFrameTime = currentTime;
+    
+    // Record frame data
+    m_FrameData.emplace_back(m_CurrentProfiledFrame, frameTime);
+    
+    m_CurrentProfiledFrame++;
+    
+    if (m_CurrentProfiledFrame >= m_FramesToProfile) {
+        m_ProfilingFrames = false;
+        WriteFrameDataJSON();  // Write frame data to separate file
+        m_FrameData.clear();
+        
+        RestoreProfilingState();  // Restore previous profiling state
+        LOG_INFO("Frame profiling complete, resumed normal profiling.");
+        return false;
+    }
+    return true;
+}
 
-thread_local std::vector<Profiler::BatchEntry> Profiler::m_BatchedMeasurements;
+void Profiler::PreserveProfilingState() {
+    // Deep copy the existing profiles
+    m_RegularProfiles.clear();  // Ensure it's empty first
+    for (const auto& [name, data] : m_Profiles) {
+        auto* newData = m_DataPool.allocate();
+        *newData = *data;  // Copy the data
+        m_RegularProfiles[name] = newData;
+    }
+    m_RegularSession = m_CurrentSession;  // Save the current session name (e.g. "Runtime")
+    m_Profiles.clear();
+}
 
+void Profiler::RestoreProfilingState() {
+    // Clean up current frame profiling data
+    for (auto& [name, data] : m_Profiles) {
+        m_DataPool.deallocate(data);
+    }
+    m_Profiles.clear();
+    t_FastPath = FastPathCache();  // Reset fast path cache
+    
+    // Restore the original profiles
+    for (const auto& [name, data] : m_RegularProfiles) {
+        auto* newData = m_DataPool.allocate();
+        *newData = *data;  // Copy the data back
+        m_Profiles[name] = newData;
+        t_FastPath.insert(name, newData);  // Re-populate fast path cache
+    }
+    
+    // Clean up temporary storage
+    for (auto& [name, data] : m_RegularProfiles) {
+        m_DataPool.deallocate(data);
+    }
+    m_RegularProfiles.clear();
+    
+    // Restore original session name and force a write
+    m_CurrentSession = m_RegularSession;  // Directly restore session name
+    m_HasUnsavedData = true;  // Force a write of restored data
+    WriteCompleteJSON();  // Write the restored data immediately
+    
+    // Reset frame-specific state
+    m_ProfilingFrames = false;
+    m_CurrentProfiledFrame = 0;
+    m_FrameData.clear();
+    m_BatchedMeasurements.clear();
+    
+    // Restore fast path cache and enable profiling
+    m_Enabled = true;
+    t_FastPath = FastPathCache(); // Reset cache
+    
+    // Restore session and force a write
+    BeginSession(m_RegularSession); // Use BeginSession instead of direct assignment
+    
+    // Re-register all existing profiles in the fast path cache
+    for (const auto& [name, data] : m_Profiles) {
+        t_FastPath.insert(name, data);
+    }
+
+    m_HasUnsavedData = true;
+    m_LastWriteTime = std::chrono::steady_clock::now();
+    WriteCompleteJSON();
+}
+
+void Profiler::ProfileFrames(uint32_t frameCount) {
+    frameCount = std::min(frameCount, MAX_PROFILE_FRAMES);
+    LOG_INFO_CONCAT("Profiling next ", frameCount, " frames.");
+    PreserveProfilingState();  // Save current state
+    m_CurrentSession = "Frame Profile";
+    m_FramesToProfile = frameCount;
+    m_CurrentProfiledFrame = 0;
+    m_ProfilingFrames = true;
+    
+    // Reserve space for frame data
+    m_FrameData.clear();
+    m_FrameData.reserve(frameCount);
+}
 }

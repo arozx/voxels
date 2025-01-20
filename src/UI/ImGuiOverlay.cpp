@@ -75,6 +75,25 @@ namespace Engine {
         if (ImGui::Button("Clear Profiling Data")) {
             Profiler::Get().ClearProfiles();
         }
+        
+        // Add frame profiling input control
+        static int framesToProfile = 60;
+        ImGui::SetNextItemWidth(100);
+        ImGui::InputInt("Frames to Profile", &framesToProfile);
+        framesToProfile = std::max(1, std::min(framesToProfile, 1000)); // Clamp between 1-1000
+        
+        if (!Profiler::Get().IsProfilingFrames() && ImGui::Button("Profile Frames")) {
+            Profiler::Get().BeginSession("Frame Profile");
+            Profiler::Get().ProfileFrames(framesToProfile);
+        }
+        
+        // Show profiling progress if active
+        if (Profiler::Get().IsProfilingFrames()) {
+            ImGui::SameLine();
+            ImGui::Text("Profiling Frame: %d/%d", 
+                Profiler::Get().GetCurrentProfiledFrame(),
+                framesToProfile);
+        }
 
         ImGui::Separator();
 
