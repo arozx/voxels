@@ -1,4 +1,4 @@
-#include "../pch.h"
+#include <pch.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Renderer.h"
@@ -20,11 +20,18 @@ namespace Engine {
      * @details Sets up GLAD and creates camera instances
      */
     void Renderer::Init() {
+        // Assert GLAD loaded successfully
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+            ASSERT(false && "Failed to initialize GLAD");
             return;
         }
+
         m_Camera = std::make_shared<OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f);
         m_PerspectiveCamera = std::make_shared<PerspectiveCamera>(45.0f, 1280.0f/720.0f);
+        
+        // Assert cameras were created successfully
+        ASSERT(m_Camera != nullptr && "Failed to create orthographic camera");
+        ASSERT(m_PerspectiveCamera != nullptr && "Failed to create perspective camera");
     }
 
     /**
@@ -39,6 +46,15 @@ namespace Engine {
         const Transform& transform,
         GLenum primitiveType) 
     {
+        // Assert valid parameters
+        ASSERT(vertexArray != nullptr && "Null vertex array submitted");
+        ASSERT(material != nullptr && "Null material submitted");
+        ASSERT(material->GetShader() != nullptr && "Material has null shader");
+        
+        // Assert valid primitive type
+        ASSERT(primitiveType == GL_TRIANGLES || primitiveType == GL_LINES || 
+               primitiveType == GL_POINTS && "Invalid primitive type");
+
         // Don't bind or set uniforms here, just submit the command
         RenderCommand command;
         command.vertexArray = vertexArray;
@@ -55,7 +71,9 @@ namespace Engine {
      * @details Processes commands in parallel using the TaskSystem and renders on the main thread
      */
     void Renderer::Flush() {
+        // Assert we're not recursively processing frames
         if (m_ProcessingFrame.exchange(true)) {
+            ASSERT(false && "Already processing a frame");
             return; // Already processing a frame
         }
 
@@ -99,8 +117,13 @@ namespace Engine {
 
         // Execute render commands on main thread
         for (const auto& command : commands) {
+            // Assert required components are valid before rendering
+            ASSERT(command.vertexArray->GetIndexBuffer() != nullptr && "Null index buffer");
+            ASSERT(command.vertexArray->GetIndexBuffer()->GetCount() > 0 && "Empty index buffer");
+            
             command.material->Bind();
             auto shader = command.material->GetShader();
+            ASSERT(shader != nullptr && "Null shader in material");
             
             if (m_CameraType == CameraType::Orthographic) {
                 shader->SetMat4("u_ViewProjection", m_Camera->GetViewProjectionMatrix());
@@ -137,6 +160,9 @@ namespace Engine {
      * @param type The camera type to use (Orthographic or Perspective)
      */
     void Renderer::SetCameraType(CameraType type) {
+        // Assert valid camera type
+        ASSERT(type == CameraType::Orthographic || type == CameraType::Perspective && 
+               "Invalid camera type");
         m_CameraType = type;
     }
 }

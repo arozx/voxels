@@ -40,6 +40,7 @@
 
 // Engine
 #include "Core/Utils/Logging.h"
+#include "Core/Utils/AssertLib.h"
 #include "Debug/Profiler.h"
 #include <json.hpp>
 #endif
