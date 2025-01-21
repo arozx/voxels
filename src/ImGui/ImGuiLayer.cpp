@@ -18,8 +18,8 @@ namespace Engine {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         
-        // Enable basic keyboard navigation
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
