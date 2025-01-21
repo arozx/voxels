@@ -1,12 +1,13 @@
 #pragma once
 
 #include <pch.h>
+#include "../INoiseGenerator.h"
 
 /**
  * @brief Perlin noise implementation for terrain generation
  * @details Provides methods for generating coherent noise and heightmaps
  */
-class VoidNoise {
+class VoidNoise : public INoiseGenerator {
 public:
     /**
      * @brief Construct a new Void Noise generator
@@ -20,7 +21,7 @@ public:
      * @param y Y coordinate
      * @return float Noise value between 0 and 1
      */
-    float noise(float x, float y) const;
+    float noise(float x, float y) const override;
 
     /**
      * @brief Generate a heightmap using multiple octaves of noise
@@ -29,7 +30,7 @@ public:
      * @param scale Scale factor for noise coordinates
      * @return std::vector<float> Generated heightmap values
      */
-    std::vector<float> generateHeightmap(int width, int height, float scale = 1.0f) const;
+    std::vector<float> generateHeightmap(int width, int height, float scale = 1.0f) const override;
 
 private:
     static const int PERM_SIZE = 256;
