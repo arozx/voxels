@@ -53,6 +53,7 @@ set(SOURCES
     src/Threading/ThreadPool.cpp
     src/VoxelTerrain.cpp
     src/Noise/VoidNoise/VoidNoise.cpp
+    src/Noise/PerlinNoise/PerlinNoise.cpp
     src/Input/InputSystem.cpp
     src/TerrainSystem/TerrainSystem.cpp
     src/UI/ImGuiOverlay.cpp
