@@ -17,17 +17,30 @@
 namespace Engine {
     InputSystem::InputSystem(Window* window, Renderer& renderer)
         : m_Window(window), m_Renderer(renderer) {
+        // Lock cursor on startup
+        m_CursorLocked = true;
+        UpdateCursorState();
     }
 
     void InputSystem::Update(float deltaTime) {
         HandleKeyInput(deltaTime);
-        HandleCameraMovement(deltaTime);
+        
+        // Accumulate time for movement updates
+        m_MovementAccumulator += deltaTime;
+        
+        // Update movement at fixed intervals
+        while (m_MovementAccumulator >= FIXED_TIMESTEP) {
+            HandleCameraMovement(FIXED_TIMESTEP);
+            m_MovementAccumulator -= FIXED_TIMESTEP;
+        }
     }
 
     void InputSystem::HandleKeyInput(float deltaTime) {
         // Add ESC key handling at the start
         bool currentEscPressed = IsKeyPressed(GLFW_KEY_ESCAPE);
         if (currentEscPressed && !m_LastEscPressed) {
+            m_CursorLocked = !m_CursorLocked;
+            UpdateCursorState();
             ToggleMovementLock();
         }
         m_LastEscPressed = currentEscPressed;
@@ -88,10 +101,15 @@ namespace Engine {
             if (perspCamera) {
                 glm::vec3 moveDir(0.0f);
                 
-                if (IsKeyPressed(GLFW_KEY_W)) moveDir.z -= 1.0f;
-                if (IsKeyPressed(GLFW_KEY_S)) moveDir.z += 1.0f;
-                if (IsKeyPressed(GLFW_KEY_A)) moveDir.x -= 1.0f;
-                if (IsKeyPressed(GLFW_KEY_D)) moveDir.x += 1.0f;
+                // Get camera orientation vectors
+                glm::vec3 forward = glm::normalize(glm::vec3(perspCamera->GetFront().x, 0.0f, perspCamera->GetFront().z));
+                glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+                
+                // Move relative to camera orientation
+                if (IsKeyPressed(GLFW_KEY_W)) moveDir += forward;
+                if (IsKeyPressed(GLFW_KEY_S)) moveDir -= forward;
+                if (IsKeyPressed(GLFW_KEY_A)) moveDir -= right;
+                if (IsKeyPressed(GLFW_KEY_D)) moveDir += right;
                 if (IsKeyPressed(GLFW_KEY_SPACE)) moveDir.y += 1.0f;
                 if (IsKeyPressed(GLFW_KEY_LEFT_SHIFT)) moveDir.y -= 1.0f;
 
@@ -171,5 +189,14 @@ namespace Engine {
         double x, y;
         glfwGetCursorPos(window, &x, &y);
         return {static_cast<float>(x), static_cast<float>(y)};
+    }
+
+    void InputSystem::UpdateCursorState() {
+        GLFWwindow* window = static_cast<GLFWwindow*>(m_Window->GetNativeWindow());
+        if (m_CursorLocked) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        } else {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
     }
 }

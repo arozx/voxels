@@ -66,6 +66,8 @@ namespace Engine {
         const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
         /** @return The combined view-projection matrix */
         const glm::mat4& GetViewProjectionMatrix() const { return m_ViewProjectionMatrix; }
+        /** @return The camera's front vector */
+        const glm::vec3& GetFront() const { return m_Front; }
         
     private:
         /** @brief Recalculates view matrix after position/rotation changes */

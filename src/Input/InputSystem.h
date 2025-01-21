@@ -101,10 +101,14 @@ namespace Engine {
         bool m_CameraEnabled = true;    ///< Toggle for camera controls
         bool m_SmoothCamera = true;     ///< Toggle for smooth camera movement
         
+        // Movement timing
+        const float FIXED_TIMESTEP = 1.0f/60.0f;  ///< 60Hz update rate
+        float m_MovementAccumulator = 0.0f;       ///< Time accumulator for movement updates
+
         // Movement settings
-        float m_MovementSpeed = 5.0f;    ///< Base movement speed
-        float m_SprintMultiplier = 2.0f; ///< Sprint speed multiplier
-        float m_SlowMultiplier = 0.5f;   ///< Slow movement multiplier
+        float m_MovementSpeed = 250.0f;    ///< Base movement speed (blocks per second)
+        float m_SprintMultiplier = 2.0f;  ///< Sprint speed multiplier
+        float m_SlowMultiplier = 1.0f;    ///< Slow movement multiplier
         
         // Smooth movement variables
         glm::vec3 m_TargetPosition{0.0f};  ///< Target position for smooth movement
@@ -122,5 +126,9 @@ namespace Engine {
         bool m_LastBPressed = false;    ///< Previous frame B key state
         bool m_MovementLocked = false;  ///< Global movement lock flag
         bool m_LastEscPressed = false;  ///< Previous frame ESC key state
+
+        // Mouse cursor control
+        bool m_CursorLocked = false;      ///< Is cursor locked to window center
+        void UpdateCursorState();          ///< Updates cursor visibility and lock state
     };
 }
