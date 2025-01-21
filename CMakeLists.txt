@@ -63,6 +63,8 @@ set(SOURCES
     src/Shader/ShaderHotReload.cpp
     src/Noise/SimplexNoise/SimplexNoise.cpp
     src/Noise/SimplexNoise/SimplexNoise.h
+    src/Noise/ValueNoise/ValueNoise.cpp
+    src/Noise/ValueNoise/ValueNoise.h
     ${IMGUI_SOURCES}
 )
 
