@@ -17,6 +17,13 @@
 namespace Engine {
     void FPSCounter::Update(float deltaTime) {
         m_FrameTime = deltaTime;
+        
+        // Add frame time to history
+        if (m_FrameTimeHistory.size() >= HISTORY_SIZE) {
+            m_FrameTimeHistory.erase(m_FrameTimeHistory.begin());
+        }
+        m_FrameTimeHistory.push_back(deltaTime * 1000.0f); // Store in milliseconds
+
         m_CurrentFPS = 1.0f / m_FrameTime;
         
         if (m_Samples.size() != SAMPLE_COUNT) {

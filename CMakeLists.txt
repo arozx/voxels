@@ -9,13 +9,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 
-# Set if windows
 if(WIN32)
-  # Add vcpkg toolchain file
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
 else()
   include_directories(/usr/include)
-  # include_directories(${FREETYPE_INCLUDE_DIRS})
   link_directories(/usr/lib)
 endif()
 
@@ -52,33 +49,25 @@ set(SOURCES
     src/Camera/PerspectiveCamera.cpp
     src/Renderer/Material.cpp
     src/Renderer/Texture.cpp
-    src/Shader/DefaultShaders.h
-    src/Renderer/MeshTemplates.h
     src/Debug/Profiler.cpp
     src/Threading/ThreadPool.cpp
     src/VoxelTerrain.cpp
     src/Noise/VoidNoise/VoidNoise.cpp
     src/Input/InputSystem.cpp
     src/TerrainSystem/TerrainSystem.cpp
-    src/TerrainSystem/BlockTypes.h
-    src/TerrainSystem/TerrainSystem.h
     src/UI/ImGuiOverlay.cpp
+    src/UI/ImGuiFlameGraph.cpp
     src/VoxelChunk.cpp
     src/Core/FPSCounter.cpp
     src/Shader/ShaderHotReload.cpp
     ${IMGUI_SOURCES}
 )
 
-# Add executable
 add_executable(voxel-engine ${SOURCES})
 
 target_include_directories(voxel-engine PRIVATE external/glad/include)
 
-# Link OpenGL and FreeType libraries
 target_link_libraries(voxel-engine PRIVATE glfw OpenGL::GL)
-
-# Set Clang-Tidy as the CMake static analysis tool
-set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-modernize-use-auto")
 
 target_include_directories(voxel-engine PRIVATE
     ${CMAKE_SOURCE_DIR}/src

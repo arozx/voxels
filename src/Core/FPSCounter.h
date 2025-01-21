@@ -28,8 +28,14 @@ namespace Engine {
         float GetOnePercentHigh() const { return m_OnePercentHigh; }
         float GetFrameTime() const { return m_FrameTime; }
 
+        // Add new methods
+        const std::vector<float>& GetFrameTimeHistory() const { return m_FrameTimeHistory; }
+        size_t GetHistorySize() const { return HISTORY_SIZE; }
+
     private:
         static constexpr size_t SAMPLE_COUNT = 200;
+        static constexpr size_t HISTORY_SIZE = 100; // Store last 100 frame times for flame graph
+        std::vector<float> m_FrameTimeHistory;
         std::vector<float> m_Samples;
         float m_CurrentFPS = 0.0f;
         float m_AverageFPS = 0.0f;
