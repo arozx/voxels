@@ -89,7 +89,7 @@ float VoidNoise::noise(float x, float y) const {
     // Debug output for first few calls
     static int debugCount = 0;
     if (debugCount < 5) {
-        printf("Noise input (x,y): %.3f, %.3f, Output: %.3f\n", x, y, result);
+        LOG_TRACE_CONCAT("Noise input (x,y): ",x,y," Output: ",result);
         debugCount++;
     }
 
