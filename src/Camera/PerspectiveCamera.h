@@ -27,6 +27,12 @@ namespace Engine {
         void SetPosition(const glm::vec3& position) { m_Position = position; RecalculateViewMatrix(); }
 
         /**
+         * @brief Gets the camera position
+         * @return Current position vector
+         */
+        const glm::vec3& GetPosition() const { return m_Position; }
+
+        /**
          * @brief Sets the camera rotation
          * @param pitch Rotation around X-axis in degrees
          * @param yaw Rotation around Y-axis in degrees
