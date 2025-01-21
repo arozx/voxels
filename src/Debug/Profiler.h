@@ -14,11 +14,7 @@ namespace Engine {
  */
 class ProfilerTimer {
 public:
-    /**
-     * @brief Starts timing a named block of code
-     * @param name Identifier for the profiled code block
-     */
-    ProfilerTimer(std::string_view name);
+    explicit ProfilerTimer(std::string_view name);
     ~ProfilerTimer();
 private:
     const std::string_view m_Name;  // Changed from std::string to std::string_view
@@ -409,12 +405,12 @@ private:
 
     bool m_Enabled{true};
     std::unordered_set<std::string> m_StringPool;
-    OutputFormat m_OutputFormat;
-    std::string m_JSONOutputPath;
-    bool m_HasUnsavedData = false;
+    OutputFormat m_OutputFormat{OutputFormat::JSON};
+    std::string m_JSONOutputPath{"profile_results.json"};
+    bool m_HasUnsavedData{false};
     static bool s_SignalsInitialized;
-    size_t m_MaxSamples = 1000; // Keep last 1000 samples per profile
-    int m_Precision = 3;    // 3 decimal places for ms
+    size_t m_MaxSamples{500};
+    int m_Precision{4};
     std::shared_mutex m_Mutex;
     
     struct BatchEntry {

@@ -149,6 +149,21 @@ namespace Engine {
          */
         void SetPerspectiveCamera(const std::shared_ptr<PerspectiveCamera>& camera) { m_PerspectiveCamera = camera; }
 
+        /**
+         * @brief Set the viewport dimensions
+         */
+        void SetViewport(int x, int y, int width, int height) const {
+            glViewport(x, y, width, height);
+        }
+
+        /**
+         * @brief Clear the screen with specified color
+         */
+        void Clear(const glm::vec4& color) const {
+            glClearColor(color.r, color.g, color.b, color.a);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
+
     private:
         std::mutex m_QueueMutex;                     ///< Mutex for command queue access
         std::mutex m_RenderMutex;                    ///< Mutex for render queue access

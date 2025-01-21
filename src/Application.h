@@ -43,7 +43,7 @@ namespace Engine {
     struct KeyToggleState {
         bool previousState = false;     ///< Previous key state
         float pressStartTime = 0.0f;    ///< Time when key was pressed
-        bool currentValue = false;      ///< Current toggle state
+        bool currentValue = true;      ///< Current toggle state
     };
 
     /**
@@ -92,8 +92,10 @@ namespace Engine {
         /**
          * @brief Set the viewport dimensions
          */
-        void SetViewport(int x, int y, int width, int height);
-        
+        void SetViewport(int x, int y, int width, int height) {
+            m_Renderer.SetViewport(x, y, width, height);
+        }
+
         /**
          * @brief Process pending events
          */
@@ -164,7 +166,7 @@ namespace Engine {
 
         std::unique_ptr<ImGuiOverlay> m_ImGuiOverlay;
 
-        void UpdateFPSCounter(float deltaTime, float currentTime);
+        void UpdateFPSCounter(float deltaTime);
 
         std::unique_ptr<Light> m_Light;
     };

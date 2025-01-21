@@ -1,8 +1,6 @@
 #include <pch.h>
+#include "Application.h"
 
-// External dependencies
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <imgui.h>
 
 // Core headers
@@ -54,6 +52,9 @@
  * @note All engine components should be initialized through the Application class
  */
 namespace Engine {
+    constexpr float EVENT_PROCESS_RATE = 60.0f;
+    constexpr float EVENT_PROCESS_INTERVAL = 1.0f / EVENT_PROCESS_RATE;
+
     /**
      * @brief Initialize the application and all subsystems
      */
@@ -61,27 +62,16 @@ namespace Engine {
     {
         LOG_INFO("Creating Application");
         
-        // Configure profiler
-        auto& profiler = Engine::Profiler::Get();
-        profiler.SetMaxSamples(500);
-        profiler.SetPrecision(2);
-        profiler.SetJSONOutputPath("profile_results.json");
-        profiler.SetOutputFormat(Engine::Profiler::OutputFormat::JSON);
+        Engine::Profiler::Get().BeginSession("Runtime");
 
         InitWindow("Voxel Engine", 1280, 720);
-        if (!m_Window) {
-            LOG_ERROR("Failed to create window!");
-            m_Running = false;
-            return;
-        }
-        
-        m_Window->SetContext();
-        
-        // Initialize core systems
+
+        // Initialize renderer before other systems
+        m_Renderer.Init();
+
+        // Initialize ImGui after renderer
         m_ImGuiLayer = std::make_unique<ImGuiLayer>();
         m_ImGuiLayer->Init(m_Window.get());
-        
-        m_Renderer.Init();
         
         // Initialize subsystems
         m_TerrainSystem = std::make_unique<TerrainSystem>();
@@ -124,7 +114,7 @@ namespace Engine {
         float lastFrameTime = 0.0f;
         
         while (m_Running && m_Window) {
-            float time = static_cast<float>(glfwGetTime());
+            auto time = static_cast<float>(glfwGetTime());
             float deltaTime = time - lastFrameTime;
             lastFrameTime = time;
             
@@ -143,7 +133,7 @@ namespace Engine {
                 m_ImGuiEnabled = m_KeyToggles[GLFW_KEY_F2].currentValue;
             }
             
-            UpdateFPSCounter(deltaTime, time);
+            if (m_ShowFPSCounter) { UpdateFPSCounter(deltaTime); };
             
             #ifdef ENGINE_DEBUG
             // Update hot-reloading system
@@ -152,8 +142,7 @@ namespace Engine {
             
             // Render frame
             BeginScene();
-            m_TerrainSystem->Render(m_Renderer);
-            m_Renderer.Draw();
+            Present();
             EndScene();
         }
     }
@@ -163,36 +152,31 @@ namespace Engine {
      */
     void Application::ProcessEvents() {
         static float eventTimer = 0.0f;
-        // TODO: Sync to FPS
-        eventTimer += 0.016f; // Approximate for 60fps
-        
-        if (eventTimer >= 1.0f) { // Create a test event every second
-            auto testEvent = std::make_shared<KeyPressedEvent>(GLFW_KEY_T);
-            testEvent->SetPriority(EventPriority::Normal);
-            EventQueue::Get().PushEvent(testEvent);
-            eventTimer = 0.0f;
-        }
+        eventTimer += ImGui::GetIO().DeltaTime;
 
-        EventQueue::Get().ProcessEvents([this](std::shared_ptr<Event> event) {
-            EventDispatcher dispatcher(*event.get());
+        // Process events at fixed 60Hz rate
+        if (eventTimer >= EVENT_PROCESS_INTERVAL) {
+            eventTimer = 0.0f;
             
-            dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& e) -> bool {
-                LOG_INFO("Window Close Event received");
-                m_Running = false;
+            EventQueue::Get().ProcessEvents([this](std::shared_ptr<Event> event) {
+                EventDispatcher dispatcher(*event.get());
+                
+                dispatcher.Dispatch<WindowCloseEvent>([this](const WindowCloseEvent& [[maybe_unused]] e) {
+                    LOG_INFO("Window Close Event received");
+                    m_Running = false;
+                    return true;
+                });
+
+                if (!event->IsHandled()) {
+                    m_InputSystem->OnEvent(*event);
+                }
                 return true;
             });
 
-            if (!event->IsHandled()) {
-                m_InputSystem->OnEvent(*event);
-            }
-            return true;
-        });
-
-        // Add chunk range control with number keys
-        if (auto* window = static_cast<GLFWwindow*>(m_Window->GetNativeWindow())) {
+            // Replace GLFW key checking with input system
             for (int i = 0; i <= 9; i++) {
-                if (glfwGetKey(window, GLFW_KEY_0 + i) == GLFW_PRESS) {
-                    auto event = std::make_shared<KeyPressedEvent>(GLFW_KEY_0 + i);
+                if (m_InputSystem->IsKeyPressed(KeyCode::NUM_0 + i)) {
+                    auto event = std::make_shared<KeyPressedEvent>(KeyCode::NUM_0 + i);
                     EventQueue::Get().PushEvent(event);
                     break;
                 }
@@ -205,7 +189,7 @@ namespace Engine {
      * @param deltaTime Time since last frame
      * @param currentTime Current application time
      */
-    void Application::UpdateFPSCounter(float deltaTime, float currentTime) {
+    void Application::UpdateFPSCounter(float deltaTime) {
         m_FPSCounter.Update(deltaTime);
     }
 
@@ -220,30 +204,30 @@ namespace Engine {
         WindowProps props(title, width, height);
         m_Window = std::unique_ptr<Window>(Window::Create(props));
         
-        m_Window->SetEventCallback([this](Event& e) -> bool {
+        m_Window->SetEventCallback([this](const Event& e) {
             std::shared_ptr<Event> eventPtr = nullptr;
             
             if (e.GetEventType() == EventType::WindowResize) {
-                auto& resizeEvent = static_cast<WindowResizeEvent&>(e);
-                SetViewport(0, 0, resizeEvent.GetWidth(), resizeEvent.GetHeight());
+                const auto* resizeEvent = static_cast<const WindowResizeEvent*>(&e);
+                SetViewport(0, 0, resizeEvent->GetWidth(), resizeEvent->GetHeight());
             }
             
             // Clone the event based on its type
             if (e.GetEventType() == EventType::KeyPressed) {
-                auto& keyEvent = static_cast<KeyPressedEvent&>(e);
-                eventPtr = std::make_shared<KeyPressedEvent>(keyEvent.GetKeyCode(), keyEvent.IsRepeat());
+                const auto* keyEvent = static_cast<const KeyPressedEvent*>(&e);
+                eventPtr = std::make_shared<KeyPressedEvent>(keyEvent->GetKeyCode(), keyEvent->IsRepeat());
             }
             else if (e.GetEventType() == EventType::MouseMoved) {
-                auto& mouseEvent = static_cast<MouseMovedEvent&>(e);
-                eventPtr = std::make_shared<MouseMovedEvent>(mouseEvent.GetX(), mouseEvent.GetY());
+                const auto* mouseEvent = static_cast<const MouseMovedEvent*>(&e);
+                eventPtr = std::make_shared<MouseMovedEvent>(mouseEvent->GetX(), mouseEvent->GetY());
             }
-            // TODO: add more event types
             
             if (eventPtr) {
                 EventQueue::Get().PushEvent(eventPtr);
             }
             return false;
         });
+        m_Window->SetContext();
     }
 
     void Application::ShutdownWindow() {
@@ -254,15 +238,14 @@ namespace Engine {
     void Application::BeginScene() {
         PROFILE_FUNCTION();
 
-        m_Window->SetClear(0.1f, 0.1f, 0.1f, 1.0f);
+        m_Renderer.Clear({0.1f, 0.1f, 0.1f, 1.0f});
         
         m_TerrainSystem->Render(m_Renderer);
-        m_Renderer.Draw();
         
         m_ImGuiLayer->Begin();
         
         if (m_ImGuiEnabled) {
-            static RenderObject dummyRenderObject;  // Create a static dummy object
+            static RenderObject dummyRenderObject;
             m_ImGuiOverlay->OnRender(dummyRenderObject, m_ShowFPSCounter, 
                 m_FPSCounter.GetCurrentFPS(), 
                 m_FPSCounter.GetAverageFPS(), 
@@ -276,20 +259,17 @@ namespace Engine {
         }
     }
 
+    void Application::Present() {
+        PROFILE_FUNCTION();
+        
+        m_Renderer.Draw();
+    }
+
     void Application::EndScene() {
         PROFILE_FUNCTION();
 
         m_ImGuiLayer->End();
         m_Window->OnUpdate();
-    }
-
-    void Application::Present() {
-        
-    }
-
-    void Application::SetViewport(int x, int y, int width, int height) {
-        glViewport(x, y, width, height);
-        LOG_TRACE_CONCAT("Set Viewport: ", x, ",", y, ",", width, ",", height);
     }
 
     void Application::InitializeToggleStates() {
@@ -298,27 +278,25 @@ namespace Engine {
     }
 
     bool Application::HandleKeyToggle(int key, float currentTime) {
-        if (auto* window = static_cast<GLFWwindow*>(m_Window->GetNativeWindow())) {
-            auto& state = m_KeyToggles[key];
-            bool currentState = glfwGetKey(window, key) == GLFW_PRESS;
-            
-            // Track when key is first pressed
-            if (currentState && !state.previousState) {
-                state.pressStartTime = currentTime;
-            }
-            
-            // Check for toggle condition on release
-            if (state.previousState && !currentState) {
-                bool shouldToggle = (currentTime - state.pressStartTime) < MAX_TOGGLE_HOLD_TIME;
-                state.previousState = currentState;
-                if (shouldToggle) {
-                    state.currentValue = !state.currentValue;
-                    return true;
-                }
-            }
-            
-            state.previousState = currentState;
+        auto& state = m_KeyToggles[key];
+        bool currentState = m_InputSystem->IsKeyPressed(key);
+        
+        // Track when key is first pressed
+        if (currentState && !state.previousState) {
+            state.pressStartTime = currentTime;
         }
+        
+        // Check for toggle condition on release
+        if (state.previousState && !currentState) {
+            bool shouldToggle = (currentTime - state.pressStartTime) < MAX_TOGGLE_HOLD_TIME;
+            state.previousState = currentState;
+            if (shouldToggle) {
+                state.currentValue = !state.currentValue;
+                return true;
+            }
+        }
+        
+        state.previousState = currentState;
         return false;
     }
 

@@ -44,7 +44,7 @@ public:
         // Create new resource
         auto resource = std::make_shared<T>();
         if (!resource->Load(path)) {
-            LOG_ERROR("Failed to load resource: {}", path);
+            LOG_ERROR_CONCAT("Failed to load resource: ", path);
             return nullptr;
         }
 
