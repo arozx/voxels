@@ -4,6 +4,8 @@
 #include "Renderer/Renderer.h"
 #include "Noise/NoiseGenerator.h"
 #include "Noise/VoidNoise/VoidNoise.h"
+#include "Noise/PerlinNoise/PerlinNoise.h"
+#include "Noise/SimplexNoise/SimplexNoise.h"
 #include "Renderer/VertexArray.h"
 #include "Renderer/Material.h"
 #include "VoxelTerrain.h"

@@ -61,6 +61,8 @@ set(SOURCES
     src/VoxelChunk.cpp
     src/Core/FPSCounter.cpp
     src/Shader/ShaderHotReload.cpp
+    src/Noise/SimplexNoise/SimplexNoise.cpp
+    src/Noise/SimplexNoise/SimplexNoise.h
     ${IMGUI_SOURCES}
 )
 
