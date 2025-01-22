@@ -13,23 +13,29 @@ namespace Engine {
      * @brief The Renderer class handles all rendering operations in the engine
      */
     Renderer::Renderer() {}
+
     Renderer::~Renderer() {}
 
     /**
      * @brief Initialize the renderer and graphics context
      * @details Sets up GLAD and creates camera instances
      */
-    void Renderer::Init() {
-        // Assert GLAD loaded successfully
+    void Renderer::Initialize() {
+        // Initialize OpenGL
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
             ASSERT(false && "Failed to initialize GLAD");
             return;
         }
 
+        // Setup OpenGL state
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        // Initialize cameras
         m_Camera = std::make_shared<OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f);
         m_PerspectiveCamera = std::make_shared<PerspectiveCamera>(45.0f, 1280.0f/720.0f);
         
-        // Assert cameras were created successfully
         ASSERT(m_Camera != nullptr && "Failed to create orthographic camera");
         ASSERT(m_PerspectiveCamera != nullptr && "Failed to create perspective camera");
     }

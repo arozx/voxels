@@ -12,6 +12,7 @@ namespace Engine {
     class ImGuiLayer {
     public:
         ImGuiLayer() = default;
+        ImGuiLayer(Window* window);
         ~ImGuiLayer() = default;
 
         /**

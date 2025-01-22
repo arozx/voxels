@@ -20,6 +20,14 @@ set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 
+# Add GLAD
+add_library(glad STATIC
+    external/glad/src/glad.c
+)
+target_include_directories(glad PUBLIC
+    external/glad/include
+)
+
 # Add ImGui source files
 set(IMGUI_DIR external/imgui)
 set(IMGUI_SOURCES
@@ -32,11 +40,8 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
-# Add source files
-set(SOURCES
-    external/glad/src/glad.c
-    external/stb_image/src/stb_image.cpp
-    src/EntryPoint.cpp
+# Engine library sources
+set(ENGINE_SOURCES
     src/Application.cpp
     src/Window/OpenGLWindow.cpp
     src/Renderer/Buffer.cpp
@@ -62,25 +67,36 @@ set(SOURCES
     src/Core/FPSCounter.cpp
     src/Shader/ShaderHotReload.cpp
     src/Noise/SimplexNoise/SimplexNoise.cpp
-    src/Noise/SimplexNoise/SimplexNoise.h
     src/Noise/ValueNoise/ValueNoise.cpp
-    src/Noise/ValueNoise/ValueNoise.h
+    external/stb_image/src/stb_image.cpp
     ${IMGUI_SOURCES}
 )
 
-add_executable(voxel-engine ${SOURCES})
+# Create engine library
+add_library(voxel-engine STATIC ${ENGINE_SOURCES})
 
-target_include_directories(voxel-engine PRIVATE external/glad/include)
-
-target_link_libraries(voxel-engine PRIVATE glfw OpenGL::GL)
-
-target_include_directories(voxel-engine PRIVATE
+target_include_directories(voxel-engine PUBLIC
     ${CMAKE_SOURCE_DIR}/src
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${CMAKE_SOURCE_DIR}/external/stb_image/src
     ${CMAKE_SOURCE_DIR}/external/json
+    ${CMAKE_SOURCE_DIR}/external/glad/include
 )
+
+target_link_libraries(voxel-engine PUBLIC 
+    glfw 
+    OpenGL::GL
+    glad
+)
+
+# Create sandbox executable
+set(SANDBOX_SOURCES
+    sandbox/src/SandboxApp.cpp
+)
+
+add_executable(sandbox ${SANDBOX_SOURCES})
+target_link_libraries(sandbox PRIVATE voxel-engine)
 
 # Enable precompiled headers - specify C++ explicitly
 target_precompile_headers(voxel-engine

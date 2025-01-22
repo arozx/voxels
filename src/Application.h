@@ -60,6 +60,9 @@ namespace Engine {
         void Run();
         
         unsigned int indicies;
+
+        Renderer& GetRenderer() { return *m_Renderer; }
+
     protected:
         /**
          * @brief Initialize the application window
@@ -93,13 +96,16 @@ namespace Engine {
          * @brief Set the viewport dimensions
          */
         void SetViewport(int x, int y, int width, int height) {
-            m_Renderer.SetViewport(x, y, width, height);
+            m_Renderer->SetViewport(x, y, width, height);
         }
 
         /**
          * @brief Process pending events
          */
         void ProcessEvents();
+
+        std::unique_ptr<Renderer> m_Renderer;
+        std::unique_ptr<TerrainSystem> m_TerrainSystem;
 
     private:
         /**
@@ -154,8 +160,6 @@ namespace Engine {
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
         std::unique_ptr<InputSystem> m_InputSystem;
-        std::unique_ptr<TerrainSystem> m_TerrainSystem;
-        Renderer m_Renderer;
 
         // Rendering objects
         std::vector<std::unique_ptr<RenderableObject>> m_RenderableObjects;

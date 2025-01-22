@@ -77,10 +77,7 @@ namespace Engine {
         Renderer();
         ~Renderer();
 
-        /**
-         * @brief Initialize the renderer
-         */
-        void Init();
+        void Initialize();
 
         /**
          * @brief Trigger a draw operation

@@ -67,24 +67,20 @@ namespace Engine {
         InitWindow("Voxel Engine", 1280, 720);
 
         // Initialize renderer before other systems
-        m_Renderer.Init();
+        m_Renderer = std::make_unique<Renderer>();
+        m_Renderer->Initialize();
 
-        // Initialize ImGui after renderer
-        m_ImGuiLayer = std::make_unique<ImGuiLayer>();
-        m_ImGuiLayer->Init(m_Window.get());
+        // Create and initialize ImGui layer first
+        m_ImGuiLayer = std::make_unique<ImGuiLayer>(m_Window.get());
+        m_ImGuiLayer->Init(m_Window.get());  // Explicitly call Init
+        LOG_INFO("ImGui initialized");
         
-        // Initialize subsystems
-        m_TerrainSystem = std::make_unique<TerrainSystem>();
-        m_TerrainSystem->Initialize(m_Renderer);
-        
+        // Initialize remaining systems
         AssetManager::Get().PreloadFrequentAssets();
-        
-        m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), m_Renderer);
+        m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), *m_Renderer);
         m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
         
         InitializeToggleStates();
-        
-        // Initialize shader system
         DefaultShaders::PreloadShaders();
     }
 
@@ -152,7 +148,8 @@ namespace Engine {
      */
     void Application::ProcessEvents() {
         static float eventTimer = 0.0f;
-        eventTimer += ImGui::GetIO().DeltaTime;
+        static const float fixedDeltaTime = 1.0f / 60.0f;
+        eventTimer += fixedDeltaTime;
 
         // Process events at fixed 60Hz rate
         if (eventTimer >= EVENT_PROCESS_INTERVAL) {
@@ -161,7 +158,7 @@ namespace Engine {
             EventQueue::Get().ProcessEvents([this](std::shared_ptr<Event> event) {
                 EventDispatcher dispatcher(*event.get());
                 
-                dispatcher.Dispatch<WindowCloseEvent>([this](const WindowCloseEvent& [[maybe_unused]] e) {
+                dispatcher.Dispatch<WindowCloseEvent>([this](const WindowCloseEvent& e [[maybe_unused]]) {
                     LOG_INFO("Window Close Event received");
                     m_Running = false;
                     return true;
@@ -238,9 +235,12 @@ namespace Engine {
     void Application::BeginScene() {
         PROFILE_FUNCTION();
 
-        m_Renderer.Clear({0.1f, 0.1f, 0.1f, 1.0f});
+        m_Renderer->Clear({0.1f, 0.1f, 0.1f, 1.0f});
         
-        m_TerrainSystem->Render(m_Renderer);
+        // Only render terrain if it exists
+        if (m_TerrainSystem) {
+            m_TerrainSystem->Render(*m_Renderer);
+        }
         
         m_ImGuiLayer->Begin();
         
@@ -255,14 +255,16 @@ namespace Engine {
             m_ImGuiOverlay->RenderProfiler();
             m_ImGuiOverlay->RenderRendererSettings();
             m_ImGuiOverlay->RenderEventDebugger();
-            m_ImGuiOverlay->RenderTerrainControls(*m_TerrainSystem);
+            if (m_TerrainSystem) {
+                m_ImGuiOverlay->RenderTerrainControls(*m_TerrainSystem);
+            }
         }
     }
 
     void Application::Present() {
         PROFILE_FUNCTION();
         
-        m_Renderer.Draw();
+        m_Renderer->Draw();
     }
 
     void Application::EndScene() {
