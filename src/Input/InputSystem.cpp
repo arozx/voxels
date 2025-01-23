@@ -199,4 +199,26 @@ namespace Engine {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
+
+    void InputSystem::RegisterKeyCallback(int key, KeyCallback callback) {
+        m_KeyCallbacks[key] = std::move(callback);
+    }
+
+    void InputSystem::OnKey(int key, int scancode, int action, int mods) {
+        // Process any registered callbacks first
+        OnKeyEvent(key, action);
+        
+        // Handle built-in key processing
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+            m_CursorLocked = !m_CursorLocked;
+            UpdateCursorState();
+        }
+    }
+
+    void InputSystem::OnKeyEvent(int key, int action) {
+        auto it = m_KeyCallbacks.find(key);
+        if (it != m_KeyCallbacks.end()) {
+            it->second(action);
+        }
+    }
 }

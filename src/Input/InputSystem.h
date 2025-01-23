@@ -1,4 +1,5 @@
 #pragma once
+#include <pch.h>
 #include "Window/Window.h"
 #include "Events/KeyEvent.h"
 #include "Events/MouseEvent.h"
@@ -70,6 +71,13 @@ namespace Engine {
         float GetMovementSpeed() const { return m_MovementSpeed; }
         void ToggleMovementLock() { m_MovementLocked = !m_MovementLocked; }
 
+        // Key callback system
+        using KeyCallback = std::function<void(int)>;
+        void RegisterKeyCallback(int key, KeyCallback callback);
+        
+        // Key event handling
+        void OnKey(int key, int scancode, int action, int mods);
+
     private:
         /**
          * @brief Handles mouse movement input
@@ -130,5 +138,10 @@ namespace Engine {
         // Mouse cursor control
         bool m_CursorLocked = false;      ///< Is cursor locked to window center
         void UpdateCursorState();          ///< Updates cursor visibility and lock state
+
+        // Internal key event processing
+        void OnKeyEvent(int key, int action);
+
+        std::unordered_map<int, KeyCallback> m_KeyCallbacks;
     };
 }

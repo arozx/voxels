@@ -22,7 +22,14 @@ namespace Engine {
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        
+        #ifdef __linux__
+            // Disable viewports on Linux
+            io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
+        #else
+            // Enable viewports on other platforms
+            io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        #endif
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();

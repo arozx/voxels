@@ -13,6 +13,7 @@
 #include "Core/AssetManager.h"
 #include "Renderer/Light.h"
 #include "Core/FPSCounter.h"
+#include "Scripting/LuaScriptSystem.h"
 
 /**
  * @namespace Engine
@@ -62,6 +63,14 @@ namespace Engine {
         unsigned int indicies;
 
         Renderer& GetRenderer() { return *m_Renderer; }
+
+        LuaScriptSystem* GetScriptSystem() { return m_ScriptSystem.get(); }
+
+        static Application& Get() { return *s_Instance; }
+        TerrainSystem* GetTerrainSystem() { return m_TerrainSystem.get(); }
+        InputSystem* GetInputSystem() { return m_InputSystem.get(); }
+
+        virtual void OnImGuiRender() {}
 
     protected:
         /**
@@ -173,6 +182,11 @@ namespace Engine {
         void UpdateFPSCounter(float deltaTime);
 
         std::unique_ptr<Light> m_Light;
+
+        // scripting
+        std::unique_ptr<LuaScriptSystem> m_ScriptSystem;
+
+        static Application* s_Instance;
     };
     
     // To be defined by client application

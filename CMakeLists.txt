@@ -19,6 +19,7 @@ endif()
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
+find_package(Lua REQUIRED)
 
 # Add GLAD
 add_library(glad STATIC
@@ -69,6 +70,7 @@ set(ENGINE_SOURCES
     src/Noise/SimplexNoise/SimplexNoise.cpp
     src/Noise/ValueNoise/ValueNoise.cpp
     external/stb_image/src/stb_image.cpp
+    src/Scripting/LuaScriptSystem.cpp
     ${IMGUI_SOURCES}
 )
 
@@ -82,12 +84,14 @@ target_include_directories(voxel-engine PUBLIC
     ${CMAKE_SOURCE_DIR}/external/stb_image/src
     ${CMAKE_SOURCE_DIR}/external/json
     ${CMAKE_SOURCE_DIR}/external/glad/include
+    ${CMAKE_SOURCE_DIR}/external/sol2
 )
 
 target_link_libraries(voxel-engine PUBLIC 
     glfw 
     OpenGL::GL
     glad
+    ${LUA_LIBRARIES}  # Add Lua libraries
 )
 
 # Create sandbox executable

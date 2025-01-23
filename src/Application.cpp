@@ -55,11 +55,14 @@ namespace Engine {
     constexpr float EVENT_PROCESS_RATE = 60.0f;
     constexpr float EVENT_PROCESS_INTERVAL = 1.0f / EVENT_PROCESS_RATE;
 
+    Application* Application::s_Instance = nullptr;
+
     /**
      * @brief Initialize the application and all subsystems
      */
     Application::Application() 
     {
+        s_Instance = this;
         LOG_INFO("Creating Application");
         
         Engine::Profiler::Get().BeginSession("Runtime");
@@ -75,8 +78,23 @@ namespace Engine {
         m_ImGuiLayer->Init(m_Window.get());  // Explicitly call Init
         LOG_INFO("ImGui initialized");
         
-        // Initialize remaining systems
+        // Initialize script system first
+        m_ScriptSystem = std::make_unique<LuaScriptSystem>();
+        if (!m_ScriptSystem) {
+            LOG_ERROR("Failed to create script system");
+            return;
+        }
+        
+        try {
+            m_ScriptSystem->Initialize();
+        } catch (const std::exception& e) {
+            LOG_ERROR_CONCAT("Failed to initialize script system: ", e.what());
+            return;
+        }
+        
+        // Initialize remaining systems after script system is ready
         AssetManager::Get().PreloadFrequentAssets();
+        m_TerrainSystem = std::make_unique<TerrainSystem>();
         m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), *m_Renderer);
         m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
         
