@@ -102,6 +102,12 @@ set(SANDBOX_SOURCES
 add_executable(sandbox ${SANDBOX_SOURCES})
 target_link_libraries(sandbox PRIVATE voxel-engine)
 
+add_custom_command(TARGET sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/sandbox/assets/scripts
+    ${CMAKE_BINARY_DIR}/assets/scripts
+)
+
 # Enable precompiled headers - specify C++ explicitly
 target_precompile_headers(voxel-engine
   PRIVATE

@@ -1,5 +1,7 @@
 #include "SandboxApp.h"
 #include <imgui.h>
+#include <fstream>
+#include <sstream>
 
 SandboxApp::SandboxApp() : Application() {
     // Check script system first
@@ -27,24 +29,23 @@ SandboxApp::SandboxApp() : Application() {
         });
     }
 
-    // Initialize with default script
+    // Initialize with init.lua script
     try {
-        const std::string initScript = R"(
-            -- Initialize Lua environment
-            if not engine then
-                error("Engine API not available")
-            end
+        std::string scriptPath = "build/assets/scripts/init.lua";
+        std::ifstream scriptFile(scriptPath);
+        if (!scriptFile.is_open()) {
+            LOG_ERROR_CONCAT("Failed to open init.lua at path: ", scriptPath);
+            return;
+        }
 
-            -- Set default terrain parameters
-            engine.setTerrainHeight(10.0)
-            engine.log("Lua environment initialized")
-        )";
+        std::stringstream scriptBuffer;
+        scriptBuffer << scriptFile.rdbuf();
         
-        if (!scriptSystem->ExecuteScript(initScript)) {
+        if (!scriptSystem->ExecuteScript(scriptBuffer.str())) {
             LOG_ERROR("Failed to execute initialization script");
         }
     } catch (const std::exception& e) {
-        LOG_ERROR("Script initialization error: {}", e.what());
+        LOG_ERROR("Script initialization error: {", e.what(), "}");
     }
 }
 

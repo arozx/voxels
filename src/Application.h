@@ -72,6 +72,8 @@ namespace Engine {
 
         virtual void OnImGuiRender() {}
 
+        const std::string& GetAssetPath() const { return m_AssetPath; }
+
     protected:
         /**
          * @brief Initialize the application window
@@ -187,6 +189,8 @@ namespace Engine {
         std::unique_ptr<LuaScriptSystem> m_ScriptSystem;
 
         static Application* s_Instance;
+
+        std::string m_AssetPath = "../sandbox/assets/";  // Base path for all assets
     };
     
     // To be defined by client application
