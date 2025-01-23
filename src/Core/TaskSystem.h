@@ -24,6 +24,7 @@ namespace Engine {
          * @param threadCount Number of worker threads (0 for automatic)
          */
         void Initialize(size_t threadCount = 0) {
+            ASSERT(m_Initialized == false && "TaskSystem already initialized!");
             if (threadCount == 0) {
                 // Use physical cores only, not hyperthreaded
                 threadCount = std::max(1u, std::thread::hardware_concurrency() / 2);
@@ -35,6 +36,7 @@ namespace Engine {
             for (size_t i = 0; i < threadCount; ++i) {
                 m_Workers.emplace_back([this] { WorkerThread(); });
             }
+            m_Initialized = true;
         }
 
         ~TaskSystem() {
@@ -62,6 +64,8 @@ namespace Engine {
             using ReturnType = typename std::invoke_result<F>::type;
             auto promise = std::make_shared<std::promise<ReturnType>>();
             std::future<ReturnType> future = promise->get_future();
+
+            ASSERT(m_Initialized && "TaskSystem not initialized!");
 
             {
                 std::lock_guard<std::mutex> lock(m_QueueMutex);
@@ -114,5 +118,6 @@ namespace Engine {
         std::mutex m_QueueMutex;
         std::condition_variable m_Condition;
         bool m_Running = false;
+        bool m_Initialized = false;
     };
 }

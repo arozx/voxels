@@ -39,7 +39,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Engine
-#include "Core/Logging.h"
+#include "Core/Utils/Logging.h"
+#include "Core/Utils/AssertLib.h"
+#include "Debug/Profiler.h"
+#include <json.hpp>
 #endif
 
 // Platform detection

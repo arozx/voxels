@@ -1,4 +1,4 @@
-#include "VoidNoise.h"
+#include "Noise/VoidNoise/VoidNoise.h"
 #include <pch.h>
 
 /**
@@ -60,31 +60,45 @@ float VoidNoise::grad(int hash, float x, float y) const {
  * @return Noise value between 0 and 1
  */
 float VoidNoise::noise(float x, float y) const {
+    // Get integer coordinates
     int X = static_cast<int>(std::floor(x)) & 255;
     int Y = static_cast<int>(std::floor(y)) & 255;
     
+    // Get fractional part
     x -= std::floor(x);
     y -= std::floor(y);
     
+    // Compute fade curves
     float u = fade(x);
     float v = fade(y);
 
-    int A = perm[X] + Y;
-    int B = perm[X + 1] + Y;
-    int AA = perm[A];
-    int BA = perm[B];
-    int AB = perm[A + 1];
-    int BB = perm[B + 1];
+    // Hash coordinates
+    int A = (perm[X] + Y) & 255;
+    int B = (perm[X + 1] + Y) & 255;
     
-    return lerp(
-        lerp(grad(perm[AA], x, y),
-             grad(perm[BA], x-1, y),
-             u),
-        lerp(grad(perm[AB], x, y-1),
-             grad(perm[BB], x-1, y-1),
-             u),
+    // Get corner gradients
+    float g00 = perm[A] / 255.0f;
+    float g10 = perm[B] / 255.0f;
+    float g01 = perm[A + 1] / 255.0f;
+    float g11 = perm[B + 1] / 255.0f;
+
+    // Interpolate between gradients
+    float result = lerp(
+        lerp(g00, g10, u),
+        lerp(g01, g11, u),
         v
-    ) * 0.5f + 0.5f;
+    );
+
+    // Debug output for first few calls
+    static int debugCount = 0;
+    if (debugCount < 5) {
+        LOG_TRACE_CONCAT("VoidNoise - Input (",x,",",y,"):", 
+                        " Corners: ", g00, ",", g10, ",", g01, ",", g11,
+                        " Result: ", result);
+        debugCount++;
+    }
+
+    return result;
 }
 
 /**
@@ -117,6 +131,11 @@ std::vector<float> VoidNoise::generateHeightmap(int width, int height, float sca
             
             // Normalize the result
             heightmap[y * width + x] = total / maxValue;
+
+            // Debug first few values
+            if (x == 0 && y < 2) {
+                LOG_TRACE_CONCAT("Heightmap value at (", x, ",", y, "): ", heightmap[y * width + x]);
+            }
         }
     }
     

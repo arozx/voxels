@@ -1,6 +1,13 @@
 #pragma once
 #include <pch.h>
+#include <glad/glad.h>  // Add glad include first
 #include <glm/gtc/type_ptr.hpp>
+#include "../Core/Resource.h"
+
+// Forward declare
+namespace Engine {
+    class ShaderHotReload;
+}
 
 namespace Engine {
     /**
@@ -8,8 +15,9 @@ namespace Engine {
      * 
      * Manages compilation, linking and uniform setting for shader programs.
      */
-    class Shader {
+    class Shader : public Resource, public std::enable_shared_from_this<Shader> {
     public:
+        Shader() = default;  // Add default constructor
         /**
          * @brief Creates a shader program from source code
          * @param vertexSrc Vertex shader source code
@@ -68,7 +76,8 @@ namespace Engine {
          * @param fragmentPath Path to fragment shader file
          * @return New shader instance or nullptr on failure
          */
-        static Shader* CreateFromFiles(const std::string& vertexPath, const std::string& fragmentPath);
+        static std::shared_ptr<Shader> CreateFromFiles(const std::string& vertexPath, const std::string& fragmentPath);
+        static std::shared_ptr<Shader> CreateFromSource(const char* vertexSrc, const char* fragmentSrc);
 
         /**
          * @brief Reads a file into a string
@@ -77,9 +86,37 @@ namespace Engine {
          */
         static std::string ReadFile(const std::string& filepath);
 
-    private:
-        uint32_t m_Program;  ///< OpenGL program ID
+        // Add interface for loading from source strings
+        bool LoadFromSource(const char* vertexSrc, const char* fragmentSrc);
+        
+        // Override Resource's Load method
+        virtual bool Load(const std::string& path) override;
 
+        /**
+         * @brief Reloads the shader from its source files
+         * @param path Combined vertex;fragment path
+         * @return true if reload successful
+         */
+        bool Reload(const std::string& path);
+
+        /**
+         * @brief Enables hot-reloading for this shader
+         * @param vertPath Path to vertex shader
+         * @param fragPath Path to fragment shader
+         */
+        void EnableHotReload(const std::string& vertPath, const std::string& fragPath);
+
+        // Implement pure virtual method
+        virtual void Unload() override {
+            if (m_Program) {
+                glDeleteProgram(m_Program);
+                m_Program = 0;
+            }
+            m_IsLoaded = false;
+        }
+
+    private:
+        uint32_t m_Program = 0;  ///< OpenGL program ID
         /**
          * @brief Compiles a shader
          * @param source Shader source code

@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Debug/Profiler.h"
+#include "ImGuiFlameGraph.h"
 
 namespace Engine {
     /**
@@ -10,7 +11,10 @@ namespace Engine {
      * @param window Pointer to the window instance
      */
     ImGuiOverlay::ImGuiOverlay(Window* window) 
-        : m_Window(window), m_Renderer(&Renderer::Get()) {}
+        : m_Window(window), m_Renderer(&Renderer::Get()) {
+        // Initialize flame graph settings with defaults
+        m_FlameGraphSettings = ImGuiWidgetFlameGraph::FlameGraphSettings();
+    }
 
     /**
      * @brief Render performance statistics overlay
@@ -26,8 +30,27 @@ namespace Engine {
         float currentFPS, float averageFPS, float frameTime,
         float fps1PercentLow, float fps1PercentHigh) 
     {
+        m_FPSCounter.Update(frameTime);
+
         if (showFPSCounter) {
+            // Calculate max width (minimum of 25% screen width or 300px)
+            float maxWidth = std::min(ImGui::GetMainViewport()->Size.x * 0.25f, 300.0f);
+            
+            ImGui::SetNextWindowSizeConstraints(
+                ImVec2(0, 0),           // Min size
+                ImVec2(maxWidth, FLT_MAX)  // Max size
+            );
+            
             ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+            
+            // Set initial window position to top-right if not already set
+            if (ImGui::GetWindowPos().x == 0 && ImGui::GetWindowPos().y == 0) {
+                ImGui::SetWindowPos(ImVec2(
+                    ImGui::GetMainViewport()->Size.x - maxWidth,
+                    0
+                ));
+            }
+
             ImGui::Text("Camera Type: %s", m_Renderer->GetCameraType() == Renderer::CameraType::Orthographic ? "Orthographic" : "Perspective");
             ImGui::Separator();
             ImGui::Text("Current FPS: %.1f", currentFPS);
@@ -43,6 +66,52 @@ namespace Engine {
             }
             
             ImGui::Text("Press F3 to toggle FPS counter");
+
+            ImGui::Spacing();
+            ImGui::Spacing();
+            ImGui::Spacing();
+            // Add flame graph with minimum size requirements
+            const auto& frameHistory = m_FPSCounter.GetFrameTimeHistory();
+            if (!frameHistory.empty()) {
+                ImGui::Separator();
+                ImGui::Text("Frame Time Analysis");
+                
+                // Create a more compact horizontal layout
+                float buttonWidth = 70.0f; // Smaller reset button
+                float settingsWidth = ImGui::GetWindowWidth() - buttonWidth - 20.0f;
+                
+                ImGui::BeginGroup();
+                ImGui::PushItemWidth(settingsWidth);
+                if (ImGui::TreeNode("Graph Settings")) {
+                    ImGui::Indent(5.0f); // Reduced indentation
+                    ImGui::SliderFloat("##FPS", &m_FlameGraphSettings.targetFPS, 30.0f, 240.0f, "%.0f FPS"); // Compact slider
+                    ImGui::SameLine(); ImGui::Text("Target");
+                    ImGui::Checkbox("Avg", &m_FlameGraphSettings.showAverage);
+                    ImGui::SameLine();
+                    ImGui::Checkbox("Target", &m_FlameGraphSettings.showTargetFPS);
+                    ImGui::SameLine();
+                    ImGui::Checkbox("Zoom", &m_FlameGraphSettings.enableZoom);
+                    ImGui::Unindent(5.0f);
+                    ImGui::TreePop();
+                }
+                ImGui::PopItemWidth();
+                
+                ImGui::SameLine(ImGui::GetWindowWidth() - buttonWidth - 10.0f);
+                if (ImGui::Button("Reset", ImVec2(buttonWidth, 0))) {
+                    m_FlameGraphSettings.zoomLevel = 1.0f;
+                    m_FlameGraphSettings.panOffset = 0.0f;
+                }
+                ImGui::EndGroup();
+                
+                ImGui::Spacing();
+                // Reserve minimum space for the graph
+                ImGuiWidgetFlameGraph::PlotFlame(
+                    "ms", // Shorter label
+                    frameHistory,
+                    m_FlameGraphSettings,
+                    100.0f // Fixed height
+                );
+            }
             ImGui::End();
         }
     }
@@ -74,6 +143,25 @@ namespace Engine {
 
         if (ImGui::Button("Clear Profiling Data")) {
             Profiler::Get().ClearProfiles();
+        }
+        
+        // Add frame profiling input control
+        static int framesToProfile = 60;
+        ImGui::SetNextItemWidth(100);
+        ImGui::InputInt("Frames to Profile", &framesToProfile);
+        framesToProfile = std::max(1, std::min(framesToProfile, 1000)); // Clamp between 1-1000
+        
+        if (!Profiler::Get().IsProfilingFrames() && ImGui::Button("Profile Frames")) {
+            Profiler::Get().BeginSession("Frame Profile");
+            Profiler::Get().ProfileFrames(framesToProfile);
+        }
+        
+        // Show profiling progress if active
+        if (Profiler::Get().IsProfilingFrames()) {
+            ImGui::SameLine();
+            ImGui::Text("Profiling Frame: %d/%d", 
+                Profiler::Get().GetCurrentProfiledFrame(),
+                framesToProfile);
         }
 
         ImGui::Separator();

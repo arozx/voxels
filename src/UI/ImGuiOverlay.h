@@ -7,6 +7,8 @@
 #include "../Renderer/Renderer.h"
 #include "../Events/EventDebugger.h"
 #include "../TerrainSystem/TerrainSystem.h"
+#include "../Core/FPSCounter.h"
+#include "ImGuiFlameGraph.h"
 
 namespace Engine {
     /**
@@ -50,8 +52,10 @@ namespace Engine {
         void RenderTerrainControls(TerrainSystem& terrainSystem);
 
     private:
-        Window* m_Window;              ///< Pointer to application window
-        Renderer* m_Renderer;          ///< Pointer to renderer
-        bool m_ShowEventDebugger = true;  ///< Event debugger visibility flag
+        Window* m_Window;                                               ///< Pointer to application window
+        Renderer* m_Renderer;                                           ///< Pointer to renderer
+        bool m_ShowEventDebugger = true;                                ///< Event debugger visibility flag
+        FPSCounter m_FPSCounter;                                        ///< FPS counter
+        ImGuiWidgetFlameGraph::FlameGraphSettings m_FlameGraphSettings; ///< Flame graph settings
     };
 }

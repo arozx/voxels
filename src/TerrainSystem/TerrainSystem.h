@@ -1,9 +1,16 @@
 #pragma once
 
+#include <pch.h>
+#include "Renderer/Renderer.h"
+#include "Noise/NoiseGenerator.h"
+#include "Noise/VoidNoise/VoidNoise.h"
+#include "Noise/ValueNoise/ValueNoise.h"
+#include "Noise/PerlinNoise/PerlinNoise.h"
+#include "Noise/SimplexNoise/SimplexNoise.h"
 #include "Renderer/VertexArray.h"
 #include "Renderer/Material.h"
-#include "Renderer/Renderer.h"
 #include "VoxelTerrain.h"
+#include "BlockTypes.h"
 
 namespace Engine {
     /**
@@ -76,5 +83,8 @@ namespace Engine {
         float m_BaseHeight = 32.0f;    ///< Base terrain height
         float m_HeightScale = 32.0f;   ///< Height variation scale
         float m_NoiseScale = 0.05f;    ///< Noise variation scale
+
+        // Noise generator
+        NoiseGenerator<VoidNoise> m_NoiseGen;
     };
 }

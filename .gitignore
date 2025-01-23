@@ -16,3 +16,9 @@ todo.md
 todo
 TODO
 .todo
+
+# Debug outputs
+profile_results.json
+profiler_n_frames.json
+
+heightmap_chunk*.bmp

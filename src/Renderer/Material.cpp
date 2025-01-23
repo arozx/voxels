@@ -5,10 +5,18 @@
  * Handles shader parameter management and texture binding for materials.
  */
 #include "Material.h"
+#include "../Core/AssetManager.h"
+#include "../Shader/Shader.h"
+#include "Texture.h"
 
 namespace Engine {
     Material::Material(std::shared_ptr<Shader> shader)
         : m_Shader(shader) {
+        // Use cached shader if available
+        std::string shaderPath = shader->GetPath(); // Need to add this getter
+        if (auto cachedShader = AssetManager::Get().LoadResource<Shader>(shaderPath)) {
+            m_Shader = cachedShader;
+        }
     }
 
     /**

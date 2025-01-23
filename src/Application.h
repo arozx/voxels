@@ -11,7 +11,31 @@
 #include "UI/ImGuiOverlay.h"
 #include "Renderer/RenderableObject.h"
 #include "Core/AssetManager.h"
+#include "Renderer/Light.h"
+#include "Core/FPSCounter.h"
 
+/**
+ * @namespace Engine
+ * @brief Core engine namespace containing main application and utility classes
+ * 
+ * The Engine namespace encapsulates all core functionality of the voxel engine including:
+ * - Application management and game loop
+ * - Window handling
+ * - Rendering systems
+ * - Input processing
+ * - Scene management
+ * - Terrain generation
+ * 
+ * This namespace provides the foundation for building voxel-based games and applications
+ * by managing the lifecycle, resources, and core systems needed for rendering and interaction.
+ * 
+ * Usage example:
+ * @code
+ * class Game : public Engine::Application {
+ *     // Game implementation
+ * };
+ * @endcode
+ */
 namespace Engine {
     /**
      * @brief Stores state for key toggle functionality
@@ -19,7 +43,7 @@ namespace Engine {
     struct KeyToggleState {
         bool previousState = false;     ///< Previous key state
         float pressStartTime = 0.0f;    ///< Time when key was pressed
-        bool currentValue = false;      ///< Current toggle state
+        bool currentValue = true;      ///< Current toggle state
     };
 
     /**
@@ -36,6 +60,9 @@ namespace Engine {
         void Run();
         
         unsigned int indicies;
+
+        Renderer& GetRenderer() { return *m_Renderer; }
+
     protected:
         /**
          * @brief Initialize the application window
@@ -68,19 +95,17 @@ namespace Engine {
         /**
          * @brief Set the viewport dimensions
          */
-        void SetViewport(int x, int y, int width, int height);
-        
+        void SetViewport(int x, int y, int width, int height) {
+            m_Renderer->SetViewport(x, y, width, height);
+        }
+
         /**
          * @brief Process pending events
          */
         void ProcessEvents();
 
-        // Add new function to create a test square using file shaders
-        void CreateFileShaderSquare();
-
-        void CreatePixelatedSquare();
-        void CreateWaveDissolveSquare();
-        void CreateBlurSquare();
+        std::unique_ptr<Renderer> m_Renderer;
+        std::unique_ptr<TerrainSystem> m_TerrainSystem;
 
     private:
         /**
@@ -135,37 +160,19 @@ namespace Engine {
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
         std::unique_ptr<InputSystem> m_InputSystem;
-        std::unique_ptr<TerrainSystem> m_TerrainSystem;
-        Renderer m_Renderer;
 
         // Rendering objects
         std::vector<std::unique_ptr<RenderableObject>> m_RenderableObjects;
-        std::unique_ptr<RenderableObject> m_Triangle;
-        std::unique_ptr<RenderableObject> m_TexturedSquare;  // This will be our active square for movement
-        std::unique_ptr<RenderableObject> m_TransparentSquare;
-        std::unique_ptr<RenderableObject> m_FileShaderSquare;
-        std::unique_ptr<RenderableObject> m_PixelatedSquare;
-        std::unique_ptr<RenderableObject> m_WaveDissolveSquare;
-        std::unique_ptr<RenderableObject> m_BlurSquare;
-
-        std::shared_ptr<Texture> m_TestTexture;
-        std::shared_ptr<Texture> m_LargeTexture;
 
         // FPS tracking members
         bool m_ShowFPSCounter = true;
-        static const size_t FPS_SAMPLE_COUNT = 200; // Store last ~3.3 seconds at 60fps
-        std::vector<float> m_FPSSamples;
-        float m_FPS = 0.0f;
-        float m_CurrentFPS = 0.0f;
-        float m_FPS1PercentHigh = 0.0f;
-        float m_FPS1PercentLow = 0.0f;
-        float m_FrameTime = 0.0f;
-        float m_FPSUpdateTimer = 0.0f;
-        size_t m_CurrentFPSSample = 0;
+        FPSCounter m_FPSCounter;
 
         std::unique_ptr<ImGuiOverlay> m_ImGuiOverlay;
 
-        void UpdateFPSCounter(float deltaTime, float currentTime);
+        void UpdateFPSCounter(float deltaTime);
+
+        std::unique_ptr<Light> m_Light;
     };
     
     // To be defined by client application

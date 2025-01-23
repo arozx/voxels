@@ -10,6 +10,7 @@
 #include "Shader/DefaultShaders.h"
 #include "Renderer/MeshTemplates.h"
 #include "Core/AssetManager.h"
+#include "BlockTypes.h"
 
 namespace Engine {
     /**
@@ -18,20 +19,25 @@ namespace Engine {
      * Initializes terrain with random seed, loads textures and shaders,
      * and generates initial terrain mesh.
      */
-    TerrainSystem::TerrainSystem() {
-        // Initialize terrain with random seed
-        m_Terrain = std::make_unique<VoxelTerrain>(std::random_device{}());
-        
+    TerrainSystem::TerrainSystem() 
+        : m_NoiseGen(std::random_device{}())
+    {
         // Load terrain texture
-        m_TerrainTexture = Texture::Create("assets/textures/kenny_simple/PNG/Orange/texture_01.png");
+        m_TerrainTexture = Texture::Create("assets/textures/terrain_atlas.png");
         
-        m_TerrainShader = DefaultShaders::LoadTexturedShader();  // Using textured shader for now
+        m_TerrainShader = DefaultShaders::LoadTexturedShader();
         m_TerrainMaterial = std::make_shared<Material>(m_TerrainShader);
         m_TerrainMaterial->SetTexture("u_Texture", m_TerrainTexture);
         m_TerrainMaterial->SetVector4("u_Color", glm::vec4(1.0f));
         
-        m_TerrainTransform.position = glm::vec3(-5.0f, -2.0f, -5.0f);
-        m_TerrainTransform.scale = glm::vec3(0.2f);
+        // Update transform to better initial values
+        m_TerrainTransform.position = glm::vec3(-8.0f, -10.0f, -8.0f);
+        m_TerrainTransform.scale = glm::vec3(1.0f);
+
+        // Set default terrain parameters
+        m_BaseHeight = 0.0f;
+        m_HeightScale = 20.0f;
+        m_NoiseScale = 4.0f;
 
         GenerateMesh();
     }
@@ -42,7 +48,12 @@ namespace Engine {
     }
 
     void TerrainSystem::Update(float deltaTime) {
-        // Add terrain update logic here if needed
+        static bool logged = false;
+        if (!logged) {
+            LOG_INFO_CONCAT("Terrain Transform - Position: (",m_TerrainTransform.position.x,", ",m_TerrainTransform.position.y,", ",m_TerrainTransform.position.z,
+            ") Scale: (",m_TerrainTransform.scale.x,", ",m_TerrainTransform.scale.y,", ",m_TerrainTransform.scale.z,")");
+            logged = true;
+        }
     }
 
     void TerrainSystem::Render(Renderer& renderer) {
@@ -52,7 +63,7 @@ namespace Engine {
     }
 
     void TerrainSystem::RegenerateTerrain(uint32_t seed) {
-        m_Terrain = std::make_unique<VoxelTerrain>(seed);
+        m_NoiseGen = NoiseGenerator<VoidNoise>(seed);
         GenerateMesh();
     }
 
@@ -67,134 +78,33 @@ namespace Engine {
         std::vector<uint32_t> indices;
         uint32_t currentIndex = 0;
 
-        // Generate mesh for each chunk in the specified range
-        for (int cx = -m_ChunkRange; cx <= m_ChunkRange; cx++) {
-            for (int cy = -m_ChunkRange; cy <= m_ChunkRange; cy++) {
-                for (int cz = -m_ChunkRange; cz <= m_ChunkRange; cz++) {
-                    // Generate chunk if it doesn't exist
-                    m_Terrain->generateChunk(cx, cy, cz);
-                    
-                    // Get chunk data
-                    const int size = VoxelChunk::CHUNK_SIZE;
-                    int chunkOffsetX = cx * size;
-                    int chunkOffsetY = cy * size;
-                    int chunkOffsetZ = cz * size;
+        // Increase map size for better visibility
+        int mapSize = (m_ChunkRange * 2 + 1) * 16;
+        auto heightmap = m_NoiseGen.getHeightmap(mapSize, mapSize, m_NoiseScale);
 
-                    // Generate mesh for each voxel in chunk
-                    for (int x = 0; x < size; x++) {
-                        for (int y = 0; y < size; y++) {
-                            for (int z = 0; z < size; z++) {
-                                int worldX = chunkOffsetX + x;
-                                int worldY = chunkOffsetY + y;
-                                int worldZ = chunkOffsetZ + z;
+        // Generate quad mesh with proper UVs
+        for (int z = 0; z < mapSize - 1; z++) {
+            for (int x = 0; x < mapSize - 1; x++) {
+                float height00 = m_BaseHeight + heightmap[z * mapSize + x] * m_HeightScale;
+                float height10 = m_BaseHeight + heightmap[z * mapSize + (x + 1)] * m_HeightScale;
+                float height01 = m_BaseHeight + heightmap[(z + 1) * mapSize + x] * m_HeightScale;
+                float height11 = m_BaseHeight + heightmap[(z + 1) * mapSize + (x + 1)] * m_HeightScale;
 
-                                if (!m_Terrain->getVoxel(worldX, worldY, worldZ)) {
-                                    continue;
-                                }
+                // Add vertices for this quad
+                vertices.insert(vertices.end(), {
+                    static_cast<float>(x), height00, static_cast<float>(z),         0.0f, 0.0f,
+                    static_cast<float>(x + 1), height10, static_cast<float>(z),     1.0f, 0.0f,
+                    static_cast<float>(x + 1), height11, static_cast<float>(z + 1), 1.0f, 1.0f,
+                    static_cast<float>(x), height01, static_cast<float>(z + 1),     0.0f, 1.0f
+                });
 
-                                float x0 = static_cast<float>(worldX);
-                                float y0 = static_cast<float>(worldY);
-                                float z0 = static_cast<float>(worldZ);
+                // Add indices for the quad (two triangles)
+                indices.insert(indices.end(), {
+                    currentIndex, currentIndex + 1, currentIndex + 2,
+                    currentIndex, currentIndex + 2, currentIndex + 3
+                });
 
-                                // Top face (positive Y)
-                                if (!m_Terrain->getVoxel(worldX, worldY + 1, worldZ)) {
-                                    vertices.insert(vertices.end(), {
-                                        x0, y0 + 1, z0,           0.0f, 0.0f,
-                                        x0, y0 + 1, z0 + 1,       0.0f, 1.0f,
-                                        x0 + 1, y0 + 1, z0 + 1,   1.0f, 1.0f,
-                                        x0 + 1, y0 + 1, z0,       1.0f, 0.0f
-                                    });
-                                    
-                                    indices.insert(indices.end(), {
-                                        currentIndex, currentIndex + 1, currentIndex + 2,
-                                        currentIndex, currentIndex + 2, currentIndex + 3
-                                    });
-                                    currentIndex += 4;
-                                }
-
-                                // Bottom face (negative Y)
-                                if (!m_Terrain->getVoxel(worldX, worldY - 1, worldZ)) {
-                                    vertices.insert(vertices.end(), {
-                                        x0, y0, z0,           0.0f, 0.0f,
-                                        x0, y0, z0 + 1,       0.0f, 1.0f,
-                                        x0 + 1, y0, z0 + 1,   1.0f, 1.0f,
-                                        x0 + 1, y0, z0,       1.0f, 0.0f
-                                    });
-                                    
-                                    indices.insert(indices.end(), {
-                                        currentIndex, currentIndex + 2, currentIndex + 1,
-                                        currentIndex, currentIndex + 3, currentIndex + 2
-                                    });
-                                    currentIndex += 4;
-                                }
-
-                                // Front face (negative Z)
-                                if (!m_Terrain->getVoxel(worldX, worldY, worldZ - 1)) {
-                                    vertices.insert(vertices.end(), {
-                                        x0, y0, z0,           0.0f, 0.0f,
-                                        x0 + 1, y0, z0,       1.0f, 0.0f,
-                                        x0 + 1, y0 + 1, z0,   1.0f, 1.0f,
-                                        x0, y0 + 1, z0,       0.0f, 1.0f
-                                    });
-                                    
-                                    indices.insert(indices.end(), {
-                                        currentIndex, currentIndex + 2, currentIndex + 1,
-                                        currentIndex, currentIndex + 3, currentIndex + 2
-                                    });
-                                    currentIndex += 4;
-                                }
-
-                                // Back face (positive Z)
-                                if (!m_Terrain->getVoxel(worldX, worldY, worldZ + 1)) {
-                                    vertices.insert(vertices.end(), {
-                                        x0, y0, z0 + 1,       0.0f, 0.0f,
-                                        x0 + 1, y0, z0 + 1,   1.0f, 0.0f,
-                                        x0 + 1, y0 + 1, z0 + 1, 1.0f, 1.0f,
-                                        x0, y0 + 1, z0 + 1,   0.0f, 1.0f
-                                    });
-                                    
-                                    indices.insert(indices.end(), {
-                                        currentIndex, currentIndex + 1, currentIndex + 2,
-                                        currentIndex, currentIndex + 2, currentIndex + 3
-                                    });
-                                    currentIndex += 4;
-                                }
-
-                                // Right face (positive X)
-                                if (!m_Terrain->getVoxel(worldX + 1, worldY, worldZ)) {
-                                    vertices.insert(vertices.end(), {
-                                        x0 + 1, y0, z0,       0.0f, 0.0f,
-                                        x0 + 1, y0, z0 + 1,   1.0f, 0.0f,
-                                        x0 + 1, y0 + 1, z0 + 1, 1.0f, 1.0f,
-                                        x0 + 1, y0 + 1, z0,   0.0f, 1.0f
-                                    });
-                                    
-                                    indices.insert(indices.end(), {
-                                        currentIndex, currentIndex + 1, currentIndex + 2,
-                                        currentIndex, currentIndex + 2, currentIndex + 3
-                                    });
-                                    currentIndex += 4;
-                                }
-
-                                // Left face (negative X)
-                                if (!m_Terrain->getVoxel(worldX - 1, worldY, worldZ)) {
-                                    vertices.insert(vertices.end(), {
-                                        x0, y0, z0,           0.0f, 0.0f,
-                                        x0, y0, z0 + 1,       1.0f, 0.0f,
-                                        x0, y0 + 1, z0 + 1,   1.0f, 1.0f,
-                                        x0, y0 + 1, z0,       0.0f, 1.0f
-                                    });
-                                    
-                                    indices.insert(indices.end(), {
-                                        currentIndex, currentIndex + 2, currentIndex + 1,
-                                        currentIndex, currentIndex + 3, currentIndex + 2
-                                    });
-                                    currentIndex += 4;
-                                }
-                            }
-                        }
-                    }
-                }
+                currentIndex += 4;
             }
         }
 
@@ -218,6 +128,9 @@ namespace Engine {
                 IndexBuffer::Create(indices.data(), indices.size()));
             m_TerrainVA->SetIndexBuffer(indexBuffer);
         }
+
+        // Debug output
+        LOG_INFO_CONCAT("Generated terrain mesh with ",vertices.size() / 5," vertices and ",indices.size()," indicies.");
     }
 
     // Parameter setters with mesh regeneration

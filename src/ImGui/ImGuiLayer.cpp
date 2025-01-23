@@ -10,24 +10,34 @@
 #include <GLFW/glfw3.h>
 
 namespace Engine {
+    ImGuiLayer::ImGuiLayer(Window* window) : m_Window(window) {}
+
     void ImGuiLayer::Init(Window* window) {
         m_Window = window;
-        
+
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        
-        // Enable basic keyboard navigation
+
+        ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
 
-        // Setup Platform/Renderer bindings
+        // Tweak WindowRounding/WindowBg so platform windows can look identical to regular ones
+        ImGuiStyle& style = ImGui::GetStyle();
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        }
+
+        // Initialize platform/renderer backends
         GLFWwindow* native_window = static_cast<GLFWwindow*>(window->GetNativeWindow());
         ImGui_ImplGlfw_InitForOpenGL(native_window, true);
-        ImGui_ImplOpenGL3_Init("#version 130");
+        ImGui_ImplOpenGL3_Init("#version 410");
 
         LOG_INFO("ImGui initialized");
     }
@@ -49,10 +59,17 @@ namespace Engine {
     void ImGuiLayer::End() {
         ImGuiIO& io = ImGui::GetIO();
         io.DisplaySize = ImVec2(static_cast<float>(m_Window->GetWidth()), 
-                               static_cast<float>(m_Window->GetHeight()));
+            static_cast<float>(m_Window->GetHeight()));
 
         // Rendering
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup_current_context);
+        }
     }
 }

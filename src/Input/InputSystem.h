@@ -55,15 +55,6 @@ namespace Engine {
         std::pair<float, float> GetMousePosition() const;
         
         /**
-         * @brief Enables or disables mouse control mode
-         * @param enable true to enable mouse control
-         */
-        void EnableMouseControl(bool enable);
-
-        /** @return Whether mouse control is currently enabled */
-        bool IsMouseControlEnabled() const { return m_MouseControlEnabled; }
-        
-        /**
          * @brief Sets mouse sensitivity
          * @param sensitivity New sensitivity value
          */
@@ -71,6 +62,13 @@ namespace Engine {
 
         /** @return Current mouse sensitivity */
         float GetSensitivity() const { return m_MouseSensitivity; }
+
+        // Add new control methods
+        void ToggleCameraControls() { m_CameraEnabled = !m_CameraEnabled; }
+        void ToggleSmoothCamera() { m_SmoothCamera = !m_SmoothCamera; }
+        void SetMovementSpeed(float speed) { m_MovementSpeed = speed; }
+        float GetMovementSpeed() const { return m_MovementSpeed; }
+        void ToggleMovementLock() { m_MovementLocked = !m_MovementLocked; }
 
     private:
         /**
@@ -94,10 +92,43 @@ namespace Engine {
         Window* m_Window;              ///< Pointer to application window
         Renderer& m_Renderer;          ///< Reference to renderer
         
-        bool m_MouseControlEnabled = false;  ///< Mouse control mode state
         bool m_FirstMouse = true;           ///< First mouse input flag
         float m_LastMouseX = 0.0f;          ///< Last mouse X position
         float m_LastMouseY = 0.0f;          ///< Last mouse Y position
         float m_MouseSensitivity = 0.1f;    ///< Mouse movement sensitivity
+
+        // Camera control flags
+        bool m_CameraEnabled = true;    ///< Toggle for camera controls
+        bool m_SmoothCamera = true;     ///< Toggle for smooth camera movement
+        
+        // Movement timing
+        const float FIXED_TIMESTEP = 1.0f/60.0f;  ///< 60Hz update rate
+        float m_MovementAccumulator = 0.0f;       ///< Time accumulator for movement updates
+
+        // Movement settings
+        float m_MovementSpeed = 250.0f;    ///< Base movement speed (blocks per second)
+        float m_SprintMultiplier = 2.0f;  ///< Sprint speed multiplier
+        float m_SlowMultiplier = 1.0f;    ///< Slow movement multiplier
+        
+        // Smooth movement variables
+        glm::vec3 m_TargetPosition{0.0f};  ///< Target position for smooth movement
+        glm::vec3 m_CurrentVelocity{0.0f}; ///< Current velocity for smooth damping
+        float m_SmoothTime = 0.1f;         ///< Smoothing time factor
+
+        // Input handling methods
+        void HandleSpeedModifiers(float& speed);
+        void HandleSensitivityAdjustment();
+        void SmoothDamp(glm::vec3& current, const glm::vec3& target, 
+            glm::vec3& velocity, float smoothTime, float deltaTime);
+
+        // Key state tracking
+        bool m_LastVPressed = false;    ///< Previous frame V key state
+        bool m_LastBPressed = false;    ///< Previous frame B key state
+        bool m_MovementLocked = false;  ///< Global movement lock flag
+        bool m_LastEscPressed = false;  ///< Previous frame ESC key state
+
+        // Mouse cursor control
+        bool m_CursorLocked = false;      ///< Is cursor locked to window center
+        void UpdateCursorState();          ///< Updates cursor visibility and lock state
     };
 }
