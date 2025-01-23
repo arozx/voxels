@@ -51,6 +51,25 @@ namespace Engine {
             Application::Get().GetRenderer().Clear({r, g, b, a});
         });
 
+        engine.set_function("setViewport", [](int x, int y, int width, int height) {
+            Application::Get().GetRenderer().SetViewport(x, y, width, height);
+        });
+
+        engine.set_function("setCameraType", [](const std::string& type) {
+            auto& renderer = Application::Get().GetRenderer();
+            if (type == "orthographic") {
+                renderer.SetCameraType(Renderer::CameraType::Orthographic);
+            } else if (type == "perspective") {
+                renderer.SetCameraType(Renderer::CameraType::Perspective);
+            }
+        });
+
+        engine.set_function("getCameraType", []() -> std::string {
+            auto& renderer = Application::Get().GetRenderer();
+            return renderer.GetCameraType() == Renderer::CameraType::Orthographic ? 
+                "orthographic" : "perspective";
+        });
+
         // Input API
         engine.set_function("isKeyPressed", [](int keycode) {
             return Application::Get().GetInputSystem()->IsKeyPressed(keycode);

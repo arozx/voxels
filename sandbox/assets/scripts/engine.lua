@@ -23,6 +23,9 @@
 ---@field moveCameraUp fun(deltaTime: number) # Move camera up
 ---@field moveCameraDown fun(deltaTime: number) # Move camera down
 ---@field rotateCameraWithMouse fun(xOffset: number, yOffset: number, sensitivity: number) # Rotate camera with mouse
+---@field setViewport fun(x: number, y: number, width: number, height: number) # Sets the viewport dimensions
+---@field setCameraType fun(type: string) # Sets the camera type ("orthographic" or "perspective")
+---@field getCameraType fun(): string # Gets the current camera type
 engine = {}
 
 -- Key code constants
@@ -133,3 +136,18 @@ function engine.moveCameraDown(deltaTime) end
 ---@param yOffset number Mouse Y movement
 ---@param sensitivity number Mouse sensitivity
 function engine.rotateCameraWithMouse(xOffset, yOffset, sensitivity) end
+
+---Sets the viewport dimensions
+---@param x number Viewport X position
+---@param y number Viewport Y position
+---@param width number Viewport width
+---@param height number Viewport height
+function engine.setViewport(x, y, width, height) end
+
+---Sets the camera type
+---@param type string Either "orthographic" or "perspective"
+function engine.setCameraType(type) end
+
+---Gets the current camera type
+---@return string # Either "orthographic" or "perspective"
+function engine.getCameraType() end
