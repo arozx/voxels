@@ -16,6 +16,8 @@ namespace Engine {
 thread_local std::vector<Profiler::BatchEntry> Profiler::m_BatchedMeasurements;
 thread_local Profiler::ThreadLocalBuffer Profiler::t_StringBuffer;
 thread_local Profiler::FastPathCache Profiler::t_FastPath;
+thread_local static std::chrono::steady_clock::time_point s_LastSampleTime = std::chrono::steady_clock::now();
+static constexpr std::chrono::duration<float> SAMPLE_INTERVAL{1.0f/60.0f}; // 60Hz sampling
 
 // Constructor starts timing measurement
 ProfilerTimer::ProfilerTimer(std::string_view name)
@@ -42,7 +44,7 @@ Profiler& Profiler::Get() {
 bool Profiler::s_SignalsInitialized = false;
 
 Profiler::Profiler() 
-    : m_Enabled(true)
+    : m_Enabled(false)
     , m_OutputFormat(OutputFormat::Console)
     , m_JSONOutputPath("profile_results.json")
     , m_HasUnsavedData(false) {}
@@ -70,9 +72,28 @@ void Profiler::Cleanup() {
 
 // Begins a new profiling session
 void Profiler::BeginSession(const std::string& name) {
+    std::unique_lock lock(m_Mutex);
     m_CurrentSession = name;
-    m_Profiles.clear();
-    m_StringPool.reserve(INITIAL_POOL_CAPACITY);
+    m_HasUnsavedData = true;
+    
+    // Initialize empty JSON structure
+    using nlohmann::json;
+    json output;
+    output["session"] = name;
+    output["profiles"] = json::array();
+    output["timestamp"] = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+    
+    try {
+        std::ofstream file(m_JSONOutputPath);
+        if (file) {
+            file << std::setw(2) << output;
+            file.flush();
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR_CONCAT("Failed to initialize profile file: ", e.what());
+    }
+    
+    LOG_INFO_CONCAT("Started profiling session: ", name);
 }
 
 // Ends session and outputs statistical results
@@ -99,14 +120,47 @@ void Profiler::EndSession() {
 }
 
 void Profiler::WriteCompleteJSON() const {
+    if (!m_Enabled) return;
+
     using nlohmann::json;
-    static thread_local json output;
-    output.clear();
+    json output;
+    
+    std::shared_lock lock(m_Mutex);
     
     output["session"] = m_CurrentSession;
     output["timestamp"] = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+    output["profiles"] = json::array();
     
-    // Add frame profiling data if available
+    // Add profile data first
+    for (const auto& [name, data] : m_Profiles) {
+        if (!data || data->calls == 0) continue;
+        
+        json profile = {
+            {"name", std::string(std::string_view(name))},
+            {"calls", data->calls},
+            {"averageMs", data->avgTime},
+            {"recentMs", data->recentAvg},
+            {"minMs", data->minTime},
+            {"maxMs", data->maxTime},
+            {"totalMs", data->totalTime}
+        };
+
+        // Add samples array
+        profile["samples"] = json::array();
+        if (data->localCount <= data->LOCAL_SAMPLES) {
+            for (uint32_t i = 0; i < data->localCount; ++i) {
+                profile["samples"].push_back(data->localSamples[i]);
+            }
+        } else {
+            for (const auto& sample : data->samples) {
+                profile["samples"].push_back(sample);
+            }
+        }
+        
+        output["profiles"].push_back(std::move(profile));
+    }
+    
+    // Add frame data separately
     if (m_ProfilingFrames || !m_FrameData.empty()) {
         output["frame_data"] = json::array();
         for (const auto& frame : m_FrameData) {
@@ -116,50 +170,21 @@ void Profiler::WriteCompleteJSON() const {
                 {"timestamp", std::chrono::system_clock::to_time_t(frame.timestamp)}
             });
         }
-        
-        // Add frame statistics
-        if (!m_FrameData.empty()) {
-            float totalTime = 0.0f;
-            float minTime = std::numeric_limits<float>::max();
-            float maxTime = 0.0f;
-            
-            for (const auto& frame : m_FrameData) {
-                totalTime += frame.frameTime;
-                minTime = std::min(minTime, frame.frameTime);
-                maxTime = std::max(maxTime, frame.frameTime);
-            }
-            
-            output["frame_stats"] = {
-                {"total_frames", m_FrameData.size()},
-                {"average_frame_time_ms", totalTime / m_FrameData.size()},
-                {"min_frame_time_ms", minTime},
-                {"max_frame_time_ms", maxTime}
-            };
-        }
     }
     
-    // Add regular profile data
-    output["profiles"] = json::array();
-    for (const auto& [name, data] : m_Profiles) {
-        if (data->calls == 0) continue;
-        
-        output["profiles"].push_back({
-            {"name", std::string_view(name)},
-            {"calls", data->calls},
-            {"averageMs", data->avgTime},
-            {"recentMs", data->recentAvg},
-            {"minMs", data->minTime},
-            {"maxMs", data->maxTime}
-        });
-    }
+    lock.unlock();
     
     try {
-        std::ofstream file(m_JSONOutputPath);
-        if (file) {
-            file << std::setw(2) << output;
+        std::ofstream file(m_JSONOutputPath, std::ios::out | std::ios::trunc);
+        if (!file) {
+            LOG_ERROR_CONCAT("Failed to open profile output file: ", m_JSONOutputPath);
+            return;
         }
+        file << std::setw(2) << output << std::endl;
+        file.close();
+        
     } catch (const std::exception& e) {
-        LOG_ERROR_CONCAT("Error writing profile data", e.what());
+        LOG_ERROR_CONCAT("Error writing profile data: ", e.what());
     }
 }
 
@@ -215,46 +240,43 @@ void Profiler::WriteFrameDataJSON() const {
 }
 
 void Profiler::WriteProfile(std::string_view name, float duration) {
-    if (!m_Enabled) return;
+    if (!m_Enabled || name.empty()) return;
     
-    if (m_BatchSize > 0) {
-        ReserveBatch();
-        m_BatchedMeasurements.emplace_back(name, duration);
-        if (m_BatchedMeasurements.size() >= m_BatchSize) {
-            FlushBatch();
-        }
+    // Rate limit samples to 60Hz
+    auto currentTime = std::chrono::steady_clock::now();
+    if (currentTime - s_LastSampleTime < SAMPLE_INTERVAL) {
         return;
     }
+    s_LastSampleTime = currentTime;
     
-    // Try fast path first
     ProfileName profName(name);
-    if (auto* data = t_FastPath.find(profName)) {
-        data->AddSample(duration);
-    } else {
-        // Slow path with lock
+    ProfileData* data = nullptr;
+    
+    {
+        std::shared_lock readLock(m_Mutex);
+        data = t_FastPath.find(profName);
+    }
+    
+    if (!data) {
         std::unique_lock lock(m_Mutex);
         auto it = m_Profiles.find(profName);
         if (it == m_Profiles.end()) {
-            auto* data = m_DataPool.allocate();
+            data = m_DataPool.allocate();
             it = m_Profiles.emplace(std::move(profName), data).first;
             t_FastPath.insert(it->first, data);
         } else {
-            t_FastPath.insert(it->first, it->second);
+            data = it->second;
+            t_FastPath.insert(it->first, data);
         }
-        it->second->AddSample(duration);
     }
     
+    data->AddSample(duration);
     m_HasUnsavedData = true;
     
-    // disable auto-write during frame profiling
-    if (!m_ProfilingFrames) {
-        auto now = std::chrono::steady_clock::now();
-        if (m_OutputFormat == OutputFormat::JSON && 
-            (now - m_LastWriteTime) >= WRITE_INTERVAL) {
-            WriteCompleteJSON();
-            m_HasUnsavedData = false;
-            m_LastWriteTime = now;
-        }
+    // Write more frequently for development
+    if ((currentTime - m_LastWriteTime) >= std::chrono::milliseconds(500)) {  // Write every 500ms
+        WriteCompleteJSON();
+        m_LastWriteTime = currentTime;
     }
 }
 
