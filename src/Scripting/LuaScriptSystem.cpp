@@ -75,9 +75,41 @@ namespace Engine {
             return Application::Get().GetInputSystem()->IsKeyPressed(keycode);
         });
 
+        engine.set_function("isMouseButtonPressed", [](int button) {
+            return Application::Get().GetInputSystem()->IsMouseButtonPressed(button);
+        });
+
         engine.set_function("getMousePosition", []() {
             auto [x, y] = Application::Get().GetInputSystem()->GetMousePosition();
-            return std::make_tuple(x, y);  // Explicitly create tuple
+            return std::make_tuple(x, y);
+        });
+
+        engine.set_function("setMouseSensitivity", [](float sensitivity) {
+            Application::Get().GetInputSystem()->SetSensitivity(sensitivity);
+        });
+
+        engine.set_function("getMouseSensitivity", []() -> float {
+            return Application::Get().GetInputSystem()->GetSensitivity();
+        });
+
+        engine.set_function("setMovementSpeed", [](float speed) {
+            Application::Get().GetInputSystem()->SetMovementSpeed(speed);
+        });
+
+        engine.set_function("getMovementSpeed", []() -> float {
+            return Application::Get().GetInputSystem()->GetMovementSpeed();
+        });
+
+        engine.set_function("toggleCameraControls", []() {
+            Application::Get().GetInputSystem()->ToggleCameraControls();
+        });
+
+        engine.set_function("toggleMovementLock", []() {
+            Application::Get().GetInputSystem()->ToggleMovementLock();
+        });
+
+        engine.set_function("toggleSmoothCamera", []() {
+            Application::Get().GetInputSystem()->ToggleSmoothCamera();
         });
 
         // Debug/Logging API
@@ -113,64 +145,79 @@ namespace Engine {
 
         // Camera
         engine.set_function("setCameraPosition", [](float x, float y, float z) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->SetPosition({x, y, z});
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->SetPosition({x, y, z});
+            } else {
+                renderer.GetCamera()->SetPosition({x, y, z});
             }
         });
 
         engine.set_function("setCameraRotation", [](float pitch, float yaw) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->SetRotation(pitch, yaw);
-            }
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->SetRotation(pitch, yaw);
+            };
+            // Note: Orthographic camera only supports Z rotation
         });
 
         engine.set_function("getCameraPosition", []() -> std::tuple<float, float, float> {
-            if (auto* camera = Application::Get().GetCamera()) {
-                auto pos = camera->GetPosition();
-                return {pos.x, pos.y, pos.z};
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                auto pos = renderer.GetPerspectiveCamera()->GetPosition();
+                return std::make_tuple(pos.x, pos.y, pos.z);
+            } else {
+                auto pos = renderer.GetCamera()->GetPosition();
+                return std::make_tuple(pos.x, pos.y, pos.z);
             }
-            return {0.0f, 0.0f, 0.0f};
         });
 
         engine.set_function("moveCameraForward", [](float deltaTime) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->MoveForward(deltaTime);
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->MoveForward(deltaTime);
             }
         });
 
         engine.set_function("moveCameraBackward", [](float deltaTime) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->MoveBackward(deltaTime);
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->MoveBackward(deltaTime);
             }
         });
 
         engine.set_function("moveCameraLeft", [](float deltaTime) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->MoveLeft(deltaTime);
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->MoveLeft(deltaTime);
             }
         });
 
         engine.set_function("moveCameraRight", [](float deltaTime) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->MoveRight(deltaTime);
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->MoveRight(deltaTime);
             }
         });
 
         engine.set_function("moveCameraUp", [](float deltaTime) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->MoveUp(deltaTime);
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->MoveUp(deltaTime);
             }
         });
 
         engine.set_function("moveCameraDown", [](float deltaTime) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->MoveDown(deltaTime);
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->MoveDown(deltaTime);
             }
         });
 
         engine.set_function("rotateCameraWithMouse", [](float xOffset, float yOffset, float sensitivity) {
-            if (auto* camera = Application::Get().GetCamera()) {
-                camera->RotateWithMouse(xOffset, yOffset, sensitivity);
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                renderer.GetPerspectiveCamera()->RotateWithMouse(xOffset, yOffset, sensitivity);
             }
         });
 

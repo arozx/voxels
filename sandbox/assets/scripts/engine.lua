@@ -26,6 +26,14 @@
 ---@field setViewport fun(x: number, y: number, width: number, height: number) # Sets the viewport dimensions
 ---@field setCameraType fun(type: string) # Sets the camera type ("orthographic" or "perspective")
 ---@field getCameraType fun(): string # Gets the current camera type
+---@field isMouseButtonPressed fun(button: number): boolean # Checks if a mouse button is pressed
+---@field setMouseSensitivity fun(sensitivity: number) # Sets mouse sensitivity
+---@field getMouseSensitivity fun(): number # Gets current mouse sensitivity
+---@field setMovementSpeed fun(speed: number) # Sets movement speed
+---@field getMovementSpeed fun(): number # Gets current movement speed
+---@field toggleCameraControls fun() # Toggles camera controls on/off
+---@field toggleMovementLock fun() # Toggles movement lock
+---@field toggleSmoothCamera fun() # Toggles smooth camera movement
 engine = {}
 
 -- Key code constants
@@ -151,3 +159,33 @@ function engine.setCameraType(type) end
 ---Gets the current camera type
 ---@return string # Either "orthographic" or "perspective"
 function engine.getCameraType() end
+
+---Checks if a mouse button is pressed
+---@param button number The mouse button to check
+---@return boolean isPressed Whether the button is pressed
+function engine.isMouseButtonPressed(button) end
+
+---Sets the mouse sensitivity
+---@param sensitivity number The new sensitivity value
+function engine.setMouseSensitivity(sensitivity) end
+
+---Gets the current mouse sensitivity
+---@return number sensitivity The current sensitivity value
+function engine.getMouseSensitivity() end
+
+---Sets the movement speed
+---@param speed number The new movement speed
+function engine.setMovementSpeed(speed) end
+
+---Gets the current movement speed
+---@return number speed The current movement speed
+function engine.getMovementSpeed() end
+
+---Toggles camera controls on/off
+function engine.toggleCameraControls() end
+
+---Toggles movement lock
+function engine.toggleMovementLock() end
+
+---Toggles smooth camera movement
+function engine.toggleSmoothCamera() end
