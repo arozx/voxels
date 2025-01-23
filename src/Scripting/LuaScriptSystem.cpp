@@ -78,9 +78,81 @@ namespace Engine {
             LOG_ERROR_CONCAT("[Lua]: ", message, ".");
         });
 
+        // Profiling
+        engine.set_function("profileFunction", []() {
+            PROFILE_FUNCTION();
+        });
+
+        engine.set_function("profileScope", [](const std::string& name) {
+            PROFILE_SCOPE(name);
+        });
+
         // File System API
         engine.set_function("loadScript", [this](const std::string& filepath) {
             return ExecuteFile(filepath);
+        });
+
+        // Camera
+        engine.set_function("setCameraPosition", [](float x, float y, float z) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->SetPosition({x, y, z});
+            }
+        });
+
+        engine.set_function("setCameraRotation", [](float pitch, float yaw) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->SetRotation(pitch, yaw);
+            }
+        });
+
+        engine.set_function("getCameraPosition", []() -> std::tuple<float, float, float> {
+            if (auto* camera = Application::Get().GetCamera()) {
+                auto pos = camera->GetPosition();
+                return {pos.x, pos.y, pos.z};
+            }
+            return {0.0f, 0.0f, 0.0f};
+        });
+
+        engine.set_function("moveCameraForward", [](float deltaTime) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->MoveForward(deltaTime);
+            }
+        });
+
+        engine.set_function("moveCameraBackward", [](float deltaTime) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->MoveBackward(deltaTime);
+            }
+        });
+
+        engine.set_function("moveCameraLeft", [](float deltaTime) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->MoveLeft(deltaTime);
+            }
+        });
+
+        engine.set_function("moveCameraRight", [](float deltaTime) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->MoveRight(deltaTime);
+            }
+        });
+
+        engine.set_function("moveCameraUp", [](float deltaTime) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->MoveUp(deltaTime);
+            }
+        });
+
+        engine.set_function("moveCameraDown", [](float deltaTime) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->MoveDown(deltaTime);
+            }
+        });
+
+        engine.set_function("rotateCameraWithMouse", [](float xOffset, float yOffset, float sensitivity) {
+            if (auto* camera = Application::Get().GetCamera()) {
+                camera->RotateWithMouse(xOffset, yOffset, sensitivity);
+            }
         });
 
         // Constants
