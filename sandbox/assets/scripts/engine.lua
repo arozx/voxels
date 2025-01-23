@@ -6,7 +6,9 @@
 ---@field setClearColor fun(r: number, g: number, b: number, a: number) # Sets the renderer clear color
 ---@field isKeyPressed fun(keycode: number): boolean # Checks if a key is pressed
 ---@field getMousePosition fun(): number, number # Gets current mouse position
+---@field trace fun(message: string) # Logs a trace message
 ---@field log fun(message: string) # Logs an info message
+---@field warn fun(message: string) # Logs an warn message
 ---@field error fun(message: string) # Logs an error message
 ---@field loadScript fun(filepath: string): boolean # Loads and executes a Lua script file
 engine = {}

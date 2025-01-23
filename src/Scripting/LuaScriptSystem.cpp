@@ -62,12 +62,20 @@ namespace Engine {
         });
 
         // Debug/Logging API
+        engine.set_function("trace", [](const std::string& message) {
+            LOG_TRACE_CONCAT("[Lua]: ", message, ".");
+        });
+
         engine.set_function("log", [](const std::string& message) {
-            LOG_INFO_CONCAT("[Lua] {", message, "}");
+            LOG_INFO_CONCAT("[Lua]: ", message, ".");
+        });
+
+        engine.set_function("warn", [](const std::string& message) {
+            LOG_WARN_CONCAT("[Lua]: ", message, ".");
         });
 
         engine.set_function("error", [](const std::string& message) {
-            LOG_ERROR_CONCAT("[Lua] {", message, "}");
+            LOG_ERROR_CONCAT("[Lua]: ", message, ".");
         });
 
         // File System API
