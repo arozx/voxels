@@ -222,7 +222,41 @@ namespace Engine {
         });
 
         // ImGui Overlay controls
-        
+        engine.set_function("showTransformControls", [](bool show) {
+            if (auto* overlay = Application::Get().GetImGuiOverlay()) {
+                overlay->ShowTransformControls(show);
+            }
+        });
+
+        engine.set_function("showProfiler", [](bool show) {
+            if (auto* overlay = Application::Get().GetImGuiOverlay()) {
+                overlay->ShowProfiler(show);
+            }
+        });
+
+        engine.set_function("showRendererSettings", [](bool show) {
+            if (auto* overlay = Application::Get().GetImGuiOverlay()) {
+                overlay->ShowRendererSettings(show);
+            }
+        });
+
+        engine.set_function("showEventDebugger", [](bool show) {
+            if (auto* overlay = Application::Get().GetImGuiOverlay()) {
+                overlay->ShowEventDebugger(show);
+            }
+        });
+
+        engine.set_function("showTerrainControls", [](bool show) {
+            if (auto* overlay = Application::Get().GetImGuiOverlay()) {
+                overlay->ShowTerrainControls(show);
+            }
+        });
+
+        engine.set_function("showFPSCounter", [](bool show) {
+            if (auto* overlay = Application::Get().GetImGuiOverlay()) {
+                overlay->ShowFPSCounter(show);
+            }
+        });
 
         // Constants
         auto keyCodes = m_LuaState->create_named_table("KeyCode");

@@ -74,6 +74,8 @@ namespace Engine {
 
         const std::string& GetAssetPath() const { return m_AssetPath; }
 
+        ImGuiOverlay* GetImGuiOverlay() { return m_ImGuiOverlay.get(); }
+
     protected:
         /**
          * @brief Initialize the application window

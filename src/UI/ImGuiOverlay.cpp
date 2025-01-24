@@ -30,6 +30,7 @@ namespace Engine {
         float currentFPS, float averageFPS, float frameTime,
         float fps1PercentLow, float fps1PercentHigh) 
     {
+        if (!m_ShowFPSCounter) return;  // Early return if FPS counter is disabled
         m_FPSCounter.Update(frameTime);
 
         if (showFPSCounter) {
@@ -121,6 +122,7 @@ namespace Engine {
      * @param renderObject Object whose transform is being controlled
      */
     void ImGuiOverlay::RenderTransformControls(RenderObject& renderObject) {
+        if (!m_ShowTransformControls) return;
         if (ImGui::Begin("Transform Controls")) {
             auto& transform = renderObject.GetTransform();
             
@@ -135,6 +137,7 @@ namespace Engine {
      * @brief Render profiler window showing performance metrics
      */
     void ImGuiOverlay::RenderProfiler() {
+        if (!m_ShowProfiler) return;
         ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
         bool enabled = Profiler::Get().IsEnabled();
         if (ImGui::Checkbox("Enable Profiling", &enabled)) {
@@ -193,6 +196,7 @@ namespace Engine {
      * @details Controls settings like back-face culling
      */
     void ImGuiOverlay::RenderRendererSettings() {
+        if (!m_ShowRendererSettings) return;
         ImGui::Begin("Renderer");
         bool cullingEnabled = glIsEnabled(GL_CULL_FACE);
         if (ImGui::Checkbox("Enable Back-face Culling", &cullingEnabled)) {
@@ -212,6 +216,7 @@ namespace Engine {
      * @details Shows recent events and their details
      */
     void ImGuiOverlay::RenderEventDebugger() {
+        if (!m_ShowEventDebugger) return;
         if (ImGui::Begin("Recent Events", &m_ShowEventDebugger)) {
             ImGui::Text("Last 5 Events:");
             ImGui::Separator();
@@ -248,6 +253,7 @@ namespace Engine {
      * @details Controls terrain parameters like chunk range, seed, and height settings
      */
     void ImGuiOverlay::RenderTerrainControls(TerrainSystem& terrainSystem) {
+        if (!m_ShowTerrainControls) return;
         if (ImGui::Begin("Terrain Controls")) {
             // Chunk range control
             int chunkRange = terrainSystem.GetChunkRange();

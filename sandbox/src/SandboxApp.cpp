@@ -47,6 +47,25 @@ SandboxApp::SandboxApp() : Application() {
     } catch (const std::exception& e) {
         LOG_ERROR("Script initialization error: {", e.what(), "}");
     }
+
+    // Run main.lua script
+    try {
+        std::string scriptPath = "build/assets/scripts/main.lua";
+        std::ifstream scriptFile(scriptPath);
+        if (!scriptFile.is_open()) {
+            LOG_ERROR_CONCAT("Failed to open main.lua at path: ", scriptPath);
+            return;
+        }
+
+        std::stringstream scriptBuffer;
+        scriptBuffer << scriptFile.rdbuf();
+        
+        if (!scriptSystem->ExecuteScript(scriptBuffer.str())) {
+            LOG_ERROR("Failed to execute main script");
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("Script initialization error: {", e.what(), "}");
+    }
 }
 
 void SandboxApp::OnImGuiRender() {
