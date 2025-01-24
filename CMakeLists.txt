@@ -10,7 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 
 if(WIN32)
-  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+  set(CMAKE_TOOLCHAIN_FILE "C:/Users/44782/vcpkg/scripts/buildsystems/vcpkg.cmake")
 else()
   include_directories(/usr/include)
   link_directories(/usr/lib)
@@ -108,21 +108,14 @@ add_custom_command(TARGET sandbox POST_BUILD
     ${CMAKE_BINARY_DIR}/assets/scripts
 )
 
+add_custom_command(TARGET sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:sandbox>/assets
+)
+
 # Enable precompiled headers - specify C++ explicitly
 target_precompile_headers(voxel-engine
   PRIVATE
     $<INSTALL_INTERFACE:pch.h>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h>
-)
-
-# Force C++ compilation for PCH
-set_source_files_properties(
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h
-  PROPERTIES
-  LANGUAGE CXX
-)
-
-# Ensure PCH is used for all C++ files
-set_target_properties(voxel-engine PROPERTIES
-  COMPILE_FLAGS "-include pch.h"
 )

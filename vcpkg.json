@@ -1,0 +1,12 @@
+{
+  "name": "voxel-engine",
+  "version": "1.0.0",
+  "dependencies": [
+    "glfw3",
+    "glm",
+    "stb",
+    "jsoncpp",
+    "lua",
+    "sol2"
+  ]
+}
