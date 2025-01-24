@@ -34,6 +34,12 @@
 ---@field toggleCameraControls fun() # Toggles camera controls on/off
 ---@field toggleMovementLock fun() # Toggles movement lock
 ---@field toggleSmoothCamera fun() # Toggles smooth camera movement
+---@field showTransformControls fun(show: boolean) # Shows/hides transform controls window
+---@field showProfiler fun(show: boolean) # Shows/hides profiler window
+---@field showRendererSettings fun(show: boolean) # Shows/hides renderer settings window
+---@field showEventDebugger fun(show: boolean) # Shows/hides event debugger window
+---@field showTerrainControls fun(show: boolean) # Shows/hides terrain controls window
+---@field showFPSCounter fun(show: boolean) # Shows/hides FPS counter
 engine = {}
 
 -- Key code constants
@@ -189,3 +195,27 @@ function engine.toggleMovementLock() end
 
 ---Toggles smooth camera movement
 function engine.toggleSmoothCamera() end
+
+---Shows/hides the transform controls window
+---@param show boolean Whether to show the window
+function engine.showTransformControls(show) end
+
+---Shows/hides the profiler window
+---@param show boolean Whether to show the window
+function engine.showProfiler(show) end
+
+---Shows/hides the renderer settings window
+---@param show boolean Whether to show the window
+function engine.showRendererSettings(show) end
+
+---Shows/hides the event debugger window
+---@param show boolean Whether to show the window
+function engine.showEventDebugger(show) end
+
+---Shows/hides the terrain controls window
+---@param show boolean Whether to show the window
+function engine.showTerrainControls(show) end
+
+---Shows/hides the FPS counter
+---@param show boolean Whether to show the counter
+function engine.showFPSCounter(show) end
