@@ -1,7 +1,7 @@
+#include <pch.h>
 #include "SandboxApp.h"
 #include <imgui.h>
-#include <fstream>
-#include <sstream>
+
 
 SandboxApp::SandboxApp() : Application() {
     // Check script system first
@@ -69,15 +69,16 @@ SandboxApp::SandboxApp() : Application() {
 }
 
 void SandboxApp::OnImGuiRender() {
-    if (!m_ShowConsole) return;
-
     ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Lua Console", &m_ShowConsole)) {
         // Command history
         ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false);
+        static std::string consoleOutput;
+        consoleOutput.clear();
         for (const auto& cmd : m_CommandHistory) {
-            ImGui::TextWrapped("%s", cmd.c_str());
+            consoleOutput += cmd + "\n";
         }
+        ImGui::InputTextMultiline("##ConsoleOutput", &consoleOutput[0], consoleOutput.size() + 1, ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), ImGuiInputTextFlags_ReadOnly);
         if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
             ImGui::SetScrollHereY(1.0f);
         ImGui::EndChild();
@@ -88,12 +89,54 @@ void SandboxApp::OnImGuiRender() {
         bool reclaimFocus = false;
         ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags_EnterReturnsTrue;
 
+        // Handle up arrow key for command history navigation
+        if (ImGui::IsKeyPressed(ImGuiKey_UpArrow) && !m_CommandHistory.empty()) {
+            if (m_HistoryIndex == -1) {
+                m_HistoryIndex = static_cast<int>(m_CommandHistory.size()) - 1;
+            }
+            else if (m_HistoryIndex > 0) {
+                m_HistoryIndex--;
+            }
+            if (m_CommandHistory[m_HistoryIndex].find("Error") == std::string::npos) {
+                std::string command = m_CommandHistory[m_HistoryIndex].substr(2); // Strip the "> " prefix
+                strncpy(inputBuffer, command.c_str(), sizeof(inputBuffer));
+                inputBuffer[sizeof(inputBuffer) - 1] = '\0'; // Ensure null-termination
+            }
+            else {
+                inputBuffer[0] = '\0'; // Clear the buffer if the command contains "Error"
+            }
+        }
+
+        // Handle down arrow key for command history navigation
+        if (ImGui::IsKeyPressed(ImGuiKey_DownArrow) && !m_CommandHistory.empty() && inputBuffer[0] != '\0') {
+            if (m_HistoryIndex == -1) {
+                m_HistoryIndex = static_cast<int>(m_CommandHistory.size()) - 1;
+            }
+            else if (m_HistoryIndex < static_cast<int>(m_CommandHistory.size()) - 1) {
+                m_HistoryIndex++;
+            }
+            else {
+                m_HistoryIndex = -1;
+                inputBuffer[0] = '\0'; // Clear the buffer if at the end of history
+            }
+            if (m_HistoryIndex != -1 && m_CommandHistory[m_HistoryIndex].find("Error") == std::string::npos) {
+                std::string command = m_CommandHistory[m_HistoryIndex].substr(2); // Strip the "> " prefix
+                strncpy(inputBuffer, command.c_str(), sizeof(inputBuffer));
+                inputBuffer[sizeof(inputBuffer) - 1] = '\0'; // Ensure null-termination
+            }
+            else {
+                inputBuffer[0] = '\0'; // Clear the buffer if the command contains "Error" or at the end of history
+            }
+        }
+
         if (ImGui::InputText("Command", inputBuffer, sizeof(inputBuffer), inputFlags)) {
+            std::string command = inputBuffer;
             m_CommandBuffer = inputBuffer;
             ExecuteCommand(m_CommandBuffer);
             inputBuffer[0] = '\0'; // Clear the buffer
             m_CommandBuffer.clear();
             reclaimFocus = true;
+            m_HistoryIndex = -1; // Reset history index after executing a command
         }
 
         if (reclaimFocus) {
@@ -107,7 +150,7 @@ void SandboxApp::ExecuteCommand(const std::string& command) {
     if (command.empty()) return;
 
     m_CommandHistory.push_back("> " + command);
-    
+
     auto* scriptSystem = GetScriptSystem();
     if (!scriptSystem) {
         m_CommandHistory.push_back("Error: Script system not available");
@@ -117,9 +160,10 @@ void SandboxApp::ExecuteCommand(const std::string& command) {
     try {
         bool success = scriptSystem->ExecuteScript(command);
         if (!success) {
-            m_CommandHistory.push_back("Error: Script execution failed");
+            m_CommandHistory.push_back("Error: command execution failed");
         }
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         m_CommandHistory.push_back(std::string("Error: ") + e.what());
     }
 

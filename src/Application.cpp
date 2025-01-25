@@ -156,6 +156,7 @@ namespace Engine {
             
             // Render frame
             BeginScene();
+            OnImGuiRender();
             Present();
             EndScene();
         }
