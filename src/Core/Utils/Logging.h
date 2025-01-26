@@ -56,6 +56,14 @@ namespace Engine {
     // Move this specialization to a separate cpp file or inline header
     inline std::string ToString(const Window& window);
 
+    namespace LogColors
+    {
+        constexpr const char *Reset = "\033[0m";
+        constexpr const char *Yellow = "\033[33m";
+        constexpr const char *Red = "\033[31m";
+        constexpr const char *Purple = "\033[35m";
+    }
+
     /**
      * @brief Singleton logger class for application-wide logging
      */
@@ -99,16 +107,34 @@ namespace Engine {
             std::strftime(buffer, 32, "%c", std::localtime(&now));
             std::string timestamp(buffer);
 
+            const char *colorCode;
             std::string levelStr;
             switch (level) {
-                case LogLevel::Trace: levelStr = "TRACE"; break;
-                case LogLevel::Info:  levelStr = "INFO"; break;
-                case LogLevel::Warn:  levelStr = "WARN"; break;
-                case LogLevel::Error: levelStr = "ERROR"; break;
-                case LogLevel::Fatal: levelStr = "FATAL"; break;
+            case LogLevel::Trace:
+                colorCode = "";
+                levelStr = "TRACE";
+                break;
+            case LogLevel::Info:
+                colorCode = "";
+                levelStr = "INFO";
+                break;
+            case LogLevel::Warn:
+                colorCode = LogColors::Yellow;
+                levelStr = "WARN";
+                break;
+            case LogLevel::Error:
+                colorCode = LogColors::Red;
+                levelStr = "ERROR";
+                break;
+            case LogLevel::Fatal:
+                colorCode = LogColors::Purple;
+                levelStr = "FATAL";
+                break;
             }
 
-            std::cout << "[" << timestamp << "] [" << levelStr << "]: " << message << std::endl;
+            std::cout << "[" << timestamp << "] "
+                      << colorCode << "[" << levelStr << "]: "
+                      << message << LogColors::Reset << std::endl;
         }
 
         /**
