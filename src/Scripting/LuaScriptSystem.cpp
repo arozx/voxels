@@ -8,34 +8,33 @@
 #include "../Events/MouseEvent.h"
 #include "../Scene/Scene.h"
 #include "../Scene/SceneManager.h"
-#include "Core/Utils/Logging.h"
 
 namespace Engine {
 LuaScriptSystem::LuaScriptSystem() : m_LuaState(std::make_unique<sol::state>()) {
     m_LuaState->open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string,
-                               sol::lib::table, sol::lib::io);
+                               sol::lib::table, sol::lib::io, sol::lib::os);
 }
 
 LuaScriptSystem::~LuaScriptSystem() = default;
 
-void LuaScriptSystem::Initialize() {
-    LOG_INFO("Initializing Lua script system");
-    RegisterEngineAPI();
-}
+void LuaScriptSystem::Initialize() { RegisterEngineAPI(); }
 
 void LuaScriptSystem::RegisterEngineAPI() {
     auto engine = m_LuaState->create_named_table("engine");
 
     // Terrain API
-    engine.set_function("setTerrainBaseHeight", [this](float height) {
+    engine.set_function("setTerrainHeight", [this](float height) {
+        LOG_TRACE_CONCAT("[Lua] setTerrainHeight called with height = ", height);
         auto activeScene = Engine::SceneManager::Get().GetActiveScene();
         if (activeScene) {
             auto* terrain = activeScene->GetTerrainSystem();
             if (terrain) {
-                terrain->SetBaseHeight(height);  // Existing change
+                terrain->SetBaseHeight(height);
+            } else {
+                LOG_ERROR("No terrain system in active scene");
             }
         } else {
-            LOG_WARN("No active scene to set terrain base height.");
+            LOG_ERROR("No active scene to set terrain height");
         }
     });
 
@@ -44,11 +43,14 @@ void LuaScriptSystem::RegisterEngineAPI() {
         if (activeScene) {
             auto* terrain = activeScene->GetTerrainSystem();
             if (terrain) {
-                terrain->GenerateMesh(seed);  // Updated to accept seed
+                terrain->GenerateMesh(seed);
+            } else {
+                LOG_ERROR("No terrain system in active scene");
             }
         } else {
-            LOG_WARN("No active scene to generate terrain mesh.");
+            LOG_ERROR("No active scene to generate terrain");
         }
+        // Logging for mesh generation already handled in TerrainSystem
     });
 
     // Renderer API
@@ -71,6 +73,46 @@ void LuaScriptSystem::RegisterEngineAPI() {
     engine.set_function("getCameraType", []() -> std::string {
         auto type = Renderer::Get().GetCameraType();
         return (type == Renderer::CameraType::Orthographic) ? "orthographic" : "perspective";
+    });
+
+    // Scene API
+    engine.set_function("createScene", [](const std::string& name) -> bool {
+        LOG_TRACE_CONCAT("[Lua] createScene called with name = ", name);
+        auto scene = std::make_shared<Scene>(name);
+        if (!scene) {
+            LOG_ERROR_CONCAT("Failed to create scene: ", name);
+            return false;
+        }
+        SceneManager::Get().AddScene(scene);
+        // Logging already handled in Scene constructor
+        return true;
+    });
+
+    engine.set_function("setActiveScene", [](const std::string& name) -> bool {
+        auto& sceneManager = SceneManager::Get();
+        auto scene = sceneManager.GetScene(name);
+        if (!scene) {
+            LOG_ERROR_CONCAT("Scene not found: ", name);
+            return false;
+        }
+        sceneManager.SetActiveScene(name);
+        // Logging already handled in SceneManager
+        return true;
+    });
+
+    engine.set_function("deleteScene", [](const std::string& name) -> bool {
+        auto& sceneManager = SceneManager::Get();
+        if (sceneManager.RemoveScene(name)) {
+            LOG_INFO_CONCAT("Deleted scene: ", name);
+            return true;
+        }
+        LOG_ERROR_CONCAT("Failed to delete scene: ", name);
+        return false;
+    });
+
+    engine.set_function("getActiveSceneName", []() -> std::string {
+        auto scene = SceneManager::Get().GetActiveScene();
+        return scene ? scene->GetName() : "";
     });
 
     // Input API
@@ -281,23 +323,31 @@ bool LuaScriptSystem::ExecuteScript(const std::string& script) {
     return true;
 }
 
-bool LuaScriptSystem::ExecuteFile(const std::string& filepath) {
-    if (!FileSystem::Exists(filepath)) {
-        LOG_ERROR("Script file does not exist: {0}", filepath);
+bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
+    std::vector<std::string> searchPaths = {
+        originalPath, "../" + originalPath, "../../" + originalPath,
+        "../sandbox/assets/scripts/" + originalPath.substr(originalPath.find_last_of("/\\") + 1),
+        "sandbox/assets/scripts/" + originalPath.substr(originalPath.find_last_of("/\\") + 1)};
+
+    std::string validPath;
+    bool found = false;
+
+    for (const auto& path : searchPaths) {
+        if (FileSystem::Exists(path)) {
+            validPath = path;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        LOG_ERROR("Script not found: ", originalPath);
         return false;
     }
 
-    sol::load_result loadResult = m_LuaState->load_file(filepath);
-    if (!loadResult.valid()) {
-        sol::error err = loadResult;
-        LOG_ERROR_CONCAT("Failed to load script file: ", err.what());
-        return false;
-    }
-
-    sol::protected_function_result result = loadResult();
-    if (!result.valid()) {
-        sol::error err = result;
-        LOG_ERROR_CONCAT("Failed to execute script file: ", err.what());
+    sol::load_result loadResult = m_LuaState->load_file(validPath);
+    if (!loadResult.valid() || !loadResult().valid()) {
+        LOG_ERROR("Failed to execute script: ", validPath);
         return false;
     }
 

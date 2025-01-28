@@ -1,72 +1,62 @@
 #pragma once
 
+#include <pch.h>
+
 #include "Scene.h"
 
 namespace Engine {
-    /**
-     * @brief Manages scene lifecycle and transitions
-     * 
-     * Singleton class that handles scene switching, updates,
-     * and rendering of the active scene.
-     */
-    class SceneManager {
-    public:
-        /** @return Reference to singleton instance */
-        static SceneManager& Get() {
-            static SceneManager instance;
-            return instance;
-        }
+class SceneManager {
+   public:
+    static SceneManager& Get() {
+        static SceneManager instance;
+        return instance;
+    }
 
-        /**
-         * @brief Registers a scene with the manager
-         * @param scene Scene to register
-         */
-        void AddScene(const std::shared_ptr<Scene>& scene) {
-            m_Scenes[scene->GetName()] = scene;
-        }
+    void AddScene(const std::shared_ptr<Scene>& scene) { scenes[scene->GetName()] = scene; }
 
-        /**
-         * @brief Changes the active scene
-         * @param name Name of scene to activate
-         */
-        void SetActiveScene(const std::string& name) {
-            if (m_ActiveScene) {
-                m_ActiveScene->OnDeactivate();
+    void SetActiveScene(const std::string& name) {
+        LOG_TRACE("SetActiveScene called with name = ", name);
+        if (scenes.find(name) != scenes.end()) {
+            if (activeScene) {
+                activeScene->OnDeactivate();
             }
-            
-            auto it = m_Scenes.find(name);
-            if (it != m_Scenes.end()) {
-                m_ActiveScene = it->second;
-                m_ActiveScene->OnActivate();
-            }
+            activeScene = scenes[name];
+            activeScene->OnActivate();
+            LOG_INFO_CONCAT("Activated scene: ", name);
+        } else {
+            LOG_ERROR_CONCAT("Failed to set active scene: ", name, " (not found)");
         }
+    }
 
-        /** @return Currently active scene */
-        std::shared_ptr<Scene> GetActiveScene() { return m_ActiveScene; }
-        
-        /**
-         * @brief Updates the active scene
-         * @param deltaTime Time since last update
-         */
-        void Update(float deltaTime) {
-            if (m_ActiveScene) {
-                m_ActiveScene->OnUpdate(deltaTime);
-            }
+    std::shared_ptr<Scene> GetActiveScene() const { return activeScene; }
+
+    std::shared_ptr<Scene> GetScene(const std::string& name) const {
+        auto it = scenes.find(name);
+        return it != scenes.end() ? it->second : nullptr;
+    }
+
+    bool RemoveScene(const std::string& name) {
+        if (activeScene && activeScene->GetName() == name) {
+            activeScene = nullptr;
         }
+        return scenes.erase(name) > 0;
+    }
 
-        /**
-         * @brief Renders the active scene
-         * @param renderer Renderer to use
-         */
-        void Render(Renderer& renderer) {
-            if (m_ActiveScene) {
-                m_ActiveScene->OnRender(renderer);
-            }
+    void Update(float deltaTime) {
+        if (activeScene) {
+            activeScene->OnUpdate(deltaTime);
         }
+    }
 
-    private:
-        SceneManager() = default;
-        std::unordered_map<std::string, std::shared_ptr<Scene>> m_Scenes;  ///< Available scenes
-        std::shared_ptr<Scene> m_ActiveScene;                              ///< Currently active scene
-    };
-}
+    void Render(Renderer& renderer) {
+        if (activeScene) {
+            activeScene->OnRender(renderer);
+        }
+    }
+
+   private:
+    SceneManager() = default;
+    std::unordered_map<std::string, std::shared_ptr<Scene>> scenes;
+    std::shared_ptr<Scene> activeScene;
+};
+}  // namespace Engine

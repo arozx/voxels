@@ -1,16 +1,18 @@
 /**
  * @file TerrainSystem.cpp
  * @brief Implementation of the voxel terrain system
- * 
+ *
  * Provides implementation for terrain generation, mesh creation,
  * and rendering of voxel-based terrain.
  */
-#include <pch.h>
 #include "TerrainSystem.h"
-#include "Shader/DefaultShaders.h"
-#include "Renderer/MeshTemplates.h"
-#include "Core/AssetManager.h"
+
+#include <pch.h>
+
 #include "BlockTypes.h"
+#include "Core/AssetManager.h"
+#include "Renderer/MeshTemplates.h"
+#include "Shader/DefaultShaders.h"
 
 namespace Engine {
     /**
@@ -50,8 +52,10 @@ namespace Engine {
     void TerrainSystem::Update(float deltaTime) {
         static bool logged = false;
         if (!logged) {
-            LOG_INFO_CONCAT("Terrain Transform - Position: (",m_TerrainTransform.position.x,", ",m_TerrainTransform.position.y,", ",m_TerrainTransform.position.z,
-            ") Scale: (",m_TerrainTransform.scale.x,", ",m_TerrainTransform.scale.y,", ",m_TerrainTransform.scale.z,")");
+            LOG_TRACE_CONCAT("Terrain Transform - Position: (", m_TerrainTransform.position.x, ", ",
+                             m_TerrainTransform.position.y, ", ", m_TerrainTransform.position.z,
+                             ") Scale: (", m_TerrainTransform.scale.x, ", ",
+                             m_TerrainTransform.scale.y, ", ", m_TerrainTransform.scale.z, ")");
             logged = true;
         }
     }
@@ -130,7 +134,16 @@ namespace Engine {
         }
 
         // Debug output
-        LOG_INFO_CONCAT("Generated terrain mesh with ",vertices.size() / 5," vertices and ",indices.size()," indicies.");
+        LOG_TRACE_CONCAT("Generated terrain mesh with ", vertices.size() / 5, " vertices and ",
+                         indices.size(), " indicies.");
+    }
+
+    void TerrainSystem::GenerateMesh(uint32_t seed) {
+        // Set the seed for the noise generator
+        m_NoiseGen = NoiseGenerator<VoidNoise>(seed);
+
+        // Call the regular mesh generation
+        GenerateMesh();
     }
 
     // Parameter setters with mesh regeneration

@@ -63,8 +63,8 @@ namespace Engine {
     Application::Application() 
     {
         s_Instance = this;
-        LOG_INFO("Creating Application");
-        
+        LOG_TRACE("Creating Application");
+
         Engine::Profiler::Get().BeginSession("Runtime");
 
         InitWindow("Voxel Engine", 1280, 720);
@@ -76,8 +76,8 @@ namespace Engine {
         // Create and initialize ImGui layer first
         m_ImGuiLayer = std::make_unique<ImGuiLayer>(m_Window.get());
         m_ImGuiLayer->Init(m_Window.get());  // Explicitly call Init
-        LOG_INFO("ImGui initialized");
-        
+        LOG_TRACE("ImGui initialized");
+
         // Initialize script system first
         m_ScriptSystem = std::make_unique<LuaScriptSystem>();
         if (!m_ScriptSystem) {
@@ -87,6 +87,21 @@ namespace Engine {
         
         try {
             m_ScriptSystem->Initialize();
+
+            // Only execute init.lua once from the source directory
+            LOG_INFO("Loading init.lua script...");
+            if (!m_ScriptSystem->ExecuteFile("sandbox/assets/scripts/init.lua")) {
+                LOG_ERROR("Failed to execute init.lua");
+                return;
+            }
+
+            // Only execute main.lua once from the build directory
+            LOG_INFO("Loading main.lua script...");
+            if (!m_ScriptSystem->ExecuteFile("build/assets/scripts/main.lua")) {
+                LOG_ERROR("Failed to execute main.lua");
+                return;
+            }
+
         } catch (const std::exception& e) {
             LOG_ERROR_CONCAT("Failed to initialize script system: ", e.what());
             return;
@@ -94,12 +109,13 @@ namespace Engine {
         
         // Initialize remaining systems after script system is ready
         AssetManager::Get().PreloadFrequentAssets();
-        m_TerrainSystem = std::make_unique<TerrainSystem>();
         m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), *m_Renderer);
         m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
         
         InitializeToggleStates();
         DefaultShaders::PreloadShaders();
+
+        m_TerrainSystem = nullptr;
     }
 
     /**
@@ -122,20 +138,16 @@ namespace Engine {
     {
         PROFILE_FUNCTION();
         LOG_INFO("Application Starting...");
-        
+
         Profiler::Get().BeginSession("Runtime");
-        
         float lastFrameTime = 0.0f;
-        
         while (m_Running && m_Window) {
             auto time = static_cast<float>(glfwGetTime());
             float deltaTime = time - lastFrameTime;
             lastFrameTime = time;
-            
             // Update systems
             EventDebugger::Get().UpdateTimestamps(deltaTime);
             ProcessEvents();
-            m_TerrainSystem->Update(deltaTime);
             m_InputSystem->Update(deltaTime);
             SceneManager::Get().Update(deltaTime);
             
@@ -216,7 +228,7 @@ namespace Engine {
      * @param height Window height
      */
     void Application::InitWindow(const char* title, int width, int height) {
-        LOG_INFO("Initializing window: {0} ({1}x{2})", title, width, height);
+        LOG_TRACE_CONCAT("Creating window: ", title, ", Resolution: ", width, "x", height);
         WindowProps props(title, width, height);
         m_Window = std::unique_ptr<Window>(Window::Create(props));
         
@@ -255,12 +267,9 @@ namespace Engine {
         PROFILE_FUNCTION();
 
         m_Renderer->Clear({0.1f, 0.1f, 0.1f, 1.0f});
-        
-        // Only render terrain if it exists
-        if (m_TerrainSystem) {
-            m_TerrainSystem->Render(*m_Renderer);
-        }
-        
+
+        SceneManager::Get().Render(*m_Renderer);
+
         m_ImGuiLayer->Begin();
         
         if (m_ImGuiEnabled) {
@@ -274,9 +283,7 @@ namespace Engine {
             m_ImGuiOverlay->RenderProfiler();
             m_ImGuiOverlay->RenderRendererSettings();
             m_ImGuiOverlay->RenderEventDebugger();
-            if (m_TerrainSystem) {
-                m_ImGuiOverlay->RenderTerrainControls(*m_TerrainSystem);
-            }
+            m_ImGuiOverlay->RenderTerrainControls();  // <-- Added call
         }
     }
 

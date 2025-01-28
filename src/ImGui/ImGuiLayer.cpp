@@ -46,7 +46,7 @@ namespace Engine {
         ImGui_ImplGlfw_InitForOpenGL(native_window, true);
         ImGui_ImplOpenGL3_Init("#version 410");
 
-        LOG_INFO("ImGui initialized");
+        LOG_TRACE("ImGui Layer initialized");
     }
 
     void ImGuiLayer::Shutdown() {

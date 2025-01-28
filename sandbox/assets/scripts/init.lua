@@ -1,14 +1,18 @@
---- Loads the new lua files into the build directory
+engine.trace("Starting init.lua execution")
+
+-- Create build directory structure first
+local buildDir = "build/assets/scripts"
+local scriptDir = "sandbox/assets/scripts"
+
+engine.trace("Creating build directory: " .. buildDir)
+os.execute("mkdir -p " .. buildDir)
 
 local function copyScript(name)
-    -- Define relative paths
-    local sourcePath = "sandbox/assets/scripts/" .. name
-    local destPath = "build/assets/scripts/" .. name
-    
-    -- Read source script
+    -- Try to read source file directly
+    local sourcePath = scriptDir .. "/" .. name
     local source = io.open(sourcePath, "rb")
     if not source then
-        engine.error("Failed to open source script: " .. sourcePath)
+        engine.error("Could not find source script: " .. sourcePath)
         return false
     end
     
@@ -16,24 +20,27 @@ local function copyScript(name)
     source:close()
     
     -- Write to build directory
+    local destPath = buildDir .. "/" .. name
     local dest = io.open(destPath, "wb")
     if not dest then
-        engine.error("Failed to create build script: " .. destPath)
+        engine.error("Failed to create destination file: " .. destPath)
         return false
     end
     
-    local success = dest:write(content)
+    dest:write(content)
     dest:close()
-    
-    if success then
-        engine.trace("Successfully copied: " .. name)
-        return true
-    else
-        engine.error("Failed to write: " .. destPath)
-        return false
+    engine.trace("Successfully copied: " .. name)
+    return true
+end
+
+-- Only copy scripts, don't execute them
+local scripts = { "main.lua", "engine.lua" }
+for _, script in ipairs(scripts) do
+    if not copyScript(script) then
+        engine.error("Failed to copy " .. script)
+        return
     end
 end
 
--- Copy main script
-copyScript("main.lua")
+engine.trace("init.lua execution complete")
 

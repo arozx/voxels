@@ -1,16 +1,17 @@
 #pragma once
 
 #include <pch.h>
-#include "Renderer/Renderer.h"
+
+#include "BlockTypes.h"
 #include "Noise/NoiseGenerator.h"
-#include "Noise/VoidNoise/VoidNoise.h"
-#include "Noise/ValueNoise/ValueNoise.h"
 #include "Noise/PerlinNoise/PerlinNoise.h"
 #include "Noise/SimplexNoise/SimplexNoise.h"
-#include "Renderer/VertexArray.h"
+#include "Noise/ValueNoise/ValueNoise.h"
+#include "Noise/VoidNoise/VoidNoise.h"
 #include "Renderer/Material.h"
+#include "Renderer/Renderer.h"
+#include "Renderer/VertexArray.h"
 #include "VoxelTerrain.h"
-#include "BlockTypes.h"
 
 namespace Engine {
     /**
@@ -68,23 +69,24 @@ namespace Engine {
         /** @return Noise scale factor */
         float GetNoiseScale() const { return m_NoiseScale; }
 
-    private:
         /** @brief Generates terrain mesh based on current parameters */
         void GenerateMesh();
+        void GenerateMesh(uint32_t seed);
 
-        std::unique_ptr<VoxelTerrain> m_Terrain;        ///< Voxel data container
-        std::shared_ptr<VertexArray> m_TerrainVA;       ///< Terrain vertex array
-        std::shared_ptr<Shader> m_TerrainShader;        ///< Terrain shader
-        std::shared_ptr<Material> m_TerrainMaterial;    ///< Terrain material
-        std::shared_ptr<Texture> m_TerrainTexture;      ///< Terrain texture
-        Transform m_TerrainTransform;                   ///< Terrain transformation
-        int m_ChunkRange = 1;                          ///< Chunk generation range
+       private:
+        std::unique_ptr<VoxelTerrain> m_Terrain;      ///< Voxel data container
+        std::shared_ptr<VertexArray> m_TerrainVA;     ///< Terrain vertex array
+        std::shared_ptr<Shader> m_TerrainShader;      ///< Terrain shader
+        std::shared_ptr<Material> m_TerrainMaterial;  ///< Terrain material
+        std::shared_ptr<Texture> m_TerrainTexture;    ///< Terrain texture
+        Transform m_TerrainTransform;                 ///< Terrain transformation
+        int m_ChunkRange = 1;                         ///< Chunk generation range
 
-        float m_BaseHeight = 32.0f;    ///< Base terrain height
-        float m_HeightScale = 32.0f;   ///< Height variation scale
-        float m_NoiseScale = 0.05f;    ///< Noise variation scale
+        float m_BaseHeight = 32.0f;   ///< Base terrain height
+        float m_HeightScale = 32.0f;  ///< Height variation scale
+        float m_NoiseScale = 0.05f;   ///< Noise variation scale
 
-        // Noise generator
+       private:
         NoiseGenerator<VoidNoise> m_NoiseGen;
     };
 }

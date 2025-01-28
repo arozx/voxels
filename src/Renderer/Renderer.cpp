@@ -1,12 +1,14 @@
-#include <pch.h>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include "Renderer.h"
-#include "VertexArray.h"
-#include "Material.h"
-#include "../Shader/Shader.h"
+
+#include <GLFW/glfw3.h>
+#include <glad/glad.h>
+#include <pch.h>
+
 #include "../Camera/OrthographicCamera.h"
 #include "../Core/TaskSystem.h"
+#include "../Shader/Shader.h"
+#include "Material.h"
+#include "VertexArray.h"
 
 namespace Engine {
     /**
@@ -171,4 +173,6 @@ namespace Engine {
                "Invalid camera type");
         m_CameraType = type;
     }
+
+    void Renderer::Render() { Flush(); }
 }

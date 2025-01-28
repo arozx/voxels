@@ -2,7 +2,7 @@
 
 ---@class engine
 ---@field setTerrainHeight fun(height: number) # Sets the base height for terrain generation
----@field generateTerrain fun(seed: number) # Regenerates terrain with given seed
+---@field generateTerrainMesh fun(seed: number) # Regenerates terrain with given seed
 ---@field setClearColor fun(r: number, g: number, b: number, a: number) # Sets the renderer clear color
 ---@field isKeyPressed fun(keycode: number): boolean # Checks if a key is pressed
 ---@field getMousePosition fun(): number, number # Gets current mouse position
@@ -10,6 +10,7 @@
 ---@field log fun(message: string) # Logs an info message
 ---@field warn fun(message: string) # Logs an warn message
 ---@field error fun(message: string) # Logs an error message
+---@field fatal fun(message: string) # Logs an error message and terminates the application
 ---@field profileFunction fun(name: string) # Profiles the current function
 ---@field profileScope fun(name: string) # Profiles the current function & assigns a name
 ---@field loadScript fun(filepath: string): boolean # Loads and executes a Lua script file
@@ -40,6 +41,10 @@
 ---@field showEventDebugger fun(show: boolean) # Shows/hides event debugger window
 ---@field showTerrainControls fun(show: boolean) # Shows/hides terrain controls window
 ---@field showFPSCounter fun(show: boolean) # Shows/hides FPS counter
+---@field createScene fun(name: string): boolean # Creates a new scene with the given name
+---@field setActiveScene fun(name: string): boolean # Sets the active scene by name
+---@field deleteScene fun(name: string): boolean # Deletes a scene by name
+---@field getActiveSceneName fun(): string # Gets the name of the active scene
 engine = {}
 
 -- Key code constants
@@ -93,6 +98,9 @@ function engine.warn(message) end
 ---@param message string The error message to log
 function engine.error(message) end
 
+---Logs an error message to the console and terminates the application
+---@param message string The error message to log
+function engine.fatal(message) end
 ---Loads and executes a Lua script file
 ---@param filepath string Path to the script file
 ---@return boolean success Whether the script was loaded successfully
@@ -219,3 +227,22 @@ function engine.showTerrainControls(show) end
 ---Shows/hides the FPS counter
 ---@param show boolean Whether to show the counter
 function engine.showFPSCounter(show) end
+
+---Creates a new scene with the given name
+---@param name string The name of the scene to create
+---@return boolean success Whether the scene was created successfully
+function engine.createScene(name) end
+
+---Sets the active scene by name
+---@param name string The name of the scene to activate
+---@return boolean success Whether the scene was activated successfully
+function engine.setActiveScene(name) end
+
+---Deletes a scene by name
+---@param name string The name of the scene to delete
+---@return boolean success Whether the scene was deleted successfully
+function engine.deleteScene(name) end
+
+---Gets the name of the active scene
+---@return string name The name of the active scene (empty string if no active scene)
+function engine.getActiveSceneName() end

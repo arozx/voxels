@@ -1,19 +1,27 @@
 #pragma once
+
+#include <pch.h>
+
 #include "../external/sol2/sol.hpp"
-#include "Core/AssetManager.h"
+#include "Scene/SceneManager.h"
 
 namespace Engine {
-    class LuaScriptSystem {
-    public:
-        LuaScriptSystem();
-        ~LuaScriptSystem();
+class TerrainSystem;
 
-        void Initialize();
-        void RegisterEngineAPI();
-        bool ExecuteScript(const std::string& script);
-        bool ExecuteFile(const std::string& filepath);
+class LuaScriptSystem {
+   public:
+    LuaScriptSystem();
+    ~LuaScriptSystem();
 
-    private:
-        std::unique_ptr<sol::state> m_LuaState;
-    };
+   public:
+    void Initialize();
+    bool ExecuteScript(const std::string& script);
+    bool ExecuteFile(const std::string& filepath);
+
+   private:
+    std::unique_ptr<sol::state> m_LuaState;
+
+   private:
+    void RegisterEngineAPI();
+};
 }

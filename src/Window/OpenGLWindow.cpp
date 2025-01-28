@@ -1,8 +1,10 @@
-#include <pch.h>
 #include "OpenGLWindow.h"
-#include "../Events/WindowEvent.h"
+
+#include <pch.h>
+
 #include "../Events/KeyEvent.h"
 #include "../Events/MouseEvent.h"
+#include "../Events/WindowEvent.h"
 
 namespace Engine {
 
@@ -122,7 +124,6 @@ namespace Engine {
                 {
                     MouseButtonPressedEvent event(button);
                     data.EventCallback(event);
-                    LOG_INFO("Mouse clicked at: ({:.1f}, {:.1f})", xpos, ypos);
                     break;
                 }
                 case GLFW_RELEASE:

@@ -49,7 +49,7 @@ namespace Engine {
         /** @brief Renders event debugging window */
         void RenderEventDebugger();
         /** @brief Renders terrain generation controls */
-        void RenderTerrainControls(TerrainSystem& terrainSystem);
+        void RenderTerrainControls();
 
         // Window visibility controls
         void ShowTransformControls(bool show) { m_ShowTransformControls = show; }

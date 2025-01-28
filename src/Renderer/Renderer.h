@@ -85,6 +85,11 @@ namespace Engine {
         void Draw();
 
         /**
+         * @brief Trigger a render operation by flushing the command queue
+         */
+        void Render();
+
+        /**
          * @brief Submit an object for rendering
          * @param vertexArray Vertex array containing geometry
          * @param material Material to use for rendering
