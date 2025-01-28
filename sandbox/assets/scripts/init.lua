@@ -14,28 +14,42 @@ local sanitizedPath = sanitizePath(buildDir)
 os.execute('mkdir -p "' .. sanitizedPath .. '"')
 
 local function copyScript(name)
-    -- Try to read source file directly
+    local function closeFiles(source, dest)
+        if source then source:close() end
+        if dest then dest:close() end
+    end
     local sourcePath = scriptDir .. "/" .. name
-    local source = io.open(sourcePath, "rb")
+    local destPath = buildDir .. "/" .. name
+
+    local source, sourceErr = io.open(sourcePath, "rb")
     if not source then
-        engine.error("Could not find source script: " .. sourcePath)
+        engine.error(string.format("Could not open source script ", sourcePath, ": ", sourceErr))
         return false
     end
     
     local content = source:read("*all")
-    source:close()
-    
-    -- Write to build directory
-    local destPath = buildDir .. "/" .. name
-    local dest = io.open(destPath, "wb")
-    if not dest then
-        engine.error("Failed to create destination file: " .. destPath)
+    if not content then
+        engine.error(string.format("Failed to read from ", sourcePath))
+        closeFiles(source)
         return false
     end
     
-    dest:write(content)
-    dest:close()
-    engine.trace("Successfully copied: " .. name)
+    local dest, destErr = io.open(destPath, "wb")
+    if not dest then
+        engine.error(string.format("Failed to create destination file", destPath, ": ", destErr))
+        closeFiles(source)
+        return false
+    end
+    
+    local success = dest:write(content)
+    if not success then
+        engine.error(string.format("Failed to write to ", destPath))
+        closeFiles(source, dest)
+        return false
+    end
+
+    closeFiles(source, dest)
+    engine.trace(string.format("Successfully copied: ", name))
     return true
 end
 
