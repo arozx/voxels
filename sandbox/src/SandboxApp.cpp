@@ -6,6 +6,20 @@
 #include "../src/Scene/SceneManager.h"
 #include "../src/Scripting/LuaScriptSystem.h"
 
+/**
+ * @brief Constructor for the SandboxApp, initializing core systems and setting up the Lua console.
+ * 
+ * Performs the following initialization steps:
+ * - Validates the availability of the Lua script system
+ * - Retrieves the active scene from the SceneManager
+ * - Obtains the terrain system from the active scene
+ * - Initializes the terrain system with the current renderer
+ * - Registers a key callback to toggle the console display using the grave accent key
+ * 
+ * @note Logs error messages if any critical system initialization fails
+ * @note Requires an active scene with a valid terrain system
+ * @throws None Initialization failures are logged but do not throw exceptions
+ */
 SandboxApp::SandboxApp() : Application() {
     Engine::LuaScriptSystem* scriptSystem = GetScriptSystem();
     if (!scriptSystem) {
@@ -38,6 +52,22 @@ SandboxApp::SandboxApp() : Application() {
     }
 }
 
+/**
+ * @brief Renders the Lua Console using ImGui, providing an interactive command input and history display.
+ *
+ * This method creates an ImGui window titled "Lua Console" with a scrollable command history region
+ * and a command input field. It supports:
+ * - Displaying previous command history
+ * - Navigating command history using up and down arrow keys
+ * - Executing Lua commands
+ * - Handling command input and focus management
+ *
+ * @note The console window size is set to 520x600 pixels on first use.
+ * @note Commands containing "Error" are filtered from history navigation.
+ * @note The input buffer is cleared after command execution.
+ *
+ * @see ExecuteCommand()
+ */
 void SandboxApp::OnImGuiRender() {
     ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Lua Console", &m_ShowConsole)) {
@@ -117,6 +147,26 @@ void SandboxApp::OnImGuiRender() {
     ImGui::End();
 }
 
+/**
+ * @brief Executes a Lua command in the sandbox application.
+ *
+ * This method processes a given command by adding it to the command history,
+ * retrieving the Lua script system, and attempting to execute the command.
+ *
+ * @param command The Lua command string to be executed.
+ *
+ * @details
+ * - Ignores empty commands
+ * - Adds the command to command history with a '>' prefix
+ * - Retrieves the Lua script system
+ * - Attempts to execute the command using the script system
+ * - Handles potential execution failures and exceptions
+ * - Logs error messages in the command history if execution fails
+ * - Resets the command history index after execution
+ *
+ * @note If the script system is unavailable, an error is logged to the command history.
+ * @note Exceptions during script execution are caught and their messages are logged.
+ */
 void SandboxApp::ExecuteCommand(const std::string& command) {
     if (command.empty()) return;
 
@@ -141,5 +191,16 @@ void SandboxApp::ExecuteCommand(const std::string& command) {
 }
 
 namespace Engine {
+/**
+ * @brief Creates and returns a new SandboxApp instance.
+ * 
+ * This function is responsible for instantiating the primary application 
+ * for the sandbox environment. It allocates a new SandboxApp object 
+ * which provides a Lua scripting console and other sandbox-specific 
+ * application features.
+ * 
+ * @return Application* A pointer to a newly created SandboxApp instance.
+ * @note The caller is responsible for managing the memory of the returned Application pointer.
+ */
 Application* CreateApplication() { return new SandboxApp(); }
 }  // namespace Engine

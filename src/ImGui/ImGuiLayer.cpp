@@ -12,6 +12,26 @@
 namespace Engine {
     ImGuiLayer::ImGuiLayer(Window* window) : m_Window(window) {}
 
+    /**
+     * @brief Initializes the ImGui layer for the application window.
+     * 
+     * @param window Pointer to the application window used for rendering.
+     * 
+     * @details This method sets up the ImGui context, configures rendering options,
+     * and initializes platform-specific backends for GLFW and OpenGL. It performs
+     * the following key tasks:
+     * - Creates an ImGui context
+     * - Enables keyboard navigation and docking
+     * - Configures viewport support based on the operating system
+     * - Sets up a dark color style
+     * - Initializes GLFW and OpenGL rendering backends
+     * 
+     * @note Platform-specific behavior:
+     * - On Linux, viewports are disabled
+     * - On other platforms, viewports are enabled
+     * 
+     * @warning Requires a valid Window pointer and working OpenGL context
+     */
     void ImGuiLayer::Init(Window* window) {
         m_Window = window;
 
@@ -49,6 +69,16 @@ namespace Engine {
         LOG_TRACE("ImGui Layer initialized");
     }
 
+    /**
+     * @brief Shuts down the ImGui rendering context and associated backends.
+     *
+     * This method performs cleanup operations for the ImGui library, including:
+     * - Shutting down the OpenGL 3 backend
+     * - Shutting down the GLFW backend
+     * - Destroying the ImGui context
+     *
+     * @note Logs an informational message upon successful shutdown.
+     */
     void ImGuiLayer::Shutdown() {
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
