@@ -40,6 +40,17 @@ local function copyScript(name)
         return false
     end
     
+    local MAX_FILE_SIZE = 10 * 1024 * 1024  -- 10MB limit
+    
+    local size = source:seek("end")
+    source:seek("set")
+    if size > MAX_FILE_SIZE then
+        engine.error(string.format("Script %s is too large (%d bytes > %d bytes limit)", 
+                                 sourcePath, size, MAX_FILE_SIZE))
+        closeFiles(source)
+        return false
+    end
+
     local content = source:read("*all")
     if not content then
         engine.error(string.format("Failed to read from ", sourcePath))
