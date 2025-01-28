@@ -1,0 +1,23 @@
+{
+   GL_driver_leak
+   Memcheck:Leak
+   match-leak-kinds: all
+   ...
+   obj:/usr/lib/libGL.so*
+}
+
+{
+   X11_leak
+   Memcheck:Leak
+   match-leak-kinds: all
+   ...
+   obj:/usr/lib/libX11.so*
+}
+
+{
+   GLFW_leak
+   Memcheck:Leak
+   match-leak-kinds: all
+   ...
+   obj:/usr/lib/libglfw.so*
+}

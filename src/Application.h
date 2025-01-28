@@ -1,18 +1,19 @@
 #pragma once
 
-#include "Window/Window.h"
-#include "ImGui/ImGuiLayer.h"
-#include "Renderer/Renderer.h"
-#include "Renderer/Material.h"
-#include "VoxelTerrain.h"
-#include "TerrainSystem/TerrainSystem.h"
-#include "Input/InputSystem.h"
-#include "Scene/SceneManager.h"
-#include "UI/ImGuiOverlay.h"
-#include "Renderer/RenderableObject.h"
+#include <sol.hpp>
+
 #include "Core/AssetManager.h"
-#include "Renderer/Light.h"
 #include "Core/FPSCounter.h"
+#include "ImGui/ImGuiLayer.h"
+#include "Input/InputSystem.h"
+#include "Renderer/Light.h"
+#include "Renderer/Material.h"
+#include "Renderer/RenderableObject.h"
+#include "Renderer/Renderer.h"
+#include "Scene/SceneManager.h"
+#include "Scripting/LuaScriptSystem.h"
+#include "UI/ImGuiOverlay.h"
+#include "Window/Window.h"
 
 /**
  * @namespace Engine
@@ -63,6 +64,17 @@ namespace Engine {
 
         Renderer& GetRenderer() { return *m_Renderer; }
 
+        LuaScriptSystem* GetScriptSystem() { return m_ScriptSystem.get(); }
+
+        static Application& Get() { return *s_Instance; }
+        InputSystem* GetInputSystem() { return m_InputSystem.get(); }
+
+        virtual void OnImGuiRender() {}
+
+        const std::string& GetAssetPath() const { return m_AssetPath; }
+
+        ImGuiOverlay* GetImGuiOverlay() { return m_ImGuiOverlay.get(); }
+
     protected:
         /**
          * @brief Initialize the application window
@@ -105,9 +117,9 @@ namespace Engine {
         void ProcessEvents();
 
         std::unique_ptr<Renderer> m_Renderer;
-        std::unique_ptr<TerrainSystem> m_TerrainSystem;
+        Engine::TerrainSystem* m_TerrainSystem = nullptr;
 
-    private:
+       private:
         /**
          * @brief Handle key toggle state changes
          * @param key GLFW key code
@@ -173,6 +185,13 @@ namespace Engine {
         void UpdateFPSCounter(float deltaTime);
 
         std::unique_ptr<Light> m_Light;
+
+        // scripting
+        std::unique_ptr<LuaScriptSystem> m_ScriptSystem;
+
+        static Application* s_Instance;
+
+        std::string m_AssetPath = "../sandbox/assets/";  // Base path for all assets
     };
     
     // To be defined by client application

@@ -7,5 +7,15 @@
 class SandboxApp : public Engine::Application {
 public:
     SandboxApp();
-    ~SandboxApp() = default;
+    virtual void OnImGuiRender() override;
+
+private:
+ Engine::TerrainSystem* m_TerrainSystem = nullptr;
+ bool m_ShowConsole = false;
+ std::string m_CommandBuffer;
+ std::vector<std::string> m_CommandHistory;
+ int m_HistoryIndex = -1;
+
+ void ExecuteCommand(const std::string& command);
+ void HandleConsoleInput();
 };

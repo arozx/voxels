@@ -16,8 +16,19 @@ namespace Engine {
 thread_local std::vector<Profiler::BatchEntry> Profiler::m_BatchedMeasurements;
 thread_local Profiler::ThreadLocalBuffer Profiler::t_StringBuffer;
 thread_local Profiler::FastPathCache Profiler::t_FastPath;
+thread_local static std::chrono::steady_clock::time_point s_LastSampleTime = std::chrono::steady_clock::now();
+static constexpr std::chrono::duration<float> SAMPLE_INTERVAL{1.0f/60.0f}; // 60Hz sampling
 
-// Constructor starts timing measurement
+/**
+     * @brief Constructs a timer for performance profiling.
+     *
+     * Initializes a profiler timer with the given name and records the current time point
+     * as the start of the measurement. When the timer goes out of scope, it will automatically
+     * log the elapsed time using the Profiler singleton.
+     *
+     * @param name A string view representing the name of the profiled code segment.
+     * @note The timer uses std::chrono::steady_clock for precise time measurement.
+     */
 ProfilerTimer::ProfilerTimer(std::string_view name)
     : m_Name(name), m_StartTimepoint(std::chrono::steady_clock::now()) {}
 
@@ -41,8 +52,20 @@ Profiler& Profiler::Get() {
 
 bool Profiler::s_SignalsInitialized = false;
 
-Profiler::Profiler() 
-    : m_Enabled(true)
+/**
+     * @brief Default constructor for the Profiler class.
+     *
+     * Initializes a Profiler instance with default settings:
+     * - Profiling is disabled by default
+     * - Output format is set to console
+     * - Default JSON output path is set to "profile_results.json"
+     * - No unsaved profiling data initially
+     *
+     * @note This constructor sets up the initial state of the profiler without starting a profiling session.
+     * Use BeginSession() to activate profiling and start collecting performance data.
+     */
+    Profiler::Profiler() 
+    : m_Enabled(false)
     , m_OutputFormat(OutputFormat::Console)
     , m_JSONOutputPath("profile_results.json")
     , m_HasUnsavedData(false) {}
@@ -68,14 +91,65 @@ void Profiler::Cleanup() {
     }
 }
 
-// Begins a new profiling session
+/**
+ * @brief Begins a new profiling session and initializes the JSON output file.
+ *
+ * @details This method starts a new profiling session by:
+ * - Setting the current session name
+ * - Marking unsaved data flag
+ * - Creating a JSON structure with session metadata
+ * - Attempting to write the initial JSON structure to the output file
+ *
+ * @param name The name of the profiling session to be started
+ *
+ * @note Thread-safe method using a mutex lock
+ * @note Logs an error if file initialization fails
+ * @note Logs an informational message when the session starts
+ *
+ * @throws std::exception If file writing encounters an error
+ */
 void Profiler::BeginSession(const std::string& name) {
+    std::unique_lock lock(m_Mutex);
     m_CurrentSession = name;
-    m_Profiles.clear();
-    m_StringPool.reserve(INITIAL_POOL_CAPACITY);
+    m_HasUnsavedData = true;
+    
+    // Initialize empty JSON structure
+    using nlohmann::json;
+    json output;
+    output["session"] = name;
+    output["profiles"] = json::array();
+    output["timestamp"] = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+    
+    try {
+        std::ofstream file(m_JSONOutputPath);
+        if (file) {
+            file << std::setw(2) << output;
+            file.flush();
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR_CONCAT("Failed to initialize profile file: ", e.what());
+    }
+    
+    LOG_INFO_CONCAT("Started profiling session: ", name);
 }
 
-// Ends session and outputs statistical results
+/**
+ * @brief Ends the current profiling session and outputs statistical results.
+ *
+ * Terminates the active profiling session and generates output based on the configured output format.
+ * If profiling is not enabled or frame profiling is active, the method returns without action.
+ *
+ * @details Supports two output formats:
+ * - JSON: Writes complete profiling data to a JSON file using WriteCompleteJSON()
+ * - Console: Logs profile statistics for each tracked profile, including average, minimum, 
+ *   maximum times, and total number of calls
+ *
+ * @note Skips profiles with no recorded data
+ * @note Requires profiling to be enabled via BeginSession()
+ *
+ * @pre Profiling session must be active
+ * @post Profiling session is terminated and results are output
+ */
 void Profiler::EndSession() {
     if (!m_Enabled) return;
     if (m_ProfilingFrames) return;
@@ -98,15 +172,69 @@ void Profiler::EndSession() {
     }
 }
 
+/**
+ * @brief Writes complete profiling data to a JSON file.
+ *
+ * This method serializes profiling information collected during a session into a JSON format.
+ * It includes session metadata, individual profile statistics, and optional frame performance data.
+ *
+ * @details The method performs the following key operations:
+ * - Checks if profiling is enabled
+ * - Creates a JSON structure with session details and timestamp
+ * - Aggregates profile data including call counts, timing statistics, and individual samples
+ * - Optionally includes frame performance data
+ * - Writes the complete JSON output to a file specified by m_JSONOutputPath
+ *
+ * @note Thread-safe method using shared locking mechanism
+ * @note Skips profiles with zero calls or invalid data
+ * @note Handles both local and dynamic sample storage
+ *
+ * @throws std::exception If file writing encounters an error
+ * @pre Profiling must be enabled
+ * @post JSON file is created/overwritten with complete profiling data
+ */
 void Profiler::WriteCompleteJSON() const {
+    if (!m_Enabled) return;
+
     using nlohmann::json;
-    static thread_local json output;
-    output.clear();
+    json output;
+    
+    std::shared_lock lock(m_Mutex);
     
     output["session"] = m_CurrentSession;
     output["timestamp"] = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+    output["profiles"] = json::array();
     
-    // Add frame profiling data if available
+    // Add profile data first
+    for (const auto& [name, data] : m_Profiles) {
+        if (!data || data->calls == 0) continue;
+        
+        json profile = {
+            {"name", std::string(std::string_view(name))},
+            {"calls", data->calls},
+            {"averageMs", data->avgTime},
+            {"recentMs", data->recentAvg},
+            {"minMs", data->minTime},
+            {"maxMs", data->maxTime},
+            {"totalMs", data->totalTime}
+        };
+
+        // Add samples array
+        profile["samples"] = json::array();
+        if (data->localCount <= data->LOCAL_SAMPLES) {
+            for (uint32_t i = 0; i < data->localCount; ++i) {
+                profile["samples"].push_back(data->localSamples[i]);
+            }
+        } else {
+            for (const auto& sample : data->samples) {
+                profile["samples"].push_back(sample);
+            }
+        }
+        
+        output["profiles"].push_back(std::move(profile));
+    }
+    
+    // Add frame data separately
     if (m_ProfilingFrames || !m_FrameData.empty()) {
         output["frame_data"] = json::array();
         for (const auto& frame : m_FrameData) {
@@ -116,53 +244,47 @@ void Profiler::WriteCompleteJSON() const {
                 {"timestamp", std::chrono::system_clock::to_time_t(frame.timestamp)}
             });
         }
-        
-        // Add frame statistics
-        if (!m_FrameData.empty()) {
-            float totalTime = 0.0f;
-            float minTime = std::numeric_limits<float>::max();
-            float maxTime = 0.0f;
-            
-            for (const auto& frame : m_FrameData) {
-                totalTime += frame.frameTime;
-                minTime = std::min(minTime, frame.frameTime);
-                maxTime = std::max(maxTime, frame.frameTime);
-            }
-            
-            output["frame_stats"] = {
-                {"total_frames", m_FrameData.size()},
-                {"average_frame_time_ms", totalTime / m_FrameData.size()},
-                {"min_frame_time_ms", minTime},
-                {"max_frame_time_ms", maxTime}
-            };
-        }
     }
     
-    // Add regular profile data
-    output["profiles"] = json::array();
-    for (const auto& [name, data] : m_Profiles) {
-        if (data->calls == 0) continue;
-        
-        output["profiles"].push_back({
-            {"name", std::string_view(name)},
-            {"calls", data->calls},
-            {"averageMs", data->avgTime},
-            {"recentMs", data->recentAvg},
-            {"minMs", data->minTime},
-            {"maxMs", data->maxTime}
-        });
-    }
+    lock.unlock();
     
     try {
-        std::ofstream file(m_JSONOutputPath);
-        if (file) {
-            file << std::setw(2) << output;
+        std::ofstream file(m_JSONOutputPath, std::ios::out | std::ios::trunc);
+        if (!file) {
+            LOG_ERROR_CONCAT("Failed to open profile output file: ", m_JSONOutputPath);
+            return;
         }
+        file << std::setw(2) << output << std::endl;
+        file.close();
+        
     } catch (const std::exception& e) {
-        LOG_ERROR_CONCAT("Error writing profile data", e.what());
+        LOG_ERROR_CONCAT("Error writing profile data: ", e.what());
     }
 }
 
+/**
+ * @brief Writes frame profiling data to a JSON file.
+ *
+ * Generates a comprehensive JSON output containing frame-level performance metrics
+ * and statistical analysis of frame times during profiling. The output includes:
+ * - Session information
+ * - Total number of frames profiled
+ * - Timestamp of data generation
+ * - Detailed frame-by-frame timing data
+ * - Frame performance statistics
+ *
+ * @details The method performs the following key operations:
+ * - Captures frame number, frame time, and timestamp for each recorded frame
+ * - Calculates frame time statistics including average, minimum, and maximum
+ * - Computes frame rate (FPS) metrics based on frame time calculations
+ * - Writes the generated JSON data to a file specified by m_FramesJSONPath
+ *
+ * @note Uses nlohmann::json for JSON serialization
+ * @note Handles potential file writing exceptions with error logging
+ * @note Skips statistics generation if no frame data is available
+ *
+ * @throws std::exception If file writing encounters an error
+ */
 void Profiler::WriteFrameDataJSON() const {
     using nlohmann::json;
     json output;
@@ -214,50 +336,77 @@ void Profiler::WriteFrameDataJSON() const {
     }
 }
 
+/**
+ * @brief Records a performance profile sample with rate limiting and thread-safe data management.
+ *
+ * Adds a performance measurement sample to the profiler, ensuring thread safety, 
+ * preventing excessive sampling, and periodically writing profiling data to JSON.
+ *
+ * @param name A string view representing the profile/function name being measured
+ * @param duration The duration of the profile sample in floating-point seconds
+ *
+ * @note Samples are rate-limited to 60Hz to prevent performance overhead
+ * @note Skips recording if profiling is disabled or profile name is empty
+ * @note Writes complete JSON profile data every 500 milliseconds during profiling
+ *
+ * @thread_safety Thread-safe with shared and unique locks for concurrent access
+ */
 void Profiler::WriteProfile(std::string_view name, float duration) {
-    if (!m_Enabled) return;
+    if (!m_Enabled || name.empty()) return;
     
-    if (m_BatchSize > 0) {
-        ReserveBatch();
-        m_BatchedMeasurements.emplace_back(name, duration);
-        if (m_BatchedMeasurements.size() >= m_BatchSize) {
-            FlushBatch();
-        }
+    // Rate limit samples to 60Hz
+    auto currentTime = std::chrono::steady_clock::now();
+    if (currentTime - s_LastSampleTime < SAMPLE_INTERVAL) {
         return;
     }
+    s_LastSampleTime = currentTime;
     
-    // Try fast path first
     ProfileName profName(name);
-    if (auto* data = t_FastPath.find(profName)) {
-        data->AddSample(duration);
-    } else {
-        // Slow path with lock
+    ProfileData* data = nullptr;
+    
+    {
+        std::shared_lock readLock(m_Mutex);
+        data = t_FastPath.find(profName);
+    }
+    
+    if (!data) {
         std::unique_lock lock(m_Mutex);
         auto it = m_Profiles.find(profName);
         if (it == m_Profiles.end()) {
-            auto* data = m_DataPool.allocate();
+            data = m_DataPool.allocate();
             it = m_Profiles.emplace(std::move(profName), data).first;
             t_FastPath.insert(it->first, data);
         } else {
-            t_FastPath.insert(it->first, it->second);
+            data = it->second;
+            t_FastPath.insert(it->first, data);
         }
-        it->second->AddSample(duration);
     }
     
+    data->AddSample(duration);
     m_HasUnsavedData = true;
     
-    // disable auto-write during frame profiling
-    if (!m_ProfilingFrames) {
-        auto now = std::chrono::steady_clock::now();
-        if (m_OutputFormat == OutputFormat::JSON && 
-            (now - m_LastWriteTime) >= WRITE_INTERVAL) {
-            WriteCompleteJSON();
-            m_HasUnsavedData = false;
-            m_LastWriteTime = now;
-        }
+    // Write more frequently for development
+    if ((currentTime - m_LastWriteTime) >= std::chrono::milliseconds(500)) {  // Write every 500ms
+        WriteCompleteJSON();
+        m_LastWriteTime = currentTime;
     }
 }
 
+/**
+ * @brief Processes and flushes batched performance measurements.
+ *
+ * This method handles the processing of accumulated performance measurements. It performs the following tasks:
+ * - Checks if there are any batched measurements to process
+ * - Acquires a lock to ensure thread-safe access to shared data structures
+ * - Adds each batched measurement to its corresponding profile
+ * - Clears the batch of measurements
+ * - Marks the presence of unsaved profiling data
+ * - If the output format is JSON, writes the complete profiling data and clears the unsaved data flag
+ *
+ * @note Thread-safe method using a unique lock to protect shared resources
+ * @note No-op if no batched measurements exist
+ * @note Automatically triggers JSON output if JSON format is selected
+ */
 void Profiler::FlushBatch() {
     if (m_BatchedMeasurements.empty()) return;
     

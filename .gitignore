@@ -3,6 +3,7 @@
 
 # build files
 build/
+cmake.db
 
 #docs
 docs/
@@ -22,3 +23,18 @@ profile_results.json
 profiler_n_frames.json
 
 heightmap_chunk*.bmp
+
+# Vcpkg
+vcpkg_installed/
+
+# Visual Studio
+.vs/voxel-eng/FileContentIndex
+.vs/voxel-eng/v17/
+
+.vs/CMake Overview
+.vs/slnx.sqlite*
+
+.vs/voxel-eng/copilot*
+
+cmake-build-debug/
+cmake-build-release

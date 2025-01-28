@@ -130,6 +130,11 @@ public:
     /** @return Current frame being profiled */
     uint32_t GetCurrentProfiledFrame() const { return m_CurrentProfiledFrame; }
 
+    /** @brief Check if profiler is properly initialized */
+    bool IsInitialized() const { 
+        return m_Enabled && !m_CurrentSession.empty(); 
+    }
+
 private:
     Profiler();
     
@@ -288,6 +293,21 @@ private:
                 heap.back() = value;
             }
         }
+
+        // Add operator[] overloads
+        T& operator[](size_t index) {
+            if (isInline) {
+                return data[index];
+            }
+            return heap[index];
+        }
+        
+        const T& operator[](size_t index) const {
+            if (isInline) {
+                return data[index];
+            }
+            return heap[index];
+        }
     };
 
     struct alignas(64) ProfileData {
@@ -411,7 +431,7 @@ private:
     static bool s_SignalsInitialized;
     size_t m_MaxSamples{500};
     int m_Precision{4};
-    std::shared_mutex m_Mutex;
+    mutable std::shared_mutex m_Mutex;
     
     struct BatchEntry {
         ProfileName name;

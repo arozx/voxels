@@ -1,0 +1,10 @@
+
+{
+    "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+    "Lua.runtime.version": "Lua 5.4",
+    "Lua.workspace.library": [
+        "${workspaceFolder}/sandbox/assets/scripts"
+    ],
+    "Lua.diagnostics.globals": ["engine", "KeyCode"],
+    "Lua.workspace.checkThirdParty": false
+}

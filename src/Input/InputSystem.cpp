@@ -191,12 +191,80 @@ namespace Engine {
         return {static_cast<float>(x), static_cast<float>(y)};
     }
 
+    /**
+     * @brief Updates the cursor state in the window based on the current cursor lock status.
+     *
+     * This method changes the cursor display mode using GLFW:
+     * - When cursor is locked (`m_CursorLocked` is true), the cursor is disabled and hidden
+     * - When cursor is unlocked, the cursor is set to normal mode and becomes visible
+     *
+     * @note Uses the native window handle obtained from the window object
+     * @note Utilizes GLFW's input mode settings to control cursor visibility and behavior
+     */
     void InputSystem::UpdateCursorState() {
         GLFWwindow* window = static_cast<GLFWwindow*>(m_Window->GetNativeWindow());
         if (m_CursorLocked) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         } else {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+    }
+
+    /**
+     * @brief Registers a custom callback function for a specific key event.
+     *
+     * @param key The GLFW key code for which the callback is being registered.
+     * @param callback A function to be called when the specified key is pressed or released.
+     *
+     * @details This method allows dynamic registration of custom key event handlers.
+     * The callback will be stored in the internal key callbacks map and can be triggered
+     * during key events. Registering a new callback for an existing key will replace
+     * the previous callback.
+     *
+     * @note The callback is moved into the map to avoid unnecessary copying.
+     */
+    void InputSystem::RegisterKeyCallback(int key, KeyCallback callback) {
+        m_KeyCallbacks[key] = std::move(callback);
+    }
+
+    /**
+     * @brief Handles key press events for the input system.
+     *
+     * Processes registered key callbacks and manages built-in key actions, 
+     * specifically toggling cursor lock when the ESC key is pressed.
+     *
+     * @param key The GLFW key code of the pressed/released key
+     * @param scancode System-specific scancode of the key
+     * @param action Key action (GLFW_PRESS, GLFW_RELEASE, or GLFW_REPEAT)
+     * @param mods Bit field describing which modifier keys were held down
+     *
+     * @note First invokes any registered key callbacks, then handles 
+     * specific built-in actions like ESC key cursor lock toggling
+     */
+    void InputSystem::OnKey(int key, int scancode, int action, int mods) {
+        // Process any registered callbacks first
+        OnKeyEvent(key, action);
+        
+        // Handle built-in key processing
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+            m_CursorLocked = !m_CursorLocked;
+            UpdateCursorState();
+        }
+    }
+
+    /**
+     * @brief Executes a registered callback for a specific key event.
+     *
+     * Checks if a callback is registered for the given key and invokes it with the current action.
+     * This method allows custom handling of key events through pre-registered callbacks.
+     *
+     * @param key The GLFW key code for which the event is being processed.
+     * @param action The action performed on the key (e.g., GLFW_PRESS, GLFW_RELEASE, GLFW_REPEAT).
+     */
+    void InputSystem::OnKeyEvent(int key, int action) {
+        auto it = m_KeyCallbacks.find(key);
+        if (it != m_KeyCallbacks.end()) {
+            it->second(action);
         }
     }
 }

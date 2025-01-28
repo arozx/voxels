@@ -49,7 +49,15 @@ namespace Engine {
         /** @brief Renders event debugging window */
         void RenderEventDebugger();
         /** @brief Renders terrain generation controls */
-        void RenderTerrainControls(TerrainSystem& terrainSystem);
+        void RenderTerrainControls();
+
+        // Window visibility controls
+        void ShowTransformControls(bool show) { m_ShowTransformControls = show; }
+        void ShowProfiler(bool show) { m_ShowProfiler = show; }
+        void ShowRendererSettings(bool show) { m_ShowRendererSettings = show; }
+        void ShowEventDebugger(bool show) { m_ShowEventDebugger = show; }
+        void ShowTerrainControls(bool show) { m_ShowTerrainControls = show; }
+        void ShowFPSCounter(bool show) { m_ShowFPSCounter = show; }
 
     private:
         Window* m_Window;                                               ///< Pointer to application window
@@ -57,5 +65,10 @@ namespace Engine {
         bool m_ShowEventDebugger = true;                                ///< Event debugger visibility flag
         FPSCounter m_FPSCounter;                                        ///< FPS counter
         ImGuiWidgetFlameGraph::FlameGraphSettings m_FlameGraphSettings; ///< Flame graph settings
+        bool m_ShowTransformControls = true;
+        bool m_ShowProfiler = true;
+        bool m_ShowRendererSettings = true;
+        bool m_ShowTerrainControls = true;
+        bool m_ShowFPSCounter = true;
     };
 }

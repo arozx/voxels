@@ -1,8 +1,10 @@
-#include <pch.h>
 #include "OpenGLWindow.h"
-#include "../Events/WindowEvent.h"
+
+#include <pch.h>
+
 #include "../Events/KeyEvent.h"
 #include "../Events/MouseEvent.h"
+#include "../Events/WindowEvent.h"
 
 namespace Engine {
 
@@ -32,9 +34,21 @@ namespace Engine {
     }
 
     /**
-     * @brief Initialize the OpenGL window
-     * @param props Window properties including title, width and height
-     * @details Sets up GLFW window, OpenGL context and all input callbacks
+     * @brief Initialize the OpenGL window with specified properties
+     * 
+     * @param props Window configuration parameters including title, width, and height
+     * 
+     * @details Performs comprehensive window initialization:
+     * - Initializes GLFW library
+     * - Configures OpenGL context version and profile
+     * - Creates GLFW window
+     * - Sets up window context
+     * - Registers multiple input callbacks for window events, keyboard, mouse, and scroll interactions
+     * 
+     * @note Terminates GLFW and logs an error if window creation fails
+     * @note Enables vertical synchronization by default after initialization
+     * 
+     * @throws None Handles initialization errors internally
      */
     void OpenGLWindow::Init(const WindowProps& props) {
         m_Data.Title = props.Title;
@@ -122,7 +136,6 @@ namespace Engine {
                 {
                     MouseButtonPressedEvent event(button);
                     data.EventCallback(event);
-                    LOG_INFO("Mouse clicked at: ({:.1f}, {:.1f})", xpos, ypos);
                     break;
                 }
                 case GLFW_RELEASE:

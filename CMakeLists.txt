@@ -10,15 +10,28 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 
 if(WIN32)
-  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{USERPROFILE}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 else()
-  include_directories(/usr/include)
-  link_directories(/usr/lib)
+    include_directories(/usr/include)
+    link_directories(/usr/lib)
 endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
+
 find_package(OpenGL REQUIRED)
+if (NOT OPENGL_FOUND)
+    message(FATAL_ERROR "OpenGL not found. Please install OpenGL package.")
+endif()
+
 find_package(glfw3 CONFIG REQUIRED)
+if (NOT glfw3_FOUND)
+    message(FATAL_ERROR "GLFW not found. Please install GLFW3 package.")
+endif()
+
+find_package(Lua 5.4 REQUIRED)
+if(NOT LUA_FOUND)
+    message(FATAL_ERROR "Lua >= 5.4 not found. Please install lua5.4 and lua5.4-dev packages.")
+endif()
 
 # Add GLAD
 add_library(glad STATIC
@@ -69,6 +82,8 @@ set(ENGINE_SOURCES
     src/Noise/SimplexNoise/SimplexNoise.cpp
     src/Noise/ValueNoise/ValueNoise.cpp
     external/stb_image/src/stb_image.cpp
+    src/Scripting/LuaScriptSystem.cpp
+    src/Scene/Scene.cpp
     ${IMGUI_SOURCES}
 )
 
@@ -82,12 +97,14 @@ target_include_directories(voxel-engine PUBLIC
     ${CMAKE_SOURCE_DIR}/external/stb_image/src
     ${CMAKE_SOURCE_DIR}/external/json
     ${CMAKE_SOURCE_DIR}/external/glad/include
+    ${CMAKE_SOURCE_DIR}/external/sol2
 )
 
 target_link_libraries(voxel-engine PUBLIC 
     glfw 
     OpenGL::GL
     glad
+    ${LUA_LIBRARIES}  # Add Lua libraries
 )
 
 # Create sandbox executable
@@ -98,21 +115,20 @@ set(SANDBOX_SOURCES
 add_executable(sandbox ${SANDBOX_SOURCES})
 target_link_libraries(sandbox PRIVATE voxel-engine)
 
+add_custom_command(TARGET sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/sandbox/assets/scripts
+    ${CMAKE_BINARY_DIR}/assets/scripts
+)
+
+add_custom_command(TARGET sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:sandbox>/assets
+)
+
 # Enable precompiled headers - specify C++ explicitly
 target_precompile_headers(voxel-engine
   PRIVATE
     $<INSTALL_INTERFACE:pch.h>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h>
-)
-
-# Force C++ compilation for PCH
-set_source_files_properties(
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h
-  PROPERTIES
-  LANGUAGE CXX
-)
-
-# Ensure PCH is used for all C++ files
-set_target_properties(voxel-engine PROPERTIES
-  COMPILE_FLAGS "-include pch.h"
 )
