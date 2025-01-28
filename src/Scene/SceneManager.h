@@ -12,9 +12,13 @@ class SceneManager {
         return instance;
     }
 
-    void AddScene(const std::shared_ptr<Scene>& scene) { scenes[scene->GetName()] = scene; }
+    void AddScene(const std::shared_ptr<Scene>& scene) {
+        std::lock_guard<std::mutex> lock(sceneMutex);
+        scenes[scene->GetName()] = scene;
+    }
 
     void SetActiveScene(const std::string& name) {
+        std::lock_guard<std::mutex> lock(sceneMutex);
         LOG_TRACE("SetActiveScene called with name = ", name);
         if (scenes.find(name) != scenes.end()) {
             if (activeScene) {
@@ -28,14 +32,23 @@ class SceneManager {
         }
     }
 
-    std::shared_ptr<Scene> GetActiveScene() const { return activeScene; }
+    std::shared_ptr<Scene> GetActiveScene() const {
+        std::lock_guard<std::mutex> lock(sceneMutex);
+        return activeScene;
+    }
 
     std::shared_ptr<Scene> GetScene(const std::string& name) const {
+        std::lock_guard<std::mutex> lock(sceneMutex);
         auto it = scenes.find(name);
         return it != scenes.end() ? it->second : nullptr;
     }
 
     bool RemoveScene(const std::string& name) {
+        std::lock_guard<std::mutex> lock(sceneMutex);
+        if (scenes.find(name) == scenes.end()) {
+            LOG_ERROR_CONCAT("Cannot remove scene: ", name, " (not found)");
+            return false;
+        }
         if (activeScene && activeScene->GetName() == name) {
             activeScene = nullptr;
         }
@@ -43,12 +56,14 @@ class SceneManager {
     }
 
     void Update(float deltaTime) {
+        std::lock_guard<std::mutex> lock(sceneMutex);
         if (activeScene) {
             activeScene->OnUpdate(deltaTime);
         }
     }
 
     void Render(Renderer& renderer) {
+        std::lock_guard<std::mutex> lock(sceneMutex);
         if (activeScene) {
             activeScene->OnRender(renderer);
         }
@@ -56,6 +71,7 @@ class SceneManager {
 
    private:
     SceneManager() = default;
+    mutable std::mutex sceneMutex;
     std::unordered_map<std::string, std::shared_ptr<Scene>> scenes;
     std::shared_ptr<Scene> activeScene;
 };
