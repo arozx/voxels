@@ -173,6 +173,4 @@ namespace Engine {
                "Invalid camera type");
         m_CameraType = type;
     }
-
-    void Renderer::Render() { Flush(); }
 }
