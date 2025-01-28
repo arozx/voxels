@@ -164,8 +164,15 @@ namespace Engine {
     }
 
     /**
-     * @brief Set the active camera type for rendering
-     * @param type The camera type to use (Orthographic or Perspective)
+     * @brief Sets the active camera type for rendering
+     * 
+     * @param type The camera type to use for subsequent rendering operations
+     *             Must be either Orthographic or Perspective
+     * 
+     * @pre The provided camera type must be either CameraType::Orthographic or CameraType::Perspective
+     * @throws Assertion error if an invalid camera type is provided
+     * 
+     * @note This method updates the internal camera type used by the renderer
      */
     void Renderer::SetCameraType(CameraType type) {
         // Assert valid camera type
@@ -174,5 +181,13 @@ namespace Engine {
         m_CameraType = type;
     }
 
-    void Renderer::Render() { Flush(); }
+    /**
+ * @brief Triggers the rendering process by flushing all queued render commands.
+ *
+ * This method calls the Flush() method to process and execute all pending render commands
+ * in the render queue. It serves as a simple wrapper method to initiate the rendering pipeline.
+ *
+ * @note This method ensures that all queued rendering commands are processed and drawn to the screen.
+ */
+void Renderer::Render() { Flush(); }
 }

@@ -10,15 +10,80 @@
 #include "../Scene/SceneManager.h"
 
 namespace Engine {
+/**
+ * @brief Constructs a new LuaScriptSystem instance and initializes the Lua state.
+ * 
+ * Creates a unique pointer to a Lua state and opens standard Lua libraries to prepare 
+ * the scripting environment. The opened libraries include:
+ * - Base library (standard Lua functions)
+ * - Package library (module loading)
+ * - Math library (mathematical operations)
+ * - String library (string manipulation)
+ * - Table library (table operations)
+ * - IO library (input/output operations)
+ * - OS library (operating system interactions)
+ * 
+ * @note This constructor sets up a fully functional Lua scripting environment ready 
+ * for engine integration and script execution.
+ */
 LuaScriptSystem::LuaScriptSystem() : m_LuaState(std::make_unique<sol::state>()) {
     m_LuaState->open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string,
                                sol::lib::table, sol::lib::io, sol::lib::os);
 }
 
+/**
+ * @brief Default destructor for the LuaScriptSystem.
+ * 
+ * Cleans up the LuaScriptSystem instance, allowing for proper resource management 
+ * when the object goes out of scope or is explicitly deleted. The default implementation 
+ * ensures that any resources managed by the base class or compiler-generated destructors 
+ * are properly released.
+ * 
+ * @note This destructor is defaulted, meaning the compiler will generate the default 
+ * implementation for destroying the LuaScriptSystem object.
+ */
 LuaScriptSystem::~LuaScriptSystem() = default;
 
+/**
+ * @brief Initializes the Lua scripting system by registering the engine's API.
+ *
+ * This method calls the RegisterEngineAPI() function to set up the Lua environment
+ * with various engine-specific functions and APIs, enabling Lua scripts to interact
+ * with different engine components such as terrain, rendering, scene management,
+ * input handling, and debugging.
+ *
+ * @note This method must be called after creating a LuaScriptSystem instance to
+ * ensure that the Lua scripting environment is properly configured and ready for use.
+ */
 void LuaScriptSystem::Initialize() { RegisterEngineAPI(); }
 
+/**
+ * @brief Registers the engine's API functions for Lua scripting.
+ *
+ * This method creates a named table 'engine' in the Lua state and populates it with 
+ * various functions that allow Lua scripts to interact with different engine systems.
+ *
+ * The registered API includes functionality for:
+ * - Terrain manipulation (height setting, mesh generation)
+ * - Renderer controls (clear color, viewport, camera type)
+ * - Scene management (create, set active, delete scenes)
+ * - Input handling (key/mouse button states, mouse position)
+ * - Logging and debugging
+ * - Profiling
+ * - Camera control
+ * - ImGui overlay controls
+ *
+ * @note Functions are registered as lambda functions that interact with various 
+ * engine systems like SceneManager, Renderer, Application, and ImGuiOverlay.
+ *
+ * @warning Some functions have safety checks to prevent operations on null systems 
+ * or inactive scenes, with appropriate error logging.
+ *
+ * @see LuaScriptSystem
+ * @see SceneManager
+ * @see Renderer
+ * @see Application
+ */
 void LuaScriptSystem::RegisterEngineAPI() {
     auto engine = m_LuaState->create_named_table("engine");
 
@@ -305,6 +370,25 @@ void LuaScriptSystem::RegisterEngineAPI() {
     keyCodes["D"] = GLFW_KEY_D;
 }
 
+/**
+ * @brief Executes a Lua script from a provided script string.
+ *
+ * This method attempts to load and execute a Lua script directly from a string.
+ * It performs two-stage validation: first checking script loading, then script execution.
+ *
+ * @param script A string containing the Lua script to be executed
+ * @return bool True if the script is successfully loaded and executed, false otherwise
+ *
+ * @note Logs detailed error messages if script loading or execution fails
+ * @note Uses sol2 library for Lua script handling
+ *
+ * @exception None Exceptions are caught and logged internally
+ *
+ * @example
+ * LuaScriptSystem luaSystem;
+ * bool success = luaSystem.ExecuteScript("print('Hello, World!')");
+ * // success will be true if script executes without errors
+ */
 bool LuaScriptSystem::ExecuteScript(const std::string& script) {
     sol::load_result loadResult = m_LuaState->load(script);
     if (!loadResult.valid()) {
@@ -323,6 +407,27 @@ bool LuaScriptSystem::ExecuteScript(const std::string& script) {
     return true;
 }
 
+/**
+ * @brief Attempts to locate and execute a Lua script file from multiple potential search paths.
+ *
+ * This method searches for the specified script file in several predefined locations:
+ * 1. The original path provided
+ * 2. Relative paths with "../" and "../../" prefixes
+ * 3. Predefined script directories with the filename extracted from the original path
+ *
+ * @param originalPath The initial file path of the Lua script to be executed
+ * @return bool True if the script is successfully found and executed, false otherwise
+ *
+ * @details
+ * - Searches through a list of potential file paths
+ * - Uses FileSystem::Exists() to verify file presence
+ * - Logs an error if the script cannot be found
+ * - Attempts to load and execute the script using sol2 library
+ * - Logs an error if script loading or execution fails
+ *
+ * @note Supports relative and absolute file paths
+ * @note Extracts filename from the original path for additional search locations
+ */
 bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
     std::vector<std::string> searchPaths = {
         originalPath, "../" + originalPath, "../../" + originalPath,
