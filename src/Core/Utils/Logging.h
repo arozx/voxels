@@ -56,6 +56,20 @@ constexpr const char* Reset = "\033[0m";
 constexpr const char* Yellow = "\033[33m";
 constexpr const char* Red = "\033[31m";
 constexpr const char* Purple = "\033[35m";
+
+#ifdef _WIN32
+// Enable ANSI support on Windows
+inline void EnableColors() {
+    static bool enabled = false;
+    if (!enabled) {
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD dwMode = 0;
+        GetConsoleMode(hOut, &dwMode);
+        SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+        enabled = true;
+    }
+}
+#endif
 }  // namespace LogColors
 
 /**
