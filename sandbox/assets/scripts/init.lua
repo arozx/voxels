@@ -5,7 +5,13 @@ local buildDir = "build/assets/scripts"
 local scriptDir = "sandbox/assets/scripts"
 
 engine.trace("Creating build directory: " .. buildDir)
-os.execute("mkdir -p " .. buildDir)
+local function sanitizePath(path)
+    -- Remove any shell special characters
+    return path:gsub('[;&|"]', '')
+end
+
+local sanitizedPath = sanitizePath(buildDir)
+os.execute('mkdir -p "' .. sanitizedPath .. '"')
 
 local function copyScript(name)
     -- Try to read source file directly
