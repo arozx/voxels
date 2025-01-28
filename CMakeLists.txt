@@ -10,10 +10,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 
 if(WIN32)
-  set(CMAKE_TOOLCHAIN_FILE "C:/Users/44782/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{USERPROFILE}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 else()
-  include_directories(/usr/include)
-  link_directories(/usr/lib)
+    include_directories(/usr/include)
+    link_directories(/usr/lib)
 endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
@@ -71,6 +71,7 @@ set(ENGINE_SOURCES
     src/Noise/ValueNoise/ValueNoise.cpp
     external/stb_image/src/stb_image.cpp
     src/Scripting/LuaScriptSystem.cpp
+    src/Scene/Scene.cpp
     ${IMGUI_SOURCES}
 )
 

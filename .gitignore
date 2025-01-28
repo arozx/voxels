@@ -35,3 +35,6 @@ vcpkg_installed/
 .vs/slnx.sqlite*
 
 .vs/voxel-eng/copilot*
+
+cmake-build-debug/
+cmake-build-release
