@@ -68,13 +68,22 @@ SandboxApp::SandboxApp() : Application() {
  *
  * @see ExecuteCommand()
  */
+// Constants for Lua console
+static constexpr ImVec2 INITIAL_WINDOW_SIZE(520, 600);
+static constexpr size_t MAX_INPUT_BUFFER_SIZE = 256;
+static constexpr size_t MAX_COMMAND_HISTORY = 100;
+
 void SandboxApp::OnImGuiRender() {
-    ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(INITIAL_WINDOW_SIZE, ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Lua Console", &m_ShowConsole)) {
         // Command history
         ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false);
         static std::string consoleOutput;
         consoleOutput.clear();
+        // Limit command history size
+        while (m_CommandHistory.size() > MAX_COMMAND_HISTORY) {
+            m_CommandHistory.pop_front();
+        }
         for (const auto& cmd : m_CommandHistory) {
             consoleOutput += cmd + "\n";
         }
@@ -86,7 +95,7 @@ void SandboxApp::OnImGuiRender() {
 
         // Command input
         ImGui::Separator();
-        static char inputBuffer[256];
+        static char inputBuffer[MAX_INPUT_BUFFER_SIZE];
         bool reclaimFocus = false;
         ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags_EnterReturnsTrue;
 
@@ -94,13 +103,14 @@ void SandboxApp::OnImGuiRender() {
         if (ImGui::IsKeyPressed(ImGuiKey_UpArrow) && !m_CommandHistory.empty()) {
             if (m_HistoryIndex == -1) {
                 m_HistoryIndex = static_cast<int>(m_CommandHistory.size()) - 1;
-            } else if (m_HistoryIndex > 0) {
+            } else if (m_HistoryIndex > 0 && m_HistoryIndex < static_cast<int>(m_CommandHistory.size())) {
                 m_HistoryIndex--;
             }
-            if (m_CommandHistory[m_HistoryIndex].find("Error") == std::string::npos) {
+            if (m_HistoryIndex >= 0 && m_HistoryIndex < static_cast<int>(m_CommandHistory.size()) &&
+                m_CommandHistory[m_HistoryIndex].find("Error") == std::string::npos) {
                 std::string command =
                     m_CommandHistory[m_HistoryIndex].substr(2);  // Strip the "> " prefix
-                strncpy(inputBuffer, command.c_str(), sizeof(inputBuffer));
+                strncpy(inputBuffer, command.c_str(), MAX_INPUT_BUFFER_SIZE - 1);
                 inputBuffer[sizeof(inputBuffer) - 1] = '\0';  // Ensure null-termination
             } else {
                 inputBuffer[0] = '\0';  // Clear the buffer if the command contains "Error"
