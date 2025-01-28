@@ -1259,17 +1259,6 @@ namespace sol {
 	template <typename... Args>
 	struct types {
 		typedef std::make_index_sequence<sizeof...(Args)> indices;
-		/**
-		 * @brief Returns the number of template arguments.
-		 *
-		 * This static constexpr function uses the parameter pack expansion 
-		 * sizeof... operator to compute the number of template arguments 
-		 * at compile-time.
-		 *
-		 * @tparam Args Parameter pack of template arguments
-		 * @return std::size_t Number of template arguments
-		 * @note Compile-time constant computation
-		 */
 		static constexpr std::size_t size() {
 			return sizeof...(Args);
 		}
