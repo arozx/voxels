@@ -73,7 +73,7 @@ namespace Engine {
 
     void TerrainSystem::Render(Renderer& renderer) {
         if (m_TerrainVA && m_TerrainMaterial) {
-            renderer.Submit(m_TerrainVA, m_TerrainMaterial, m_TerrainTransform);
+            renderer.Submit(m_TerrainVA, m_TerrainMaterial, m_TerrainTransform.GetModelMatrix());
         }
     }
 

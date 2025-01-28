@@ -20,11 +20,8 @@ namespace Engine {
          */
         virtual void OnRender(Renderer& renderer) {
             if (m_RenderObject) {
-                renderer.Submit(
-                    m_RenderObject->GetVertexArray(),
-                    m_RenderObject->GetMaterial(),
-                    m_RenderObject->GetTransform()
-                );
+                renderer.Submit(m_RenderObject->GetVertexArray(), m_RenderObject->GetMaterial(),
+                                m_RenderObject->GetTransform().GetModelMatrix());
             }
         }
 

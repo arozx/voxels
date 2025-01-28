@@ -46,11 +46,11 @@ void Renderer::Initialize() {
  * @brief Submit a render command to the queue
  * @param vertexArray The vertex array object to render
  * @param material The material to use for rendering
- * @param transform The transform matrix for the object
+ * @param transformMatrix The transform matrix for the object
  * @param primitiveType The OpenGL primitive type to render
  */
 void Renderer::Submit(const std::shared_ptr<VertexArray>& vertexArray,
-                      const std::shared_ptr<Material>& material, const Transform& transform,
+                      const std::shared_ptr<Material>& material, const glm::mat4& transformMatrix,
                       GLenum primitiveType) {
     // Assert valid parameters
     ASSERT(vertexArray != nullptr && "Null vertex array submitted");
@@ -66,7 +66,7 @@ void Renderer::Submit(const std::shared_ptr<VertexArray>& vertexArray,
     command.vertexArray = vertexArray;
     command.material = material;
     command.primitiveType = primitiveType;
-    command.transform = transform;
+    command.transformMatrix = transformMatrix;
 
     std::lock_guard<std::mutex> lock(m_QueueMutex);
     m_CommandQueue.push(command);
@@ -87,9 +87,9 @@ void Renderer::Flush() {
     {
         std::lock_guard<std::mutex> lock(m_QueueMutex);
         while (!m_CommandQueue.empty()) {
-            commands.push_back({m_CommandQueue.front().vertexArray, m_CommandQueue.front().material,
-                                m_CommandQueue.front().primitiveType,
-                                m_CommandQueue.front().transform.GetModelMatrix()});
+            auto cmd = m_CommandQueue.front();
+            commands.push_back(
+                {cmd.vertexArray, cmd.material, cmd.primitiveType, cmd.transformMatrix});
             m_CommandQueue.pop();
         }
     }

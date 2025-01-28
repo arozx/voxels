@@ -22,7 +22,7 @@ namespace Engine {
         std::shared_ptr<VertexArray> vertexArray;    ///< Vertex array to render
         std::shared_ptr<Material> material;          ///< Material to use
         GLenum primitiveType;                        ///< OpenGL primitive type
-        Transform transform;                         ///< Transform of the object
+        glm::mat4 transformMatrix;                   ///< Transform
     };
 
     /**
@@ -88,13 +88,13 @@ namespace Engine {
          * @brief Submit an object for rendering
          * @param vertexArray Vertex array containing geometry
          * @param material Material to use for rendering
-         * @param transform Transform of the object
+         * @param transformMatrix Transform matrix of the object
          * @param primitiveType Type of primitives to render
          */
         void Submit(const std::shared_ptr<VertexArray>& vertexArray,
-            const std::shared_ptr<Material>& material,
-            const Transform& transform = Transform(),
-            GLenum primitiveType = GL_TRIANGLES);
+                    const std::shared_ptr<Material>& material,
+                    const glm::mat4& transformMatrix = glm::mat4(1.0f),
+                    GLenum primitiveType = GL_TRIANGLES);
 
         /**
          * @brief Process and execute all queued render commands
@@ -161,7 +161,9 @@ namespace Engine {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
-    private:
+        void Render();
+
+       private:
         std::mutex m_QueueMutex;                     ///< Mutex for command queue access
         std::mutex m_RenderMutex;                    ///< Mutex for render queue access
         std::shared_ptr<Shader> m_Shader;            ///< Current active shader

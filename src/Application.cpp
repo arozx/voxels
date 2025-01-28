@@ -58,25 +58,7 @@ namespace Engine {
     Application* Application::s_Instance = nullptr;
 
     /**
-     * @brief Initializes the application and its core subsystems
-     * 
-     * This constructor sets up the entire application environment, including:
-     * - Profiling session
-     * - Window creation
-     * - Renderer initialization
-     * - ImGui layer setup
-     * - Lua script system configuration
-     * - Asset preloading
-     * - Input system configuration
-     * - ImGui overlay creation
-     * - Toggle state initialization
-     * - Default shader preloading
-     * 
-     * @note The initialization follows a specific order to ensure proper system dependencies
-     * @throws std::exception If any critical system fails to initialize
-     * 
-     * @pre No other application instance should exist
-     * @post All core subsystems are initialized and ready for runtime
+     * @brief Initialize the application and all subsystems
      */
     Application::Application() 
     {
