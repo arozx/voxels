@@ -237,7 +237,7 @@ void Scene::RenderObject(const std::shared_ptr<SceneObject> &object, Renderer &r
         cmd.modelMatrix = object->GetWorldTransform();
         cmd.primitiveType = GL_TRIANGLES;
 
-        renderer.Submit(cmd.vertexArray, cmd.material, object->transform);
+        renderer.Submit(cmd.vertexArray, cmd.material, cmd.modelMatrix);
     }
 
     for (const auto &child : object->children) {
