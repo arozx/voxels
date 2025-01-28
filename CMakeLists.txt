@@ -17,9 +17,21 @@ else()
 endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
+
 find_package(OpenGL REQUIRED)
+if (NOT OPENGL_FOUND)
+    message(FATAL_ERROR "OpenGL not found. Please install OpenGL package.")
+endif()
+
 find_package(glfw3 CONFIG REQUIRED)
-find_package(Lua REQUIRED)
+if (NOT glfw3_FOUND)
+    message(FATAL_ERROR "GLFW not found. Please install GLFW3 package.")
+endif()
+
+find_package(Lua 5.4 REQUIRED)
+if(NOT LUA_FOUND)
+    message(FATAL_ERROR "Lua >= 5.4 not found. Please install lua5.4 and lua5.4-dev packages.")
+endif()
 
 # Add GLAD
 add_library(glad STATIC
