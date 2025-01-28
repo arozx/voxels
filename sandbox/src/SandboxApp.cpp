@@ -82,7 +82,7 @@ void SandboxApp::OnImGuiRender() {
         consoleOutput.clear();
         // Limit command history size
         while (m_CommandHistory.size() > MAX_COMMAND_HISTORY) {
-            m_CommandHistory.pop_front();
+            m_CommandHistory.erase(m_CommandHistory.begin());
         }
         for (const auto& cmd : m_CommandHistory) {
             consoleOutput += cmd + "\n";
