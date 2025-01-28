@@ -11,7 +11,11 @@ local function sanitizePath(path)
 end
 
 local sanitizedPath = sanitizePath(buildDir)
-os.execute('mkdir -p "' .. sanitizedPath .. '"')
+local success, _, code = os.execute('mkdir -p "' .. sanitizedPath .. '"')
+if not success then
+    engine.error(string.format("Failed to create directory %s (exit code: %d)", sanitizedPath, code))
+    return
+end
 
 local function copyScript(name)
     local function closeFiles(source, dest)
