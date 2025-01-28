@@ -6,8 +6,10 @@ local scriptDir = "sandbox/assets/scripts"
 
 engine.trace("Creating build directory: " .. buildDir)
 local function sanitizePath(path)
-    -- Remove any shell special characters
-    return path:gsub('[;&|"]', '')
+    -- Remove any non-alphanumeric characters except for safe separators
+    return path:gsub('[^%w%./%-]', '')
+        :gsub('%.%.', '') -- Remove path traversal sequences
+        :gsub('//+', '/') -- Normalize multiple slashes
 end
 
 local sanitizedPath = sanitizePath(buildDir)
