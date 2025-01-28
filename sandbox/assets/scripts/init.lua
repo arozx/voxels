@@ -22,6 +22,15 @@ local function copyScript(name)
         if source then source:close() end
         if dest then dest:close() end
     end
+    local function isPathSafe(path)
+        return not path:match("%.%.")
+    end
+
+    if not isPathSafe(name) then
+        engine.error(string.format("Invalid script name (potential path traversal): %s", name))
+        return false
+    end
+
     local sourcePath = scriptDir .. "/" .. name
     local destPath = buildDir .. "/" .. name
 
