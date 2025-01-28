@@ -20,14 +20,22 @@ namespace Engine {
     }
 
     /**
-     * @brief Render performance statistics overlay
-     * @param renderObject The object being rendered
-     * @param showFPSCounter Whether to show FPS counter
-     * @param currentFPS Current frames per second
-     * @param averageFPS Average frames per second
-     * @param frameTime Time taken for last frame
-     * @param fps1PercentLow 1% low FPS value
-     * @param fps1PercentHigh 1% high FPS value
+     * @brief Renders performance statistics overlay with detailed FPS and frame time information
+     * 
+     * Displays a window in the top-right corner of the screen showing current performance metrics,
+     * including current and average FPS, frame time, 1% low and high FPS values. Provides interactive
+     * controls for VSync and flame graph visualization.
+     * 
+     * @param renderObject The render object context (currently unused in implementation)
+     * @param showFPSCounter Flag to control visibility of the FPS counter
+     * @param currentFPS Instantaneous frames per second for the current frame
+     * @param averageFPS Rolling average of frames per second
+     * @param frameTime Duration of the last frame in seconds
+     * @param fps1PercentLow 1% low performance frame rate
+     * @param fps1PercentHigh 1% high performance frame rate
+     * 
+     * @note The overlay can be toggled using the F3 key
+     * @note Includes interactive VSync toggle and flame graph with configurable settings
      */
     void ImGuiOverlay::OnRender(RenderObject& renderObject, bool showFPSCounter,
         float currentFPS, float averageFPS, float frameTime,
@@ -121,8 +129,15 @@ namespace Engine {
     }
 
     /**
-     * @brief Render transform controls for an object
-     * @param renderObject Object whose transform is being controlled
+     * @brief Renders interactive transform controls for a RenderObject
+     * 
+     * Displays a window with drag controls for modifying an object's position, rotation, and scale.
+     * The window is only rendered if transform controls are enabled via m_ShowTransformControls.
+     * 
+     * @param renderObject Reference to the RenderObject whose transform will be manipulated
+     * 
+     * @note Controls use ImGui drag float widgets with a sensitivity of 0.1 units per drag
+     * @note Position, rotation, and scale are modified directly on the object's transform
      */
     void ImGuiOverlay::RenderTransformControls(RenderObject& renderObject) {
         if (!m_ShowTransformControls) return;
@@ -137,7 +152,17 @@ namespace Engine {
     }
 
     /**
-     * @brief Render profiler window showing performance metrics
+     * @brief Renders a comprehensive profiler window for performance metrics and analysis
+     * 
+     * This method displays a window that allows users to control and view profiling information.
+     * Features include:
+     * - Enabling/disabling profiling
+     * - Clearing existing profiling data
+     * - Configuring number of frames to profile
+     * - Displaying detailed performance statistics for each profiled function
+     * 
+     * @note The window is only rendered if m_ShowProfiler is true
+     * @note Profiling data includes average, minimum, maximum execution times, and number of calls
      */
     void ImGuiOverlay::RenderProfiler() {
         if (!m_ShowProfiler) return;
@@ -195,8 +220,16 @@ namespace Engine {
     }
 
     /**
-     * @brief Render renderer settings window
-     * @details Controls settings like back-face culling
+     * @brief Renders the renderer settings window with back-face culling controls
+     * 
+     * @details Provides an interactive ImGui window to toggle back-face culling in OpenGL.
+     * When enabled, back-face culling is set to cull back faces with counter-clockwise winding order.
+     * The current culling state is retrieved and can be modified through a checkbox.
+     * 
+     * @note The window is only rendered if m_ShowRendererSettings is true
+     * 
+     * @pre OpenGL context must be initialized
+     * @post OpenGL culling state may be modified based on user interaction
      */
     void ImGuiOverlay::RenderRendererSettings() {
         if (!m_ShowRendererSettings) return;
@@ -215,8 +248,20 @@ namespace Engine {
     }
 
     /**
-     * @brief Render event debugger window
-     * @details Shows recent events and their details
+     * @brief Renders a window displaying recent events with detailed information
+     * 
+     * @details Displays a debug window showing the last 5 events in the event history.
+     * Each event can be expanded to reveal additional details such as:
+     * - Event name and time since occurrence
+     * - Event priority (High, Normal, Low)
+     * - Handled status
+     * - Detailed debug information
+     * 
+     * The events are color-coded based on their recency, with recently occurred events 
+     * highlighted in green. If no events have been recorded, a placeholder message is shown.
+     * 
+     * @note The window is only rendered if m_ShowEventDebugger is true
+     * @note Uses ImGui for rendering the event debug interface
      */
     void ImGuiOverlay::RenderEventDebugger() {
         if (!m_ShowEventDebugger) return;
@@ -251,9 +296,19 @@ namespace Engine {
     }
 
     /**
-     * @brief Render terrain generation controls
-     * @param terrainSystem Reference to the terrain system
-     * @details Controls terrain parameters like chunk range, seed, and height settings
+     * @brief Renders interactive controls for terrain generation and modification
+     * 
+     * @details Provides a comprehensive ImGui window for adjusting terrain generation parameters.
+     * Allows users to:
+     * - Modify chunk rendering range
+     * - Regenerate terrain with a specific seed
+     * - Adjust terrain parameters like base height, height scale, and noise scale
+     * - Toggle automatic parameter updates
+     * 
+     * @note Requires an active scene with a valid terrain system
+     * @note Uses static variables to maintain parameter state between renders
+     * 
+     * @warning Skips rendering if no active scene or terrain system is available
      */
     void ImGuiOverlay::RenderTerrainControls() {
         auto activeScene = Engine::SceneManager::Get().GetActiveScene();

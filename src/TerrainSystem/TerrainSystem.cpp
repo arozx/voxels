@@ -49,6 +49,17 @@ namespace Engine {
         // Already initialized in constructor, but could be used for renderer-specific setup
     }
 
+    /**
+     * @brief Updates the terrain system state and logs terrain transform information.
+     *
+     * This method logs the terrain's current transform (position and scale) only once
+     * during the first update cycle. Subsequent calls will not repeat the logging.
+     *
+     * @param deltaTime The time elapsed since the last update frame, unused in this implementation.
+     *
+     * @note The logging is performed at the TRACE level, providing detailed system information.
+     * @note The logging occurs only once due to the static 'logged' flag.
+     */
     void TerrainSystem::Update(float deltaTime) {
         static bool logged = false;
         if (!logged) {
@@ -72,10 +83,31 @@ namespace Engine {
     }
 
     /**
-     * @brief Generates terrain mesh for all visible chunks
+     * @brief Generates a terrain mesh using procedural noise
      * 
-     * Creates vertex and index buffers for terrain geometry,
-     * handling face culling and texture coordinates.
+     * Creates a detailed terrain mesh by generating vertex and index buffers
+     * based on a heightmap. The method uses noise generation to create terrain
+     * geometry with configurable base height, height scale, and noise scale.
+     * 
+     * The terrain is constructed as a grid of quads, with each vertex having
+     * a calculated height based on the noise generator. Texture coordinates
+     * are also generated for proper mapping.
+     * 
+     * @details The method performs the following key steps:
+     * - Generates a heightmap using the noise generator
+     * - Calculates vertex heights based on base height and height scale
+     * - Creates vertices with 3D positions and 2D texture coordinates
+     * - Generates indices to form triangles for rendering
+     * - Creates a vertex array with vertex and index buffers
+     * 
+     * @note The terrain size is determined by m_ChunkRange, with a default
+     * map size of (m_ChunkRange * 2 + 1) * 16
+     * 
+     * @warning Modifies the internal terrain vertex array (m_TerrainVA)
+     * 
+     * @see TerrainSystem::SetBaseHeight
+     * @see TerrainSystem::SetHeightScale
+     * @see TerrainSystem::SetNoiseScale
      */
     void TerrainSystem::GenerateMesh() {
         std::vector<float> vertices;
@@ -138,6 +170,17 @@ namespace Engine {
                          indices.size(), " indicies.");
     }
 
+    /**
+     * @brief Generates a terrain mesh with a specified random seed.
+     *
+     * This method allows regenerating the terrain mesh using a custom seed for the noise generator.
+     * It sets the noise generator to a new seed and then calls the standard mesh generation method.
+     *
+     * @param seed The random seed used to initialize the noise generator for terrain height variation.
+     *
+     * @note This method provides more control over terrain generation by allowing reproducible terrain
+     *       through seed specification.
+     */
     void TerrainSystem::GenerateMesh(uint32_t seed) {
         // Set the seed for the noise generator
         m_NoiseGen = NoiseGenerator<VoidNoise>(seed);
@@ -146,7 +189,18 @@ namespace Engine {
         GenerateMesh();
     }
 
-    // Parameter setters with mesh regeneration
+    /**
+     * @brief Sets the base height for terrain generation and regenerates the terrain mesh.
+     * 
+     * @param height The new base height value to be used for terrain generation.
+     * 
+     * @details This method updates the base height parameter of the terrain system
+     * and immediately triggers a mesh regeneration to reflect the new height setting.
+     * The base height affects the overall vertical positioning of the terrain.
+     * 
+     * @note Calling this method will cause the terrain mesh to be completely regenerated
+     * with the new base height parameter.
+     */
     void TerrainSystem::SetBaseHeight(float height) {
         m_BaseHeight = height;
         GenerateMesh();

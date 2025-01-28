@@ -58,7 +58,25 @@ namespace Engine {
     Application* Application::s_Instance = nullptr;
 
     /**
-     * @brief Initialize the application and all subsystems
+     * @brief Initializes the application and its core subsystems
+     * 
+     * This constructor sets up the entire application environment, including:
+     * - Profiling session
+     * - Window creation
+     * - Renderer initialization
+     * - ImGui layer setup
+     * - Lua script system configuration
+     * - Asset preloading
+     * - Input system configuration
+     * - ImGui overlay creation
+     * - Toggle state initialization
+     * - Default shader preloading
+     * 
+     * @note The initialization follows a specific order to ensure proper system dependencies
+     * @throws std::exception If any critical system fails to initialize
+     * 
+     * @pre No other application instance should exist
+     * @post All core subsystems are initialized and ready for runtime
      */
     Application::Application() 
     {
@@ -131,8 +149,23 @@ namespace Engine {
     }
 
     /**
-     * @brief Main application loop
-     * @details Handles rendering, input processing, and event management
+     * @brief Executes the main application loop, managing rendering, input processing, and system updates.
+     * 
+     * @details This method is the core of the application's runtime behavior. It:
+     * - Manages the application's main event loop
+     * - Processes system updates at each frame
+     * - Handles input and toggle states
+     * - Manages rendering and scene management
+     * - Supports performance profiling and debug features
+     * 
+     * @note The loop continues until `m_Running` is false or the window is closed
+     * 
+     * @pre Application systems must be initialized before calling
+     * @pre Window and input systems must be operational
+     * 
+     * @performance O(1) per frame, with complexity dependent on scene and system updates
+     * 
+     * @thread_safety Not thread-safe; should be called from the main thread
      */
     void Application::Run() 
     {
@@ -222,10 +255,22 @@ namespace Engine {
     }
 
     /**
-     * @brief Initialize window with specified parameters
-     * @param title Window title
-     * @param width Window width
-     * @param height Window height
+     * @brief Initializes the application window with specified parameters and sets up event handling
+     * 
+     * Creates a window using the provided title, width, and height. Configures an event callback
+     * to handle window events such as resizing and input events (key presses, mouse movements).
+     * Registered events are cloned and pushed to the global event queue for further processing.
+     * 
+     * @param title The title of the window to be created
+     * @param width The width of the window in pixels
+     * @param height The height of the window in pixels
+     * 
+     * @note Logs window creation details using trace-level logging
+     * @note Sets the window context after creation
+     * 
+     * @see Window
+     * @see Event
+     * @see EventQueue
      */
     void Application::InitWindow(const char* title, int width, int height) {
         LOG_TRACE_CONCAT("Creating window: ", title, ", Resolution: ", width, "x", height);
@@ -263,6 +308,25 @@ namespace Engine {
         m_Window.reset();
     }
 
+    /**
+     * @brief Begins the rendering scene for the current frame.
+     *
+     * This method prepares the rendering pipeline by performing several key steps:
+     * 1. Clears the renderer with a dark gray background color
+     * 2. Renders the current scene through the SceneManager
+     * 3. Initializes the ImGui layer for overlay rendering
+     * 4. If ImGui is enabled, renders various debug and performance overlays
+     *
+     * @note Uses profiling to track performance of the scene beginning process
+     * @note Conditionally renders ImGui overlays based on m_ImGuiEnabled flag
+     *
+     * Rendered overlays include:
+     * - FPS counter
+     * - Performance profiler
+     * - Renderer settings
+     * - Event debugger
+     * - Terrain controls
+     */
     void Application::BeginScene() {
         PROFILE_FUNCTION();
 
@@ -287,6 +351,18 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Renders the current frame by invoking the renderer's drawing method.
+     * 
+     * This method triggers the drawing process for the current frame, delegating 
+     * the rendering task to the renderer instance. It is typically called as part 
+     * of the application's rendering pipeline to display the graphical output.
+     * 
+     * @note Uses the PROFILE_FUNCTION() macro for performance profiling.
+     * 
+     * @pre A valid renderer instance must be initialized and available.
+     * @post The current frame is rendered and prepared for display.
+     */
     void Application::Present() {
         PROFILE_FUNCTION();
         
