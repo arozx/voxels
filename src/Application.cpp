@@ -441,4 +441,32 @@ namespace Engine {
                 break;
         }
     }
+
+    void Application::ConfigureCamera() {
+        if (!m_Renderer) {
+            LOG_ERROR("Renderer not initialized in ConfigureCamera");
+            return;
+        }
+
+        Renderer::CameraType rendererCamType = static_cast<Renderer::CameraType>(m_CameraType);
+        LOG_TRACE_CONCAT("Camera type set to: ",
+                         (rendererCamType == Renderer::CameraType::Orthographic ? "orthographic"
+                                                                                : "perspective"));
+        m_Renderer->SetCameraType(rendererCamType);
+
+        // Create cameras if they don't exist
+        if (m_CameraType == CameraType::Perspective) {
+            if (!m_Renderer->GetPerspectiveCamera()) {
+                m_Renderer->SetPerspectiveCamera(
+                    std::make_shared<PerspectiveCamera>(45.0f, 1280.0f / 720.0f));
+            }
+            m_Renderer->GetPerspectiveCamera()->SetPosition({0.0f, 5.0f, -10.0f});
+        } else {
+            if (!m_Renderer->GetCamera()) {
+                m_Renderer->SetCamera(
+                    std::make_shared<OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f));
+            }
+            m_Renderer->GetCamera()->SetPosition({0.0f, 0.0f, 0.0f});
+        }
+    }
 }

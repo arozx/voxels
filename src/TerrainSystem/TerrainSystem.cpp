@@ -33,8 +33,8 @@ namespace Engine {
         m_TerrainMaterial->SetVector4("u_Color", glm::vec4(1.0f));
         
         // Update transform to better initial values
-        m_TerrainTransform.position = glm::vec3(-8.0f, -10.0f, -8.0f);
-        m_TerrainTransform.scale = glm::vec3(1.0f);
+        m_TerrainTransform.SetPosition(-8.0f, -10.0f, -8.0f);
+        m_TerrainTransform.SetScale(1.0f, 1.0f, 1.0f);
 
         // Set default terrain parameters
         m_BaseHeight = 0.0f;
@@ -63,10 +63,10 @@ namespace Engine {
     void TerrainSystem::Update(float deltaTime) {
         static bool logged = false;
         if (!logged) {
-            LOG_TRACE_CONCAT("Terrain Transform - Position: (", m_TerrainTransform.position.x, ", ",
-                             m_TerrainTransform.position.y, ", ", m_TerrainTransform.position.z,
-                             ") Scale: (", m_TerrainTransform.scale.x, ", ",
-                             m_TerrainTransform.scale.y, ", ", m_TerrainTransform.scale.z, ")");
+            auto pos = m_TerrainTransform.GetPosition();
+            auto scale = m_TerrainTransform.GetScale();
+            LOG_TRACE_CONCAT("Terrain Transform - Position: (", pos.x, ", ", pos.y, ", ", pos.z,
+                             ") Scale: (", scale.x, ", ", scale.y, ", ", scale.z, ")");
             logged = true;
         }
     }

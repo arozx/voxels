@@ -64,6 +64,12 @@ struct KeyToggleState {
         }
         RenderType GetRenderType() const { return m_RenderType; }
 
+        void SetCameraType(CameraType type) {
+            m_CameraType = type;
+            ConfigureCamera();
+        }
+        CameraType GetCameraType() const { return m_CameraType; }
+
        protected:
         /**
          * @brief Initialize the application window
@@ -185,6 +191,10 @@ struct KeyToggleState {
         std::string m_AssetPath = "../sandbox/assets/";  // Base path for all assets
 
         RenderType m_RenderType = RenderType::Render3D;
+
+        CameraType m_CameraType = CameraType::Perspective;
+
+        void ConfigureCamera();
     };
     
     // To be defined by client application

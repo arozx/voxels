@@ -111,6 +111,33 @@ class DefaultShaders {
         return nullptr;
     }
 
+    static std::shared_ptr<Shader> GetBasicShader() {
+        static std::shared_ptr<Shader> basicShader;
+        if (!basicShader) {
+            const char* vertSrc = R"(
+                #version 330 core
+                layout(location = 0) in vec3 a_Position;
+                uniform mat4 u_ViewProjection;
+                uniform mat4 u_Transform;
+                void main() {
+                    gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
+                }
+            )";
+
+            const char* fragSrc = R"(
+                #version 330 core
+                out vec4 FragColor;
+                uniform vec4 u_Color;
+                void main() {
+                    FragColor = u_Color;
+                }
+            )";
+
+            basicShader = Shader::CreateFromSource(vertSrc, fragSrc);
+        }
+        return basicShader;
+    }
+
    private:
     static const char* GetBatchRenderer2DVertexSrc() {
         return R"(
