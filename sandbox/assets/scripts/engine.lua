@@ -1,3 +1,4 @@
+---* NOTE: all numbers in Lua are floats
 ---@meta
 
 ---@class engine
@@ -45,6 +46,14 @@
 ---@field setActiveScene fun(name: string): boolean # Sets the active scene by name
 ---@field deleteScene fun(name: string): boolean # Deletes a scene by name
 ---@field getActiveSceneName fun(): string # Gets the name of the active scene
+--- Render System
+---@field setRenderType fun(type: string) # Sets the renderer (2D or 3D)
+---@field getRenderType fun(): string # Gets the renderer type (2D or 3D)
+--- 2D Render System
+---@field renderer2d_begin_scene fun() # Begins a scene
+---@field renderer2d_end_scene fun() # Ends a scene
+---@field draw_quad fun(x: number, y: number, width: number, height: number, r: number, g: number, b: number, a: number) # Draw a single quad
+---@field draw_textured_quad fun(x: number, y: number, width: number, height: number, texture, tiling_factor: number) # Draw a single quad with a texture
 engine = {}
 
 -- Key code constants
@@ -246,3 +255,37 @@ function engine.deleteScene(name) end
 ---Gets the name of the active scene
 ---@return string name The name of the active scene (empty string if no active scene)
 function engine.getActiveSceneName() end
+
+--- Sets the renderer type (2D or 3D)
+--- @param type string 2D or 3D
+function setRenderType(type) end
+
+--- Gets the renderer type (2D or 3D)
+--- @return type string
+function getRenderType() end
+
+--- Starts a scene with camera as context
+function engine.renderer2d_begin_scene() end
+
+--- Ends the current scene
+function engine.renderer2d_end_scene() end
+
+--- Draws a single quad
+--- @param x number The x coordinate of the quad
+--- @param y number The y coordinate of the quad
+--- @param width number The width of the quad
+--- @param height number The height of the quad
+--- @param r number The red value of the quad
+--- @param g number The greem value of the quad
+--- @param b number The blue value of the quad
+--- @param a number The alpha value of the quad
+function engine.draw_quad(x, y, width, height, r, g, b, a) end
+
+--- Draws a single textured quad
+--- @param x number The x coordinate of the quad
+--- @param y number The y coordinate of the quad
+--- @param width number The width of the quad
+--- @param height number The height of the quad
+--- @param texture string The texture to use
+--- @param tiling_factor number The tiling_factor
+function engine.draw_textured_quad(x, y, width, height, texture, tiling_factor) end

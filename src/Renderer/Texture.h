@@ -1,7 +1,13 @@
 #pragma once
-#include "../Core/Resource.h"
-#include <stb_image.h>
+
+// clang-format off
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
+// clang-format on
+
+#include <stb_image.h>
+
+#include "../Core/Resource.h"
 
 namespace Engine {
 
@@ -90,6 +96,18 @@ public:
      * @return OpenGL texture handle
      */
     uint32_t GetRendererID() const { return m_RendererID; }
+
+    /**
+     * @brief Sets raw texture data
+     * @param data Pointer to pixel data (must be RGBA format)
+     * @param size Size of data in bytes (must be width * height * 4)
+     */
+    virtual void SetData(void* data, uint32_t size) {
+        ASSERT(size == m_Width * m_Height * 4 && "Data must be entire texture in RGBA format!");
+        Bind();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     data);
+    }
 
 private:
     uint32_t m_RendererID = 0;          ///< OpenGL texture handle

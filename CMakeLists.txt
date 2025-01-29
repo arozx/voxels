@@ -60,6 +60,7 @@ set(ENGINE_SOURCES
     src/Renderer/Buffer.cpp
     src/Renderer/OpenGLBuffer.cpp
     src/Renderer/Renderer.cpp
+    src/Renderer/Renderer2D.cpp
     src/Shader/Shader.cpp
     src/ImGui/ImGuiLayer.cpp
     src/Renderer/VertexArray.cpp

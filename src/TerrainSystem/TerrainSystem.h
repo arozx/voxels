@@ -9,6 +9,7 @@
 #include "Noise/ValueNoise/ValueNoise.h"
 #include "Noise/VoidNoise/VoidNoise.h"
 #include "Renderer/Material.h"
+#include "Renderer/RenderObject.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/VertexArray.h"
 #include "VoxelTerrain.h"
@@ -73,6 +74,13 @@ namespace Engine {
         void GenerateMesh();
         void GenerateMesh(uint32_t seed);
 
+        void Shutdown() {
+            // Clean up terrain resources
+            m_TerrainMesh.reset();
+            m_TerrainMaterial.reset();
+            m_IsInitialized = false;
+        }
+
        private:
         std::unique_ptr<VoxelTerrain> m_Terrain;      ///< Voxel data container
         std::shared_ptr<VertexArray> m_TerrainVA;     ///< Terrain vertex array
@@ -85,6 +93,9 @@ namespace Engine {
         float m_BaseHeight = 32.0f;   ///< Base terrain height
         float m_HeightScale = 32.0f;  ///< Height variation scale
         float m_NoiseScale = 0.05f;   ///< Noise variation scale
+
+        bool m_IsInitialized = false;
+        std::shared_ptr<RenderObject> m_TerrainMesh;
 
        private:
         NoiseGenerator<VoidNoise> m_NoiseGen;

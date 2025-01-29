@@ -2,6 +2,7 @@
 
 #include <sol.hpp>
 
+#include "Camera/CameraTypes.h"  // Add this include
 #include "Core/AssetManager.h"
 #include "Core/FPSCounter.h"
 #include "ImGui/ImGuiLayer.h"
@@ -15,37 +16,19 @@
 #include "UI/ImGuiOverlay.h"
 #include "Window/Window.h"
 
-/**
- * @namespace Engine
- * @brief Core engine namespace containing main application and utility classes
- * 
- * The Engine namespace encapsulates all core functionality of the voxel engine including:
- * - Application management and game loop
- * - Window handling
- * - Rendering systems
- * - Input processing
- * - Scene management
- * - Terrain generation
- * 
- * This namespace provides the foundation for building voxel-based games and applications
- * by managing the lifecycle, resources, and core systems needed for rendering and interaction.
- * 
- * Usage example:
- * @code
- * class Game : public Engine::Application {
- *     // Game implementation
- * };
- * @endcode
- */
 namespace Engine {
-    /**
-     * @brief Stores state for key toggle functionality
-     */
-    struct KeyToggleState {
-        bool previousState = false;     ///< Previous key state
-        float pressStartTime = 0.0f;    ///< Time when key was pressed
-        bool currentValue = true;      ///< Current toggle state
-    };
+enum class CameraType;  // Forward declare
+
+enum class RenderType { Render2D, Render3D };
+
+/**
+ * @brief Stores state for key toggle functionality
+ */
+struct KeyToggleState {
+    bool previousState = false;   ///< Previous key state
+    float pressStartTime = 0.0f;  ///< Time when key was pressed
+    bool currentValue = true;     ///< Current toggle state
+};
 
     /**
      * @brief Main application class handling window, rendering and game loop
@@ -75,7 +58,13 @@ namespace Engine {
 
         ImGuiOverlay* GetImGuiOverlay() { return m_ImGuiOverlay.get(); }
 
-    protected:
+        void SetRenderType(RenderType type) {
+            m_RenderType = type;
+            ConfigureForRenderType();
+        }
+        RenderType GetRenderType() const { return m_RenderType; }
+
+       protected:
         /**
          * @brief Initialize the application window
          * @param title Window title
@@ -115,6 +104,8 @@ namespace Engine {
          * @brief Process pending events
          */
         void ProcessEvents();
+
+        void ConfigureForRenderType();
 
         std::unique_ptr<Renderer> m_Renderer;
         Engine::TerrainSystem* m_TerrainSystem = nullptr;
@@ -192,6 +183,8 @@ namespace Engine {
         static Application* s_Instance;
 
         std::string m_AssetPath = "../sandbox/assets/";  // Base path for all assets
+
+        RenderType m_RenderType = RenderType::Render3D;
     };
     
     // To be defined by client application

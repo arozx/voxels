@@ -20,6 +20,7 @@
 #include "UI/ImGuiOverlay.h"
 
 // Shader system
+#include "Scene/Scene.h"
 #include "Shader/DefaultShaders.h"
 #include "Shader/ShaderHotReload.h"
 
@@ -313,23 +314,33 @@ namespace Engine {
         PROFILE_FUNCTION();
 
         m_Renderer->Clear({0.1f, 0.1f, 0.1f, 1.0f});
-
-        SceneManager::Get().Render(*m_Renderer);
-
         m_ImGuiLayer->Begin();
-        
+
         if (m_ImGuiEnabled) {
-            static RenderObject dummyRenderObject;
-            m_ImGuiOverlay->OnRender(dummyRenderObject, m_ShowFPSCounter, 
-                m_FPSCounter.GetCurrentFPS(), 
-                m_FPSCounter.GetAverageFPS(), 
-                m_FPSCounter.GetFrameTime(), 
-                m_FPSCounter.GetOnePercentLow(), 
-                m_FPSCounter.GetOnePercentHigh());
+            // Always show these controls
             m_ImGuiOverlay->RenderProfiler();
-            m_ImGuiOverlay->RenderRendererSettings();
             m_ImGuiOverlay->RenderEventDebugger();
-            m_ImGuiOverlay->RenderTerrainControls();  // <-- Added call
+
+            if (m_ShowFPSCounter) {
+                static RenderObject dummyRenderObject;
+                m_ImGuiOverlay->OnRender(
+                    dummyRenderObject, m_ShowFPSCounter, m_FPSCounter.GetCurrentFPS(),
+                    m_FPSCounter.GetAverageFPS(), m_FPSCounter.GetFrameTime(),
+                    m_FPSCounter.GetOnePercentLow(), m_FPSCounter.GetOnePercentHigh());
+            }
+
+            // Only show these controls in 3D mode
+            if (m_RenderType == RenderType::Render3D) {
+                m_ImGuiOverlay->RenderRendererSettings();
+                m_ImGuiOverlay->RenderTerrainControls();
+            }
+        }
+
+        OnImGuiRender();
+
+        // Update the Scene
+        if (m_ScriptSystem) {
+            m_ScriptSystem->CallGlobalFunction("UpdateScene");
         }
     }
 
@@ -403,6 +414,31 @@ namespace Engine {
         auto it = m_KeyToggles.find(key);
         if (it != m_KeyToggles.end()) {
             it->second.currentValue = value;
+        }
+    }
+
+    void Application::ConfigureForRenderType() {
+        auto activeScene = SceneManager::Get().GetActiveScene();
+        if (!activeScene) return;
+
+        switch (m_RenderType) {
+            case RenderType::Render2D:
+                if (m_TerrainSystem) {
+                    m_TerrainSystem->Shutdown();
+                    m_TerrainSystem = nullptr;
+                }
+                activeScene->SetCameraType(CameraType::Orthographic);
+                break;
+
+            case RenderType::Render3D:
+                if (!m_TerrainSystem && activeScene) {
+                    m_TerrainSystem = activeScene->GetTerrainSystem();
+                    if (m_TerrainSystem) {
+                        m_TerrainSystem->Initialize(GetRenderer());
+                    }
+                }
+                activeScene->SetCameraType(CameraType::Perspective);
+                break;
         }
     }
 }

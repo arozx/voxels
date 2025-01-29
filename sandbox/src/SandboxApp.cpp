@@ -5,6 +5,13 @@
 
 #include "../src/Scene/SceneManager.h"
 #include "../src/Scripting/LuaScriptSystem.h"
+#include "Camera/OrthographicCamera.h"
+#include "Renderer/Renderer2D.h"
+
+// Add these constants before SandboxApp constructor
+static constexpr ImVec2 INITIAL_WINDOW_SIZE(520, 600);
+static constexpr size_t MAX_INPUT_BUFFER_SIZE = 256;
+static constexpr size_t MAX_COMMAND_HISTORY = 100;
 
 /**
  * @brief Constructor for the SandboxApp, initializing core systems and setting up the Lua console.
@@ -21,26 +28,18 @@
  * @throws None Initialization failures are logged but do not throw exceptions
  */
 SandboxApp::SandboxApp() : Application() {
+    // Create script system first
     Engine::LuaScriptSystem* scriptSystem = GetScriptSystem();
     if (!scriptSystem) {
         LOG_ERROR("Script system not available!");
         return;
     }
 
-    auto activeScene = Engine::SceneManager::Get().GetActiveScene();
-    if (!activeScene) {
-        LOG_ERROR("No active scene available!");
+    // Execute main.lua which will set up rendering type
+    if (!scriptSystem->ExecuteFile("main.lua")) {
+        LOG_ERROR("Failed to execute main.lua!");
         return;
     }
-
-    // Get terrain system from active scene
-    m_TerrainSystem = activeScene->GetTerrainSystem();
-    if (!m_TerrainSystem) {
-        LOG_ERROR("Failed to get terrain system from active scene!");
-        return;
-    }
-
-    m_TerrainSystem->Initialize(GetRenderer());
 
     // Register console toggle
     if (auto* inputSystem = GetInputSystem()) {
@@ -51,27 +50,6 @@ SandboxApp::SandboxApp() : Application() {
         });
     }
 }
-
-/**
- * @brief Renders the Lua Console using ImGui, providing an interactive command input and history display.
- *
- * This method creates an ImGui window titled "Lua Console" with a scrollable command history region
- * and a command input field. It supports:
- * - Displaying previous command history
- * - Navigating command history using up and down arrow keys
- * - Executing Lua commands
- * - Handling command input and focus management
- *
- * @note The console window size is set to 520x600 pixels on first use.
- * @note Commands containing "Error" are filtered from history navigation.
- * @note The input buffer is cleared after command execution.
- *
- * @see ExecuteCommand()
- */
-// Constants for Lua console
-static constexpr ImVec2 INITIAL_WINDOW_SIZE(520, 600);
-static constexpr size_t MAX_INPUT_BUFFER_SIZE = 256;
-static constexpr size_t MAX_COMMAND_HISTORY = 100;
 
 void SandboxApp::OnImGuiRender() {
     ImGui::SetNextWindowSize(INITIAL_WINDOW_SIZE, ImGuiCond_FirstUseEver);

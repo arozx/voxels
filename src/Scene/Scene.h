@@ -1,8 +1,10 @@
 #pragma once
 
 #include <pch.h>
-#include "../Renderer/Renderer.h"
+
+#include "../Camera/CameraTypes.h"
 #include "../Camera/OrthographicCamera.h"
+#include "../Renderer/Renderer.h"
 
 namespace Engine {
 class SceneObject;
@@ -90,6 +92,14 @@ class SceneObject : public std::enable_shared_from_this<SceneObject> {
       */
      TerrainSystem *GetTerrainSystem() const { return m_TerrainSystem.get(); }  // Added getter
 
+     void SetCameraType(CameraType type) {
+         m_CameraType = type;
+         LOG_TRACE("Camera type set to: ",
+                   type == CameraType::Orthographic ? "Orthographic" : "Perspective");
+     }
+
+     CameraType GetCameraType() const { return m_CameraType; }
+
     protected:
         /**
          * @brief Renders an object and its children
@@ -104,5 +114,6 @@ class SceneObject : public std::enable_shared_from_this<SceneObject> {
         std::unique_ptr<TerrainSystem> m_TerrainSystem;       ///< Terrain management system
         std::vector<std::shared_ptr<SceneObject>> m_Objects;  // Container for all scene objects
         Renderer *m_Renderer = nullptr;                       // Pointer to renderer instance
+        CameraType m_CameraType = CameraType::Orthographic;
     };
 }

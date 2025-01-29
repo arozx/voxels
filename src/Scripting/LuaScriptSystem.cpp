@@ -8,6 +8,7 @@
 #include "../Events/MouseEvent.h"
 #include "../Scene/Scene.h"
 #include "../Scene/SceneManager.h"
+#include "Renderer/Renderer2D.h"
 
 namespace Engine {
 /**
@@ -138,6 +139,23 @@ void LuaScriptSystem::RegisterEngineAPI() {
     engine.set_function("getCameraType", []() -> std::string {
         auto type = Renderer::Get().GetCameraType();
         return (type == Renderer::CameraType::Orthographic) ? "orthographic" : "perspective";
+    });
+
+    // Renderer type control
+    engine.set_function("setRenderType", [](const std::string& type) {
+        if (type == "2d") {
+            Application::Get().SetRenderType(RenderType::Render2D);
+        } else if (type == "3d") {
+            Application::Get().SetRenderType(RenderType::Render3D);
+        }
+    });
+
+    engine.set_function("getRenderType", []() -> std::string {
+        return Application::Get().GetRenderType() == RenderType::Render2D ? "2d" : "3d";
+    });
+
+    engine.set_function("is3D", []() -> bool {
+        return Application::Get().GetRenderType() == RenderType::Render3D;
     });
 
     // Scene API
@@ -368,6 +386,56 @@ void LuaScriptSystem::RegisterEngineAPI() {
     keyCodes["A"] = GLFW_KEY_A;
     keyCodes["S"] = GLFW_KEY_S;
     keyCodes["D"] = GLFW_KEY_D;
+
+    // Register 2D rendering functions
+    m_LuaState->set_function("renderer2d_begin_scene", []() {
+        auto& renderer = Engine::Renderer2D::Get();
+        auto camera = std::make_shared<Engine::OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f);
+        renderer.BeginScene(camera);
+    });
+
+    m_LuaState->set_function("renderer2d_end_scene",
+                             []() { Engine::Renderer2D::Get().EndScene(); });
+
+    m_LuaState->set_function("draw_quad", [](float x, float y, float width, float height, float r,
+                                             float g, float b, float a) {
+        Engine::Renderer2D::Get().DrawQuad({x, y}, {width, height}, {r, g, b, a});
+    });
+
+    m_LuaState->set_function(
+        "draw_textured_quad",
+        [](float x, float y, float width, float height,
+           const std::shared_ptr<Engine::Texture>& texture, float tilingFactor) {
+            Engine::Renderer2D::Get().DrawQuad({x, y}, {width, height}, texture, tilingFactor);
+        });
+
+    m_LuaState->set_function("create_checker_texture", []() {
+        const int width = 8, height = 8;
+        uint8_t data[width * height * 4];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int index = (y * width + x) * 4;
+                if ((x + y) % 2 == 0) {
+                    data[index + 0] = 255;
+                    data[index + 1] = 255;
+                    data[index + 2] = 255;
+                    data[index + 3] = 255;
+                } else {
+                    data[index + 0] = 0;
+                    data[index + 1] = 0;
+                    data[index + 2] = 0;
+                    data[index + 3] = 255;
+                }
+            }
+        }
+        auto texture = std::make_shared<Engine::Texture>(width, height);
+        texture->SetData(data, sizeof(data));
+        return texture;
+    });
+
+    // Add renderer initialization function
+    m_LuaState->set_function("renderer2d_initialize",
+                             []() { Engine::Renderer2D::Get().Initialize(); });
 }
 
 /**
@@ -457,5 +525,17 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
     }
 
     return true;
+}
+
+void LuaScriptSystem::CallGlobalFunction(const std::string& functionName) {
+    sol::protected_function fn = (*m_LuaState)[functionName];
+    if (!fn.valid()) {
+        return;
+    }
+
+    sol::protected_function_result result = fn();
+    if (!result.valid()) {
+        LOG_WARN("Failed to call global function: ", functionName);
+    }
 }
 }  // namespace Engine
