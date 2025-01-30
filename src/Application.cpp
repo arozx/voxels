@@ -336,8 +336,6 @@ namespace Engine {
             }
         }
 
-        OnImGuiRender();
-
         // Update the Scene
         if (m_ScriptSystem) {
             m_ScriptSystem->CallGlobalFunction("UpdateScene");
