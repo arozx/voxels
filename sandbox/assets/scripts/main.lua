@@ -25,8 +25,11 @@ local function initialize2DScene()
         return false
     end
 
+    engine.log("abs")
     engine.renderer2DInitialize()
+    engine.log("instalised 2d")
     engine.setCameraType("orthographic")
+    engine.log("set cam")
     engine.setCameraPosition(0, 0, 0)
 
     engine.log("[Lua]: 2D setup complete.")

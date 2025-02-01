@@ -12,7 +12,7 @@
 #include "BlockTypes.h"
 #include "Core/AssetManager.h"
 #include "Renderer/MeshTemplates.h"
-#include "Shader/DefaultShaders.h"
+#include "Shader/ShaderLibrary.h"
 
 namespace Engine {
     /**
@@ -21,28 +21,33 @@ namespace Engine {
      * Initializes terrain with random seed, loads textures and shaders,
      * and generates initial terrain mesh.
      */
-    TerrainSystem::TerrainSystem() 
-        : m_NoiseGen(std::random_device{}())
-    {
-        // Load terrain texture
-        m_TerrainTexture = Texture::Create("assets/textures/terrain_atlas.png");
-        
-        m_TerrainShader = DefaultShaders::LoadTexturedShader();
-        m_TerrainMaterial = std::make_shared<Material>(m_TerrainShader);
-        m_TerrainMaterial->SetTexture("u_Texture", m_TerrainTexture);
-        m_TerrainMaterial->SetVector4("u_Color", glm::vec4(1.0f));
-        
-        // Update transform to better initial values
-        m_TerrainTransform.SetPosition(-8.0f, -10.0f, -8.0f);
-        m_TerrainTransform.SetScale(1.0f, 1.0f, 1.0f);
+TerrainSystem::TerrainSystem() : m_NoiseGen(std::random_device{}()) {
+    // Load terrain texture
+    m_TerrainTexture = Texture::Create("assets/textures/terrain_atlas.png");
 
-        // Set default terrain parameters
-        m_BaseHeight = 0.0f;
-        m_HeightScale = 20.0f;
-        m_NoiseScale = 4.0f;
+    // Get shader with proper error handling
 
-        GenerateMesh();
+    m_TerrainShader = ShaderLibrary::LoadTexturedShader();
+    if (!m_TerrainShader) {
+        LOG_ERROR("Failed to load textured shader for terrain");
+        return;
     }
+
+    m_TerrainMaterial = std::make_shared<Material>(m_TerrainShader);
+    m_TerrainMaterial->SetTexture("u_Texture", m_TerrainTexture);
+    m_TerrainMaterial->SetVector4("u_Color", glm::vec4(1.0f));
+
+    // Update transform to better initial values
+    m_TerrainTransform.SetPosition(-8.0f, -10.0f, -8.0f);
+    m_TerrainTransform.SetScale(1.0f, 1.0f, 1.0f);
+
+    // Set default terrain parameters
+    m_BaseHeight = 0.0f;
+    m_HeightScale = 20.0f;
+    m_NoiseScale = 4.0f;
+
+    GenerateMesh();
+}
 
     // Core functionality
     void TerrainSystem::Initialize(Renderer& renderer) {

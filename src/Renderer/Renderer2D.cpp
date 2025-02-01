@@ -3,9 +3,9 @@
 #include <GLFW/glfw3.h>
 
 #include "../Camera/OrthographicCamera.h"
-#include "../Shader/DefaultShaders.h"
 #include "../Shader/Shader.h"
 #include "Material.h"
+#include "Shader/ShaderLibrary.h"
 #include "VertexArray.h"
 
 namespace Engine {
@@ -74,9 +74,15 @@ void Renderer2D::Initialize() {
     s_Data.QuadVertexArray->SetIndexBuffer(quadIB);
     delete[] quadIndices;
 
-    // Create and initialize the texture material with default shader
-    s_Data.TextureMaterial =
-        std::make_shared<Material>(DefaultShaders::GetOrCreate("BatchRenderer2D"));
+    // Get the batch renderer shader
+    auto shader = ShaderLibrary::CreateBatchRenderer2DShader();
+    if (!shader) {
+        LOG_ERROR("Failed to create BatchRenderer2D shader");
+        return;
+    }
+
+    // Create material with shader
+    s_Data.TextureMaterial = std::make_shared<Material>(shader);
 
     // Configure texture sampling properties
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

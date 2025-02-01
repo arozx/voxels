@@ -21,7 +21,6 @@
 
 // Shader system
 #include "Scene/Scene.h"
-#include "Shader/DefaultShaders.h"
 #include "Shader/ShaderHotReload.h"
 
 /**
@@ -112,9 +111,8 @@ namespace Engine {
         AssetManager::Get().PreloadFrequentAssets();
         m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), *m_Renderer);
         m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
-        
+
         InitializeToggleStates();
-        DefaultShaders::PreloadShaders();
 
         m_TerrainSystem = nullptr;
     }

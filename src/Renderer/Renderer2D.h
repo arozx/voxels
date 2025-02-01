@@ -4,6 +4,7 @@
 #include "Camera/OrthographicCamera.h"
 #include "IRenderer.h"
 #include "RenderObject.h"
+#include "Renderer/Material.h"
 
 namespace Engine {
 
@@ -43,5 +44,6 @@ class Renderer2D : public IRenderer {
     void NextBatch();
 
     Statistics m_Stats;  // Added statistics member
+    std::shared_ptr<Material> m_Material;  // Material reference
 };
 }  // namespace Engine

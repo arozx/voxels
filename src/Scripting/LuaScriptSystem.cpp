@@ -11,7 +11,7 @@
 #include "../Scene/SceneManager.h"
 #include "../Scene/SceneObject.h"
 #include "Renderer/Renderer2D.h"
-#include "Shader/DefaultShaders.h"  // Add this include
+#include "Shader/ShaderLibrary.h"
 
 namespace Engine {
 // Forward declare DefaultShaders
@@ -493,14 +493,13 @@ void LuaScriptSystem::RegisterEngineAPI() {
 
         auto cube = scene->CreateObject(name);
         if (cube) {
-            // Use AssetManager to get cube mesh
             cube->SetMesh(AssetManager::Get().GetOrCreateCubeMesh());
-
-            // Create material with basic shader
-            auto shader = DefaultShaders::GetBasicShader();
-            auto material = std::make_shared<Material>(shader);
-            material->SetVector4("u_Color", glm::vec4(1.0f));
-            cube->SetMaterial(material);
+            auto shader = ShaderLibrary::CreateBasicShader();
+            if (shader) {
+                auto material = std::make_shared<Material>(shader);
+                material->SetVector4("u_Color", glm::vec4(1.0f));
+                cube->SetMaterial(material);
+            }
         }
         return cube;
     });

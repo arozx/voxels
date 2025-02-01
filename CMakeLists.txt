@@ -85,6 +85,8 @@ set(ENGINE_SOURCES
     external/stb_image/src/stb_image.cpp
     src/Scripting/LuaScriptSystem.cpp
     src/Scene/Scene.cpp
+    src/Shader/ShaderLibrary.cpp
+    src/Shader/ShaderFactory.cpp
     ${IMGUI_SOURCES}
 )
 
