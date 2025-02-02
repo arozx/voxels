@@ -25,15 +25,6 @@ class ShaderLibrary {
 
    private:
     static std::unordered_map<std::string, std::shared_ptr<Shader>> s_Shaders;
-
-    // Built-in shader source definitions
-    static const char* s_BasicVertexSrc;
-    static const char* s_BasicFragmentSrc;
-    static const char* s_ColorFragmentSrc;
-    static const char* s_TextureVertexSrc;
-    static const char* s_TextureFragmentSrc;
-    static const char* s_BatchRendererVertexSrc;
-    static const char* s_BatchRendererFragmentSrc;
 };
 
 }  // namespace Engine
