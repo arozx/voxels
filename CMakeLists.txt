@@ -105,8 +105,8 @@ target_include_directories(voxel-engine PUBLIC
     ${CMAKE_SOURCE_DIR}/external/sol2
 )
 
-target_link_libraries(voxel-engine PUBLIC
-    glfw
+target_link_libraries(voxel-engine PUBLIC 
+    glfw 
     OpenGL::GL
     glad
     ${LUA_LIBRARIES}  # Add Lua libraries
