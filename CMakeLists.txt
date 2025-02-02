@@ -97,14 +97,16 @@ target_include_directories(voxel-engine PUBLIC
     ${CMAKE_SOURCE_DIR}/src
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-windows/include
     ${CMAKE_SOURCE_DIR}/external/stb_image/src
     ${CMAKE_SOURCE_DIR}/external/json
     ${CMAKE_SOURCE_DIR}/external/glad/include
+    ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-windows/include
     ${CMAKE_SOURCE_DIR}/external/sol2
 )
 
-target_link_libraries(voxel-engine PUBLIC 
-    glfw 
+target_link_libraries(voxel-engine PUBLIC
+    glfw
     OpenGL::GL
     glad
     ${LUA_LIBRARIES}  # Add Lua libraries

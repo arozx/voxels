@@ -2,7 +2,7 @@
 
 #include <sol.hpp>
 
-#include "Camera/CameraTypes.h"  // Add this include
+#include "Camera/CameraTypes.h"
 #include "Core/AssetManager.h"
 #include "Core/FPSCounter.h"
 #include "ImGui/ImGuiLayer.h"
@@ -30,173 +30,173 @@ struct KeyToggleState {
     bool currentValue = true;     ///< Current toggle state
 };
 
+/**
+ * @brief Main application class handling window, rendering and game loop
+ */
+class Application {
+   public:
+    Application();
+    virtual ~Application();
+
     /**
-     * @brief Main application class handling window, rendering and game loop
+     * @brief Main application loop
      */
-    class Application {
-    public:
-        Application();
-        virtual ~Application();
-        
-        /**
-         * @brief Main application loop
-         */
-        void Run();
-        
-        unsigned int indicies;
+    void Run();
 
-        Renderer& GetRenderer() { return *m_Renderer; }
+    unsigned int indicies;
 
-        LuaScriptSystem* GetScriptSystem() { return m_ScriptSystem.get(); }
+    Renderer& GetRenderer() { return *m_Renderer; }
 
-        static Application& Get() { return *s_Instance; }
-        InputSystem* GetInputSystem() { return m_InputSystem.get(); }
+    LuaScriptSystem* GetScriptSystem() { return m_ScriptSystem.get(); }
 
-        virtual void OnImGuiRender() {}
+    static Application& Get() { return *s_Instance; }
+    InputSystem* GetInputSystem() { return m_InputSystem.get(); }
 
-        const std::string& GetAssetPath() const { return m_AssetPath; }
+    virtual void OnImGuiRender() {}
 
-        ImGuiOverlay* GetImGuiOverlay() { return m_ImGuiOverlay.get(); }
+    const std::string& GetAssetPath() const { return m_AssetPath; }
 
-        void SetRenderType(RenderType type) {
-            m_RenderType = type;
-            ConfigureForRenderType();
-        }
-        RenderType GetRenderType() const { return m_RenderType; }
+    ImGuiOverlay* GetImGuiOverlay() { return m_ImGuiOverlay.get(); }
 
-        void SetCameraType(CameraType type) {
-            m_CameraType = type;
-            ConfigureCamera();
-        }
-        CameraType GetCameraType() const { return m_CameraType; }
+    void SetRenderType(RenderType type) {
+        m_RenderType = type;
+        ConfigureForRenderType();
+    }
+    RenderType GetRenderType() const { return m_RenderType; }
 
-       protected:
-        /**
-         * @brief Initialize the application window
-         * @param title Window title
-         * @param width Window width
-         * @param height Window height
-         */
-        void InitWindow(const char* title = "Voxel Engine", int width = 1280, int height = 720);
+    void SetCameraType(CameraType type) {
+        m_CameraType = type;
+        ConfigureCamera();
+    }
+    CameraType GetCameraType() const { return m_CameraType; }
 
-        /**
-         * @brief Clean up window resources
-         */
-        void ShutdownWindow();
-        
-        /**
-         * @brief Begin a new frame
-         */
-        void BeginScene();
+   protected:
+    /**
+     * @brief Initialize the application window
+     * @param title Window title
+     * @param width Window width
+     * @param height Window height
+     */
+    void InitWindow(const char* title = "Voxel Engine", int width = 1280, int height = 720);
 
-        /**
-         * @brief End the current frame
-         */
-        void EndScene();
+    /**
+     * @brief Clean up window resources
+     */
+    void ShutdownWindow();
 
-        /**
-         * @brief Present the rendered frame
-         */
-        void Present();
+    /**
+     * @brief Begin a new frame
+     */
+    void BeginScene();
 
-        /**
-         * @brief Set the viewport dimensions
-         */
-        void SetViewport(int x, int y, int width, int height) {
-            m_Renderer->SetViewport(x, y, width, height);
-        }
+    /**
+     * @brief End the current frame
+     */
+    void EndScene();
 
-        /**
-         * @brief Process pending events
-         */
-        void ProcessEvents();
+    /**
+     * @brief Present the rendered frame
+     */
+    void Present();
 
-        void ConfigureForRenderType();
+    /**
+     * @brief Set the viewport dimensions
+     */
+    void SetViewport(int x, int y, int width, int height) {
+        m_Renderer->SetViewport(x, y, width, height);
+    }
 
-        std::unique_ptr<Renderer> m_Renderer;
-        Engine::TerrainSystem* m_TerrainSystem = nullptr;
+    /**
+     * @brief Process pending events
+     */
+    void ProcessEvents();
 
-       private:
-        /**
-         * @brief Handle key toggle state changes
-         * @param key GLFW key code
-         * @param currentTime Current time
-         * @return bool True if toggle state changed
-         */
-        bool HandleKeyToggle(int key, float currentTime);
+    void ConfigureForRenderType();
 
-        /**
-         * @brief Initialize toggle states for keys
-         */
-        void InitializeToggleStates();
+    std::unique_ptr<Renderer> m_Renderer;
+    Engine::TerrainSystem* m_TerrainSystem = nullptr;
 
-        /**
-         * @brief Add a new key toggle state
-         * @param key GLFW key code
-         * @param defaultValue Initial toggle state
-         */
-        void AddToggleState(int key, bool defaultValue = false);
+   private:
+    /**
+     * @brief Handle key toggle state changes
+     * @param key GLFW key code
+     * @param currentTime Current time
+     * @return bool True if toggle state changed
+     */
+    bool HandleKeyToggle(int key, float currentTime);
 
-        /**
-         * @brief Remove a key toggle state
-         * @param key GLFW key code
-         */
-        void RemoveToggleState(int key);
+    /**
+     * @brief Initialize toggle states for keys
+     */
+    void InitializeToggleStates();
 
-        /**
-         * @brief Get current toggle state for a key
-         * @param key GLFW key code
-         * @return bool Current toggle state
-         */
-        bool GetToggleState(int key) const;
+    /**
+     * @brief Add a new key toggle state
+     * @param key GLFW key code
+     * @param defaultValue Initial toggle state
+     */
+    void AddToggleState(int key, bool defaultValue = false);
 
-        /**
-         * @brief Set toggle state for a key
-         * @param key GLFW key code
-         * @param value New toggle state
-         */
-        void SetToggleState(int key, bool value);
+    /**
+     * @brief Remove a key toggle state
+     * @param key GLFW key code
+     */
+    void RemoveToggleState(int key);
 
-        bool m_Running = true;
-        bool m_ImGuiEnabled = true;
-        
-        float m_DebounceTime = 0.3f;
+    /**
+     * @brief Get current toggle state for a key
+     * @param key GLFW key code
+     * @return bool Current toggle state
+     */
+    bool GetToggleState(int key) const;
 
-        std::unordered_map<int, KeyToggleState> m_KeyToggles;
+    /**
+     * @brief Set toggle state for a key
+     * @param key GLFW key code
+     * @param value New toggle state
+     */
+    void SetToggleState(int key, bool value);
 
-        const float MAX_TOGGLE_HOLD_TIME = 1.5f;
+    bool m_Running = true;
+    bool m_ImGuiEnabled = true;
 
-        std::unique_ptr<Window> m_Window;
-        std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
-        std::unique_ptr<InputSystem> m_InputSystem;
+    float m_DebounceTime = 0.3f;
 
-        // Rendering objects
-        std::vector<std::unique_ptr<RenderableObject>> m_RenderableObjects;
+    std::unordered_map<int, KeyToggleState> m_KeyToggles;
 
-        // FPS tracking members
-        bool m_ShowFPSCounter = true;
-        FPSCounter m_FPSCounter;
+    const float MAX_TOGGLE_HOLD_TIME = 1.5f;
 
-        std::unique_ptr<ImGuiOverlay> m_ImGuiOverlay;
+    std::unique_ptr<Window> m_Window;
+    std::unique_ptr<ImGuiLayer> m_ImGuiLayer;
+    std::unique_ptr<InputSystem> m_InputSystem;
 
-        void UpdateFPSCounter(float deltaTime);
+    // Rendering objects
+    std::vector<std::unique_ptr<RenderableObject>> m_RenderableObjects;
 
-        std::unique_ptr<Light> m_Light;
+    // FPS tracking members
+    bool m_ShowFPSCounter = true;
+    FPSCounter m_FPSCounter;
 
-        // scripting
-        std::unique_ptr<LuaScriptSystem> m_ScriptSystem;
+    std::unique_ptr<ImGuiOverlay> m_ImGuiOverlay;
 
-        static Application* s_Instance;
+    void UpdateFPSCounter(float deltaTime);
 
-        std::string m_AssetPath = "../sandbox/assets/";  // Base path for all assets
+    std::unique_ptr<Light> m_Light;
 
-        RenderType m_RenderType = RenderType::Render3D;
+    // scripting
+    std::unique_ptr<LuaScriptSystem> m_ScriptSystem;
 
-        CameraType m_CameraType = CameraType::Perspective;
+    static Application* s_Instance;
 
-        void ConfigureCamera();
-    };
-    
-    // To be defined by client application
-    Application* CreateApplication();
-}
+    std::string m_AssetPath = "../sandbox/assets/";  // Base path for all assets
+
+    RenderType m_RenderType = RenderType::Render3D;
+
+    CameraType m_CameraType = CameraType::Perspective;
+
+    void ConfigureCamera();
+};
+
+// To be defined by client application
+Application* CreateApplication();
+}  // namespace Engine
