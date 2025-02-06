@@ -34,6 +34,8 @@ class LuaScriptSystem {
     /// @return true if execution succeeded, false otherwise
     bool ExecuteFile(const std::string& filepath);
 
+    void CallGlobalFunction(const std::string& functionName);
+
    private:
     std::unique_ptr<sol::state> m_LuaState;
 

@@ -139,16 +139,15 @@ namespace Engine {
      * @note Controls use ImGui drag float widgets with a sensitivity of 0.1 units per drag
      * @note Position, rotation, and scale are modified directly on the object's transform
      */
-    void ImGuiOverlay::RenderTransformControls(RenderObject& renderObject) {
-        if (!m_ShowTransformControls) return;
-        if (ImGui::Begin("Transform Controls")) {
-            auto& transform = renderObject.GetTransform();
-            
-            ImGui::DragFloat3("Position", &transform.position[0], 0.1f);
-            ImGui::DragFloat3("Rotation", &transform.rotation[0], 0.1f);
-            ImGui::DragFloat3("Scale", &transform.scale[0], 0.1f);
+    void ImGuiOverlay::RenderTransformControls(Engine::RenderObject& object) {
+        auto& transform = object.GetTransform();
+        auto& data = transform.GetData();  // Get mutable reference to transform data
+
+        if (ImGui::CollapsingHeader("Transform")) {
+            ImGui::DragFloat3("Position", &data.position[0], 0.1f);
+            ImGui::DragFloat3("Rotation", &data.rotation[0], 0.1f);
+            ImGui::DragFloat3("Scale", &data.scale[0], 0.1f);
         }
-        ImGui::End();
     }
 
     /**
