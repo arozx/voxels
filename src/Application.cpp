@@ -20,7 +20,7 @@
 #include "UI/ImGuiOverlay.h"
 
 // Shader system
-#include "Shader/DefaultShaders.h"
+#include "Scene/Scene.h"
 #include "Shader/ShaderHotReload.h"
 
 /**
@@ -111,9 +111,8 @@ namespace Engine {
         AssetManager::Get().PreloadFrequentAssets();
         m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), *m_Renderer);
         m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
-        
+
         InitializeToggleStates();
-        DefaultShaders::PreloadShaders();
 
         m_TerrainSystem = nullptr;
     }
@@ -313,23 +312,31 @@ namespace Engine {
         PROFILE_FUNCTION();
 
         m_Renderer->Clear({0.1f, 0.1f, 0.1f, 1.0f});
-
-        SceneManager::Get().Render(*m_Renderer);
-
         m_ImGuiLayer->Begin();
-        
+
         if (m_ImGuiEnabled) {
-            static RenderObject dummyRenderObject;
-            m_ImGuiOverlay->OnRender(dummyRenderObject, m_ShowFPSCounter, 
-                m_FPSCounter.GetCurrentFPS(), 
-                m_FPSCounter.GetAverageFPS(), 
-                m_FPSCounter.GetFrameTime(), 
-                m_FPSCounter.GetOnePercentLow(), 
-                m_FPSCounter.GetOnePercentHigh());
+            // Always show these controls
             m_ImGuiOverlay->RenderProfiler();
-            m_ImGuiOverlay->RenderRendererSettings();
             m_ImGuiOverlay->RenderEventDebugger();
-            m_ImGuiOverlay->RenderTerrainControls();  // <-- Added call
+
+            if (m_ShowFPSCounter) {
+                static RenderObject dummyRenderObject;
+                m_ImGuiOverlay->OnRender(
+                    dummyRenderObject, m_ShowFPSCounter, m_FPSCounter.GetCurrentFPS(),
+                    m_FPSCounter.GetAverageFPS(), m_FPSCounter.GetFrameTime(),
+                    m_FPSCounter.GetOnePercentLow(), m_FPSCounter.GetOnePercentHigh());
+            }
+
+            // Only show these controls in 3D mode
+            if (m_RenderType == RenderType::Render3D) {
+                m_ImGuiOverlay->RenderRendererSettings();
+                m_ImGuiOverlay->RenderTerrainControls();
+            }
+        }
+
+        // Update the Scene
+        if (m_ScriptSystem) {
+            m_ScriptSystem->CallGlobalFunction("UpdateScene");
         }
     }
 
@@ -403,6 +410,59 @@ namespace Engine {
         auto it = m_KeyToggles.find(key);
         if (it != m_KeyToggles.end()) {
             it->second.currentValue = value;
+        }
+    }
+
+    void Application::ConfigureForRenderType() {
+        auto activeScene = SceneManager::Get().GetActiveScene();
+        if (!activeScene) return;
+
+        switch (m_RenderType) {
+            case RenderType::Render2D:
+                if (m_TerrainSystem) {
+                    m_TerrainSystem->Shutdown();
+                    m_TerrainSystem = nullptr;
+                }
+                activeScene->SetCameraType(CameraType::Orthographic);
+                break;
+
+            case RenderType::Render3D:
+                if (!m_TerrainSystem && activeScene) {
+                    m_TerrainSystem = activeScene->GetTerrainSystem();
+                    if (m_TerrainSystem) {
+                        m_TerrainSystem->Initialize(GetRenderer());
+                    }
+                }
+                activeScene->SetCameraType(CameraType::Perspective);
+                break;
+        }
+    }
+
+    void Application::ConfigureCamera() {
+        if (!m_Renderer) {
+            LOG_ERROR("Renderer not initialized in ConfigureCamera");
+            return;
+        }
+
+        Renderer::CameraType rendererCamType = static_cast<Renderer::CameraType>(m_CameraType);
+        LOG_TRACE_CONCAT("Camera type set to: ",
+                         (rendererCamType == Renderer::CameraType::Orthographic ? "orthographic"
+                                                                                : "perspective"));
+        m_Renderer->SetCameraType(rendererCamType);
+
+        // Create cameras if they don't exist
+        if (m_CameraType == CameraType::Perspective) {
+            if (!m_Renderer->GetPerspectiveCamera()) {
+                m_Renderer->SetPerspectiveCamera(
+                    std::make_shared<PerspectiveCamera>(45.0f, 1280.0f / 720.0f));
+            }
+            m_Renderer->GetPerspectiveCamera()->SetPosition({0.0f, 5.0f, -10.0f});
+        } else {
+            if (!m_Renderer->GetCamera()) {
+                m_Renderer->SetCamera(
+                    std::make_shared<OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f));
+            }
+            m_Renderer->GetCamera()->SetPosition({0.0f, 0.0f, 0.0f});
         }
     }
 }

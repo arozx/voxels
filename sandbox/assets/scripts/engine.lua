@@ -1,19 +1,41 @@
+---* NOTE: all numbers in Lua are floats
 ---@meta
 
 ---@class engine
+--- Terrain
 ---@field setTerrainHeight fun(height: number) # Sets the base height for terrain generation
 ---@field generateTerrainMesh fun(seed: number) # Regenerates terrain with given seed
----@field setClearColor fun(r: number, g: number, b: number, a: number) # Sets the renderer clear color
----@field isKeyPressed fun(keycode: number): boolean # Checks if a key is pressed
----@field getMousePosition fun(): number, number # Gets current mouse position
+--- Logging
 ---@field trace fun(message: string) # Logs a trace message
 ---@field log fun(message: string) # Logs an info message
 ---@field warn fun(message: string) # Logs an warn message
 ---@field error fun(message: string) # Logs an error message
 ---@field fatal fun(message: string) # Logs an error message and terminates the application
+--- Debug
 ---@field profileFunction fun(name: string) # Profiles the current function
 ---@field profileScope fun(name: string) # Profiles the current function & assigns a name
+--- Script System
 ---@field loadScript fun(filepath: string): boolean # Loads and executes a Lua script file
+--- Window
+---@field setViewport fun(x: number, y: number, width: number, height: number) # Sets the viewport dimensions
+---@field setClearColor fun(r: number, g: number, b: number, a: number) # Sets the renderer clear color
+---Camera Setup
+---@field setCameraType fun(type: string) # Sets the camera type ("orthographic" or "perspective")
+---@field getCameraType fun(): string # Gets the current camera type
+--- Input
+---@field isMouseButtonPressed fun(button: number): boolean # Checks if a mouse button is pressed
+---@field isKeyPressed fun(keycode: number): boolean # Checks if a key is pressed
+---@field setMouseSensitivity fun(sensitivity: number) # Sets mouse sensitivity
+---@field getMouseSensitivity fun(): number # Gets current mouse sensitivity
+---@field getMousePosition fun(): number, number # Gets current mouse position
+--- Movement
+---@field setMovementSpeed fun(speed: number) # Sets movement speed
+---@field getMovementSpeed fun(): number # Gets current movement speed
+--- Camera Properties
+---@field toggleCameraControls fun() # Toggles camera controls on/off
+---@field toggleMovementLock fun() # Toggles movement lock
+---@field toggleSmoothCamera fun() # Toggles smooth camera movement
+--- Camera
 ---@field setCameraPosition fun(x: number, y: number, z: number) # Sets camera position
 ---@field setCameraRotation fun(pitch: number, yaw: number) # Sets camera rotation
 ---@field getCameraPosition fun(): number, number, number # Gets camera position
@@ -24,27 +46,32 @@
 ---@field moveCameraUp fun(deltaTime: number) # Move camera up
 ---@field moveCameraDown fun(deltaTime: number) # Move camera down
 ---@field rotateCameraWithMouse fun(xOffset: number, yOffset: number, sensitivity: number) # Rotate camera with mouse
----@field setViewport fun(x: number, y: number, width: number, height: number) # Sets the viewport dimensions
----@field setCameraType fun(type: string) # Sets the camera type ("orthographic" or "perspective")
----@field getCameraType fun(): string # Gets the current camera type
----@field isMouseButtonPressed fun(button: number): boolean # Checks if a mouse button is pressed
----@field setMouseSensitivity fun(sensitivity: number) # Sets mouse sensitivity
----@field getMouseSensitivity fun(): number # Gets current mouse sensitivity
----@field setMovementSpeed fun(speed: number) # Sets movement speed
----@field getMovementSpeed fun(): number # Gets current movement speed
----@field toggleCameraControls fun() # Toggles camera controls on/off
----@field toggleMovementLock fun() # Toggles movement lock
----@field toggleSmoothCamera fun() # Toggles smooth camera movement
+--- ImGui Controls
 ---@field showTransformControls fun(show: boolean) # Shows/hides transform controls window
 ---@field showProfiler fun(show: boolean) # Shows/hides profiler window
 ---@field showRendererSettings fun(show: boolean) # Shows/hides renderer settings window
 ---@field showEventDebugger fun(show: boolean) # Shows/hides event debugger window
 ---@field showTerrainControls fun(show: boolean) # Shows/hides terrain controls window
 ---@field showFPSCounter fun(show: boolean) # Shows/hides FPS counter
+--- Scene Management
 ---@field createScene fun(name: string): boolean # Creates a new scene with the given name
 ---@field setActiveScene fun(name: string): boolean # Sets the active scene by name
 ---@field deleteScene fun(name: string): boolean # Deletes a scene by name
 ---@field getActiveSceneName fun(): string # Gets the name of the active scene
+--- Render System
+---@field setRenderType fun(type: string) # Sets the renderer (2D or 3D)
+---@field getRenderType fun(): string # Gets the renderer type (2D or 3D)
+---@field getObject fun(name: string) # Gets an object by name
+---@field is3D fun(): boolean # Checks if the current scene is 3D
+--- 2D Render System
+---@field renderer2DInitialize fun() # Creates a 2D renderer instance
+---@field renderer2DBeginScene fun() # Begins a scene
+---@field renderer2DEndScene fun() # Ends a scene
+---@field drawQuad fun(x: number, y: number, width: number, height: number, r: number, g: number, b: number, a: number) # Draw a single quad
+---@field drawTexturedQuad fun(x: number, y: number, width: number, height: number, texture, tiling_factor: number) # Draw a single quad with a texture
+---@field createCheckerTexture fun() # Create a checkered texture from quads
+--- 3D Render System
+---@field createCube fun(scene: string) # Creates a cube in the scene
 engine = {}
 
 -- Key code constants
@@ -246,3 +273,37 @@ function engine.deleteScene(name) end
 ---Gets the name of the active scene
 ---@return string name The name of the active scene (empty string if no active scene)
 function engine.getActiveSceneName() end
+
+--- Sets the renderer type (2D or 3D)
+--- @param type string 2D or 3D
+function setRenderType(type) end
+
+--- Gets the renderer type (2D or 3D)
+--- @return type string
+function getRenderType() end
+
+--- Starts a scene with camera as context
+function engine.renderer2d_begin_scene() end
+
+--- Ends the current scene
+function engine.renderer2d_end_scene() end
+
+--- Draws a single quad
+--- @param x number The x coordinate of the quad
+--- @param y number The y coordinate of the quad
+--- @param width number The width of the quad
+--- @param height number The height of the quad
+--- @param r number The red value of the quad
+--- @param g number The greem value of the quad
+--- @param b number The blue value of the quad
+--- @param a number The alpha value of the quad
+function engine.draw_quad(x, y, width, height, r, g, b, a) end
+
+--- Draws a single textured quad
+--- @param x number The x coordinate of the quad
+--- @param y number The y coordinate of the quad
+--- @param width number The width of the quad
+--- @param height number The height of the quad
+--- @param texture string The texture to use
+--- @param tiling_factor number The tiling_factor
+function engine.draw_textured_quad(x, y, width, height, texture, tiling_factor) end

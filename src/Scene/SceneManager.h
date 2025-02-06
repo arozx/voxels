@@ -19,14 +19,13 @@ class SceneManager {
 
     void SetActiveScene(const std::string& name) {
         std::lock_guard<std::mutex> lock(sceneMutex);
-        LOG_TRACE("SetActiveScene called with name = ", name);
         if (scenes.find(name) != scenes.end()) {
             if (activeScene) {
                 activeScene->OnDeactivate();
             }
             activeScene = scenes[name];
             activeScene->OnActivate();
-            LOG_INFO_CONCAT("Activated scene: ", name);
+            LOG_TRACE_CONCAT("Activated scene: ", name);
         } else {
             LOG_ERROR_CONCAT("Failed to set active scene: ", name, " (not found)");
         }
