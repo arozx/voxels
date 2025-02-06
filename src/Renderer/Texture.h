@@ -103,10 +103,18 @@ public:
      * @param size Size of data in bytes (must be width * height * 4)
      */
     virtual void SetData(void* data, uint32_t size) {
+        if (!data) {
+            LOG_ERROR("Null data pointer provided to SetData");
+            return;
+        }
         ASSERT(size == m_Width * m_Height * 4 && "Data must be entire texture in RGBA format!");
         Bind();
+        GLenum error;
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                      data);
+        if ((error = glGetError()) != GL_NO_ERROR) {
+            LOG_ERROR("OpenGL error in SetData: ", error);
+        }
     }
 
 private:
