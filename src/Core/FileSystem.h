@@ -15,13 +15,23 @@ namespace Engine {
             return std::filesystem::create_directory(sanitizedPath);
         }
         static bool WriteFile(const std::string& filepath, const std::string& content) {
+            constexpr size_t MAX_FILE_SIZE = 10 * 1024 * 1024;  // 10MB limit
+            if (content.size() > MAX_FILE_SIZE) {
+                LOG_ERROR("Content size exceeds limit: ", content.size(), " > ", MAX_FILE_SIZE);
+                return false;
+            }
             std::string path = SantizePath(filepath);
             std::ofstream file(path);
             if (!file.is_open()) {
-                LOG_ERROR("Failed to open file: ", path);
+                LOG_ERROR("Failed to open file '", path, "': ", std::strerror(errno));
                 return false;
             }
             file << content;
+            if (file.fail()) {
+                LOG_ERROR("Failed to write to file '", path, "': ", std::strerror(errno));
+                file.close();
+                return false;
+            }
             file.close();
             return true;
         }

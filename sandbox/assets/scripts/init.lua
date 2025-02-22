@@ -8,7 +8,7 @@ engine.trace("Creating build directory: " .. buildDir)
 if not engine.exists(buildDir) then
     local success = engine.mkdir(buildDir)
     if not success then
-        engine.error(string.format("Failed to create directory" .. buildDir))
+        engine.error(string.format("Failed to create directory: %s", buildDir))
         return
     end
 end
