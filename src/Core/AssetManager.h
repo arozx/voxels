@@ -1,9 +1,13 @@
 #pragma once
 
 #include <pch.h>
+
 #include <unordered_set>
-#include "Resource.h"
+
+#include "../Renderer/Buffer.h"
 #include "../Renderer/Texture.h"
+#include "../Renderer/VertexArray.h"
+#include "Resource.h"
 
 namespace Engine {
 
@@ -149,6 +153,66 @@ public:
      * @param delta Change in memory usage
      */
     void UpdateMemoryUsage(size_t delta) { m_TotalMemoryUsage += delta; }
+
+    /**
+     * @brief Get or create a cube mesh
+     * @return Shared pointer to the cube mesh
+     */
+    std::shared_ptr<VertexArray> GetOrCreateCubeMesh() {
+        static std::shared_ptr<VertexArray> cubeMesh;
+        if (!cubeMesh) {
+            float vertices[] = {
+                // Front face
+                -0.5f,
+                -0.5f,
+                0.5f,
+                0.5f,
+                -0.5f,
+                0.5f,
+                0.5f,
+                0.5f,
+                0.5f,
+                -0.5f,
+                0.5f,
+                0.5f,
+                // Back face
+                -0.5f,
+                -0.5f,
+                -0.5f,
+                0.5f,
+                -0.5f,
+                -0.5f,
+                0.5f,
+                0.5f,
+                -0.5f,
+                -0.5f,
+                0.5f,
+                -0.5f,
+            };
+
+            uint32_t indices[] = {
+                0, 1, 2, 2, 3, 0,  // Front
+                1, 5, 6, 6, 2, 1,  // Right
+                5, 4, 7, 7, 6, 5,  // Back
+                4, 0, 3, 3, 7, 4,  // Left
+                3, 2, 6, 6, 7, 3,  // Top
+                4, 5, 1, 1, 0, 4   // Bottom
+            };
+
+            cubeMesh = std::shared_ptr<VertexArray>(VertexArray::Create());
+            auto vb =
+                std::shared_ptr<VertexBuffer>(VertexBuffer::Create(vertices, sizeof(vertices)));
+            auto ib = std::shared_ptr<IndexBuffer>(
+                IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
+
+            BufferLayout layout = {{ShaderDataType::Float3, "aPosition"}};
+
+            vb->SetLayout(layout);
+            cubeMesh->AddVertexBuffer(vb);
+            cubeMesh->SetIndexBuffer(ib);
+        }
+        return cubeMesh;
+    }
 
 private:
     AssetManager() = default;

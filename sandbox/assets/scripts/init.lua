@@ -1,22 +1,16 @@
-engine.trace("Starting init.lua execution")
-
--- Create build directory structure first
+-- Create build directory structure
 local buildDir = "build/assets/scripts"
 local scriptDir = "sandbox/assets/scripts"
 
 engine.trace("Creating build directory: " .. buildDir)
-local function sanitizePath(path)
-    -- Remove any non-alphanumeric characters except for safe separators
-    return path:gsub('[^%w%./%-]', '')
-        :gsub('%.%.', '') -- Remove path traversal sequences
-        :gsub('//+', '/') -- Normalize multiple slashes
-end
 
-local sanitizedPath = sanitizePath(buildDir)
-local success, _, code = os.execute('mkdir -p "' .. sanitizedPath .. '"')
-if not success then
-    engine.error(string.format("Failed to create directory %s (exit code: %d)", sanitizedPath, code))
-    return
+
+if not engine.exists(buildDir) then
+    local success = engine.mkdir(buildDir)
+    if not success then
+        engine.error(string.format("Failed to create directory: %s", buildDir))
+        return
+    end
 end
 
 local function copyScript(name)
@@ -24,21 +18,13 @@ local function copyScript(name)
         if source then source:close() end
         if dest then dest:close() end
     end
-    local function isPathSafe(path)
-        return not path:match("%.%.")
-    end
-
-    if not isPathSafe(name) then
-        engine.error(string.format("Invalid script name (potential path traversal): %s", name))
-        return false
-    end
 
     local sourcePath = scriptDir .. "/" .. name
     local destPath = buildDir .. "/" .. name
 
     local source, sourceErr = io.open(sourcePath, "rb")
     if not source then
-        engine.error(string.format("Could not open source script ", sourcePath, ": ", sourceErr))
+        engine.warn(string.format("Could not open source script " .. sourcePath .. ": " .. sourceErr))
         return false
     end
     
@@ -47,7 +33,7 @@ local function copyScript(name)
     local size = source:seek("end")
     source:seek("set")
     if size > MAX_FILE_SIZE then
-        engine.error(string.format("Script %s is too large (%d bytes > %d bytes limit)", 
+        engine.warn(string.format("Script %s is too large (%d bytes > %d bytes limit)",
                                  sourcePath, size, MAX_FILE_SIZE))
         closeFiles(source)
         return false
@@ -55,27 +41,27 @@ local function copyScript(name)
 
     local content = source:read("*all")
     if not content then
-        engine.error(string.format("Failed to read from ", sourcePath))
+        engine.warn(string.format("Failed to read from ", sourcePath))
         closeFiles(source)
         return false
     end
     
     local dest, destErr = io.open(destPath, "wb")
     if not dest then
-        engine.error(string.format("Failed to create destination file", destPath, ": ", destErr))
+        engine.warn(string.format("Failed to create destination file" .. destPath .. ": " .. destErr))
+
         closeFiles(source)
         return false
     end
     
     local success = dest:write(content)
     if not success then
-        engine.error(string.format("Failed to write to ", destPath))
+        engine.warn(string.format("Failed to write to ", destPath))
         closeFiles(source, dest)
         return false
     end
 
     closeFiles(source, dest)
-    engine.trace(string.format("Successfully copied: ", name))
     return true
 end
 
@@ -83,10 +69,9 @@ end
 local scripts = { "main.lua", "engine.lua" }
 for _, script in ipairs(scripts) do
     if not copyScript(script) then
-        engine.error("Failed to copy " .. script)
+        engine.warn("Failed to copy " .. script)
         return
     end
 end
 
 engine.trace("init.lua execution complete")
-

@@ -4,16 +4,23 @@
 
 #include "../Application.h"
 #include "../Core/FileSystem.h"
+#include "../Core/Transform.h"
 #include "../Events/KeyEvent.h"
 #include "../Events/MouseEvent.h"
 #include "../Scene/Scene.h"
 #include "../Scene/SceneManager.h"
+#include "../Scene/SceneObject.h"
+#include "Renderer/Renderer2D.h"
+#include "Shader/ShaderLibrary.h"
 
 namespace Engine {
+// Forward declare DefaultShaders
+class DefaultShaders;
+
 /**
  * @brief Constructs a new LuaScriptSystem instance and initializes the Lua state.
- * 
- * Creates a unique pointer to a Lua state and opens standard Lua libraries to prepare 
+ *
+ * Creates a unique pointer to a Lua state and opens standard Lua libraries to prepare
  * the scripting environment. The opened libraries include:
  * - Base library (standard Lua functions)
  * - Package library (module loading)
@@ -22,8 +29,8 @@ namespace Engine {
  * - Table library (table operations)
  * - IO library (input/output operations)
  * - OS library (operating system interactions)
- * 
- * @note This constructor sets up a fully functional Lua scripting environment ready 
+ *
+ * @note This constructor sets up a fully functional Lua scripting environment ready
  * for engine integration and script execution.
  */
 LuaScriptSystem::LuaScriptSystem() : m_LuaState(std::make_unique<sol::state>()) {
@@ -33,13 +40,13 @@ LuaScriptSystem::LuaScriptSystem() : m_LuaState(std::make_unique<sol::state>()) 
 
 /**
  * @brief Default destructor for the LuaScriptSystem.
- * 
- * Cleans up the LuaScriptSystem instance, allowing for proper resource management 
- * when the object goes out of scope or is explicitly deleted. The default implementation 
- * ensures that any resources managed by the base class or compiler-generated destructors 
+ *
+ * Cleans up the LuaScriptSystem instance, allowing for proper resource management
+ * when the object goes out of scope or is explicitly deleted. The default implementation
+ * ensures that any resources managed by the base class or compiler-generated destructors
  * are properly released.
- * 
- * @note This destructor is defaulted, meaning the compiler will generate the default 
+ *
+ * @note This destructor is defaulted, meaning the compiler will generate the default
  * implementation for destroying the LuaScriptSystem object.
  */
 LuaScriptSystem::~LuaScriptSystem() = default;
@@ -60,7 +67,7 @@ void LuaScriptSystem::Initialize() { RegisterEngineAPI(); }
 /**
  * @brief Registers the engine's API functions for Lua scripting.
  *
- * This method creates a named table 'engine' in the Lua state and populates it with 
+ * This method creates a named table 'engine' in the Lua state and populates it with
  * various functions that allow Lua scripts to interact with different engine systems.
  *
  * The registered API includes functionality for:
@@ -73,10 +80,10 @@ void LuaScriptSystem::Initialize() { RegisterEngineAPI(); }
  * - Camera control
  * - ImGui overlay controls
  *
- * @note Functions are registered as lambda functions that interact with various 
+ * @note Functions are registered as lambda functions that interact with various
  * engine systems like SceneManager, Renderer, Application, and ImGuiOverlay.
  *
- * @warning Some functions have safety checks to prevent operations on null systems 
+ * @warning Some functions have safety checks to prevent operations on null systems
  * or inactive scenes, with appropriate error logging.
  *
  * @see LuaScriptSystem
@@ -84,8 +91,39 @@ void LuaScriptSystem::Initialize() { RegisterEngineAPI(); }
  * @see Renderer
  * @see Application
  */
+
 void LuaScriptSystem::RegisterEngineAPI() {
     auto engine = m_LuaState->create_named_table("engine");
+
+    // Add glm::vec3 type registration
+    m_LuaState->new_usertype<glm::vec3>(
+        "vec3", sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>(),
+        "x", &glm::vec3::x, "y", &glm::vec3::y, "z", &glm::vec3::z);
+
+    // Update Transform registration with proper type handling
+    m_LuaState->new_usertype<Transform>(
+        "Transform", sol::constructors<Transform()>(),
+
+        // Position methods
+        "SetPosition",
+        sol::overload(
+            static_cast<void (Transform::*)(float, float, float)>(&Transform::SetPosition),
+            static_cast<void (Transform::*)(const glm::vec3&)>(&Transform::SetPosition)),
+
+        // Rotation methods
+        "SetRotation",
+        sol::overload(
+            static_cast<void (Transform::*)(float, float, float)>(&Transform::SetRotation),
+            static_cast<void (Transform::*)(const glm::vec3&)>(&Transform::SetRotation)),
+
+        // Scale methods
+        "SetScale",
+        sol::overload(static_cast<void (Transform::*)(float, float, float)>(&Transform::SetScale),
+                      static_cast<void (Transform::*)(const glm::vec3&)>(&Transform::SetScale)),
+
+        // Getters
+        "GetPosition", &Transform::GetPosition, "GetRotation", &Transform::GetRotation, "GetScale",
+        &Transform::GetScale, "GetModelMatrix", &Transform::GetModelMatrix);
 
     // Terrain API
     engine.set_function("setTerrainHeight", [this](float height) {
@@ -129,15 +167,33 @@ void LuaScriptSystem::RegisterEngineAPI() {
 
     engine.set_function("setCameraType", [this](const std::string& type) {
         if (type == "orthographic") {
-            Renderer::Get().SetCameraType(Renderer::CameraType::Orthographic);
+            Application::Get().SetCameraType(CameraType::Orthographic);
         } else if (type == "perspective") {
-            Renderer::Get().SetCameraType(Renderer::CameraType::Perspective);
+            Application::Get().SetCameraType(CameraType::Perspective);
         }
+        return true;
     });
 
     engine.set_function("getCameraType", []() -> std::string {
         auto type = Renderer::Get().GetCameraType();
         return (type == Renderer::CameraType::Orthographic) ? "orthographic" : "perspective";
+    });
+
+    // Renderer type control
+    engine.set_function("setRenderType", [](const std::string& type) {
+        if (type == "2d") {
+            Application::Get().SetRenderType(RenderType::Render2D);
+        } else if (type == "3d") {
+            Application::Get().SetRenderType(RenderType::Render3D);
+        }
+    });
+
+    engine.set_function("getRenderType", []() -> std::string {
+        return Application::Get().GetRenderType() == RenderType::Render2D ? "2d" : "3d";
+    });
+
+    engine.set_function("is3D", []() -> bool {
+        return Application::Get().GetRenderType() == RenderType::Render3D;
     });
 
     // Scene API
@@ -244,6 +300,14 @@ void LuaScriptSystem::RegisterEngineAPI() {
     engine.set_function("loadScript",
                         [this](const std::string& filepath) { return ExecuteFile(filepath); });
 
+    engine.set_function("mkdir", [](const std::string& path) {
+        return FileSystem::CreateDirectory(path);
+    });
+
+    engine.set_function("exists", [](const std::string& path) {
+        return FileSystem::Exists(path);
+    });
+
     // Camera
     engine.set_function("setCameraPosition", [](float x, float y, float z) {
         auto& renderer = Application::Get().GetRenderer();
@@ -252,6 +316,7 @@ void LuaScriptSystem::RegisterEngineAPI() {
         } else {
             renderer.GetCamera()->SetPosition({x, y, z});
         }
+        return true;
     });
 
     engine.set_function("setCameraRotation", [](float pitch, float yaw) {
@@ -368,6 +433,91 @@ void LuaScriptSystem::RegisterEngineAPI() {
     keyCodes["A"] = GLFW_KEY_A;
     keyCodes["S"] = GLFW_KEY_S;
     keyCodes["D"] = GLFW_KEY_D;
+
+    // Register 2D rendering functions
+    engine.set_function("renderer2DBeginScene", []() {
+        auto& renderer = Engine::Renderer2D::Get();
+        auto camera = std::make_shared<Engine::OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f);
+        renderer.BeginScene(camera);
+    });
+
+    engine.set_function("renderer2DEndScene", []() { Engine::Renderer2D::Get().EndScene(); });
+
+    engine.set_function("drawQuad", [](float x, float y, float width, float height, float r,
+                                       float g, float b, float a) {
+        Engine::Renderer2D::Get().DrawQuad({x, y}, {width, height}, {r, g, b, a});
+    });
+
+    engine.set_function("drawTexturedQuad", [](float x, float y, float width, float height,
+                                               const std::shared_ptr<Engine::Texture>& texture,
+                                               float tilingFactor) {
+        Engine::Renderer2D::Get().DrawQuad({x, y}, {width, height}, texture, tilingFactor);
+    });
+
+    engine.set_function("createCheckerTexture", []() {
+        const int width = 8, height = 8;
+        uint8_t data[width * height * 4];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int index = (y * width + x) * 4;
+                if ((x + y) % 2 == 0) {
+                    data[index + 0] = 255;
+                    data[index + 1] = 255;
+                    data[index + 2] = 255;
+                    data[index + 3] = 255;
+                } else {
+                    data[index + 0] = 0;
+                    data[index + 1] = 0;
+                    data[index + 2] = 0;
+                    data[index + 3] = 255;
+                }
+            }
+        }
+        auto texture = std::make_shared<Engine::Texture>(width, height);
+        texture->SetData(data, sizeof(data));
+        return texture;
+    });
+
+    // Add renderer initialization function
+    engine.set_function("renderer2DInitialize", []() { Engine::Renderer2D::Get().Initialize(); });
+
+    // Fix SceneObject registration - use the proper sol::property syntax
+    m_LuaState->new_usertype<SceneObject>(
+        "SceneObject", sol::constructors<SceneObject(), SceneObject(const std::string&)>(), "name",
+        &SceneObject::name,
+        // Fix: Use proper getter/setter pair for transform property
+        "transform",
+        sol::property([](SceneObject& obj) -> Transform& { return obj.GetTransform(); }), "SetMesh",
+        &SceneObject::SetMesh, "SetMaterial", &SceneObject::SetMaterial, "GetMesh",
+        &SceneObject::GetMesh, "GetMaterial", &SceneObject::GetMaterial);
+
+    // Keep only one createCube function implementation
+    engine.set_function("createCube", [](const std::string& name) -> std::shared_ptr<SceneObject> {
+        auto scene = SceneManager::Get().GetActiveScene();
+        if (!scene) {
+            LOG_ERROR("No active scene to create cube in");
+            return nullptr;
+        }
+
+        auto cube = scene->CreateObject(name);
+        if (cube) {
+            cube->SetMesh(AssetManager::Get().GetOrCreateCubeMesh());
+            auto shader = ShaderLibrary::CreateBasicShader();
+            if (shader) {
+                auto material = std::make_shared<Material>(shader);
+                material->SetVector4("u_Color", glm::vec4(1.0f));
+                cube->SetMaterial(material);
+            }
+        }
+        return cube;
+    });
+
+    // Fix getObject function
+    engine.set_function("getObject", [](const std::string& name) -> std::shared_ptr<SceneObject> {
+        auto scene = SceneManager::Get().GetActiveScene();
+        if (!scene) return nullptr;
+        return std::dynamic_pointer_cast<SceneObject>(scene->GetObject(name));
+    });
 }
 
 /**
@@ -457,5 +607,17 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
     }
 
     return true;
+}
+
+void LuaScriptSystem::CallGlobalFunction(const std::string& functionName) {
+    sol::protected_function fn = (*m_LuaState)[functionName];
+    if (!fn.valid()) {
+        return;
+    }
+
+    sol::protected_function_result result = fn();
+    if (!result.valid()) {
+        LOG_WARN("Failed to call global function: ", functionName);
+    }
 }
 }  // namespace Engine

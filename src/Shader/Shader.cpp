@@ -177,8 +177,8 @@ namespace Engine {
     }
 
     std::shared_ptr<Shader> Shader::CreateFromSource(const char* vertexSrc, const char* fragmentSrc) {
-        auto shader = std::shared_ptr<Shader>(new Shader());  // Use new instead of make_shared
-        if (!shader->LoadFromSource(vertexSrc, fragmentSrc)) {
+        auto shader = std::make_shared<Shader>(vertexSrc, fragmentSrc);
+        if (!shader->GetProgram()) {
             return nullptr;
         }
         return shader;

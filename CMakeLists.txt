@@ -60,6 +60,7 @@ set(ENGINE_SOURCES
     src/Renderer/Buffer.cpp
     src/Renderer/OpenGLBuffer.cpp
     src/Renderer/Renderer.cpp
+    src/Renderer/Renderer2D.cpp
     src/Shader/Shader.cpp
     src/ImGui/ImGuiLayer.cpp
     src/Renderer/VertexArray.cpp
@@ -84,6 +85,8 @@ set(ENGINE_SOURCES
     external/stb_image/src/stb_image.cpp
     src/Scripting/LuaScriptSystem.cpp
     src/Scene/Scene.cpp
+    src/Shader/ShaderLibrary.cpp
+    src/Shader/ShaderFactory.cpp
     ${IMGUI_SOURCES}
 )
 
@@ -94,13 +97,13 @@ target_include_directories(voxel-engine PUBLIC
     ${CMAKE_SOURCE_DIR}/src
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-windows/include
     ${CMAKE_SOURCE_DIR}/external/stb_image/src
     ${CMAKE_SOURCE_DIR}/external/json
     ${CMAKE_SOURCE_DIR}/external/glad/include
+    ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-windows/include
     ${CMAKE_SOURCE_DIR}/external/sol2
 )
-
-include_directories("/usr/include/lua5.4")
 
 target_link_libraries(voxel-engine PUBLIC 
     glfw 

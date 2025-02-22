@@ -17,8 +17,6 @@ namespace Engine {
  * using other methods like AddChild() or setting transforms.
  */
 
-SceneObject::SceneObject(const std::string &name) : name(name) {}
-
 /**
  * @brief Adds a child SceneObject to the current object's hierarchy.
  *
@@ -27,12 +25,9 @@ SceneObject::SceneObject(const std::string &name) : name(name) {}
  * and the child is added to the current object's list of children.
  *
  * @param child A shared pointer to the SceneObject to be added as a child.
- * @note The method uses shared_from_this() to create a shared pointer reference to the current object.
+ * @note The method uses shared_from_this() to create a shared pointer reference to the current
+ * object.
  */
-void SceneObject::AddChild(const std::shared_ptr<SceneObject> &child) {
-    child->parent = shared_from_this();
-    children.push_back(child);
-}
 
 /**
  * @brief Computes the world transformation matrix for the scene object.
@@ -45,13 +40,6 @@ void SceneObject::AddChild(const std::shared_ptr<SceneObject> &child) {
  * @note The transformation is computed hierarchically, multiplying the parent's world
  *       transform with the object's local transform to preserve scene graph hierarchy.
  */
-glm::mat4 SceneObject::GetWorldTransform() const {
-    glm::mat4 worldTransform = transform.GetModelMatrix();
-    if (auto parentPtr = parent.lock()) {
-        worldTransform = parentPtr->GetWorldTransform() * worldTransform;
-    }
-    return worldTransform;
-}
 
 /**
  * @brief Constructs a new Scene with the specified name.
@@ -69,8 +57,7 @@ glm::mat4 SceneObject::GetWorldTransform() const {
 
 Scene::Scene(const std::string &name) : m_Name(name) {
     m_RootObject = std::make_shared<SceneObject>("Root");
-    m_TerrainSystem = std::make_unique<TerrainSystem>();
-    LOG_TRACE("Created scene: ", name);
+    LOG_TRACE_CONCAT("Created scene: ", m_Name);  // Fix: Use _CONCAT for string concatenation
 }
 
 /**
@@ -121,23 +108,20 @@ Scene::~Scene() {
 }
 
 /**
- * @brief Initializes the scene and its terrain system.
+ * @brief Initializes the scene, creating a TerrainSystem if enabled.
  *
- * This method is responsible for setting up the scene's terrain system. If no terrain system
- * exists, it creates a new one. If both a terrain system and a renderer are available,
- * the terrain system is initialized with the renderer.
- *
- * @note Logs a trace message indicating the scene initialization.
- * @note Creates a terrain system if it does not already exist.
- * @note Initializes the terrain system with the renderer if both are available.
+ * Logs initialization. If terrain is enabled and no TerrainSystem exists,
+ * creates a new one and initializes it with the renderer.
  */
 void Scene::OnCreate() {
     LOG_TRACE("Initializing scene: ", m_Name);
 
-    if (!m_TerrainSystem) {
-        m_TerrainSystem = std::make_unique<TerrainSystem>();
+    // Only create terrain if it was explicitly enabled and requested
+    if (m_EnableTerrain && !m_TerrainSystem) {
+        CreateTerrain();
     }
 
+    // Initialize existing terrain if we have one and a renderer
     if (m_TerrainSystem && m_Renderer) {
         m_TerrainSystem->Initialize(*m_Renderer);
     }
@@ -228,20 +212,30 @@ void Scene::OnRender(Renderer &renderer) {
  * @note The rendering is performed using the object's world transformation matrix.
  */
 void Scene::RenderObject(const std::shared_ptr<SceneObject> &object, Renderer &renderer) {
-    if (!object) return;
-
-    if (object->vertexArray && object->material) {
-        PreprocessedRenderCommand cmd;
-        cmd.vertexArray = object->vertexArray;
-        cmd.material = object->material;
-        cmd.modelMatrix = object->GetWorldTransform();
+    if (object->GetMesh() && object->GetMaterial()) {
+        RenderCommand cmd;
+        cmd.vertexArray = object->GetMesh();
+        cmd.material = object->GetMaterial();
+        cmd.transformMatrix = object->GetWorldTransform();
         cmd.primitiveType = GL_TRIANGLES;
-
-        renderer.Submit(cmd.vertexArray, cmd.material, cmd.modelMatrix);
+        renderer.Submit(cmd.vertexArray, cmd.material, cmd.transformMatrix);
     }
 
     for (const auto &child : object->children) {
-        RenderObject(child, renderer);
+        if (child) {
+            RenderObject(child, renderer);
+        }
     }
+}
+
+bool Scene::CreateTerrain() {
+    if (!m_TerrainSystem) {
+        m_TerrainSystem = std::make_unique<TerrainSystem>();
+        m_EnableTerrain = true;
+        if (m_Renderer) {
+            m_TerrainSystem->Initialize(*m_Renderer);
+        }
+    }
+    return m_TerrainSystem != nullptr;
 }
 }  // namespace Engine
