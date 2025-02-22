@@ -300,6 +300,14 @@ void LuaScriptSystem::RegisterEngineAPI() {
     engine.set_function("loadScript",
                         [this](const std::string& filepath) { return ExecuteFile(filepath); });
 
+    engine.set_function("mkdir", [](const std::string& path) {
+        return FileSystem::CreateDirectory(path);
+    });
+
+    engine.set_function("exists", [](const std::string& path) {
+        return FileSystem::Exists(path);
+    });
+
     // Camera
     engine.set_function("setCameraPosition", [](float x, float y, float z) {
         auto& renderer = Application::Get().GetRenderer();
