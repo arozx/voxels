@@ -2956,8 +2956,8 @@ struct pre_main {
 #else
 	extern "C" {
 		#include "lua5.4/lua.h"
-		#include <lauxlib.h>
-		#include <lualib.h>
+		#include "lua5.4/lauxlib.h"
+		#include "lua5.4/lualib.h"
 	}
 #endif // C++ Mangling for Lua vs. Not
 
