@@ -49,6 +49,7 @@ local function copyScript(name)
     local dest, destErr = io.open(destPath, "wb")
     if not dest then
         engine.warn(string.format("Failed to create destination file" .. destPath .. ": " .. destErr))
+
         closeFiles(source)
         return false
     end
