@@ -115,6 +115,10 @@ class Logger {
         }
 
         std::cout << "[" << timestamp << "] [" << levelStr << "]: " << message << std::endl;
+
+        if (level == LogLevel::Fatal) {
+            std::exit(EXIT_FAILURE);
+        }
     }
 
     /**
@@ -152,22 +156,6 @@ class Logger {
 
     Logger() = default;
 };
-
-#define LOG_TRACE_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Trace, __VA_ARGS__)
-#define LOG_INFO_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Info, __VA_ARGS__)
-#define LOG_WARN_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Warn, __VA_ARGS__)
-#define LOG_ERROR_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Error, __VA_ARGS__)
-#define LOG_FATAL_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Fatal, __VA_ARGS__)
-
-#define LOG_TRACE(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Trace, __VA_ARGS__)
-#define LOG_INFO(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Info, __VA_ARGS__)
-#define LOG_WARN(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Warn, __VA_ARGS__)
-#define LOG_ERROR(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Error, __VA_ARGS__)
-#define LOG_FATAL(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Fatal, __VA_ARGS__)
-
-// New convenience macros
-#define LOG_VAR(level, name, value) Engine::Logger::Get().LogValue(level, #name, value)
-#define LOG_VARS(level, ...) Engine::Logger::Get().LogValues(level, __VA_ARGS__)
 
 #else
 namespace LogColors {
@@ -298,6 +286,7 @@ class Logger {
 
     Logger() = default;
 };
+#endif
 
 #define LOG_TRACE_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Trace, __VA_ARGS__)
 #define LOG_INFO_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Info, __VA_ARGS__)
@@ -314,5 +303,4 @@ class Logger {
 // New convenience macros
 #define LOG_VAR(level, name, value) Engine::Logger::Get().LogValue(level, #name, value)
 #define LOG_VARS(level, ...) Engine::Logger::Get().LogValues(level, __VA_ARGS__)
-#endif
 }  // namespace Engine
