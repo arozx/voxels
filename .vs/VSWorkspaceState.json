@@ -1,11 +1,16 @@
 {
   "DevContainersInfoBarHidden": true,
+  "ActiveTargetSystem": "Local Machine",
   "OutputFoldersPerTargetSystem": {
     "Local Machine": [
-      "out\\build\\x64-Debug",
-      "out\\install\\x64-Debug",
-      "out\\build\\x64-Release",
-      "out\\install\\x64-Release"
+      "out\\build\\x64-debug",
+      "out\\install\\x64-debug",
+      "out\\build\\x64-release",
+      "out\\install\\x64-release",
+      "out\\build\\x86-debug",
+      "out\\install\\x86-debug",
+      "out\\build\\x86-release",
+      "out\\install\\x86-release"
     ],
     "WSL: Arch": [
       "out\\build\\x64-Debug",
@@ -18,15 +23,16 @@
       "out\\install\\x64-Release"
     ]
   },
-  "ActiveTargetSystem": "Local Machine",
   "ExpandedNodes": [
-    "\\sandbox",
-    "\\sandbox\\src",
-    "\\src",
-    "\\src\\Renderer",
-    "\\src\\Scene",
-    "\\src\\Scripting"
+    "",
+    "\\external\\glad",
+    "\\external\\glad\\include",
+    "\\external\\glad\\include\\glad",
+    "\\external\\glad\\include\\KHR",
+    "\\external\\glad\\src",
+    "\\external\\glfw",
+    "\\external\\glfw\\lib-vc2022"
   ],
-  "SelectedNode": "\\CMakeLists.txt",
+  "SelectedNode": "\\external",
   "PreviewInSolutionExplorer": false
 }

@@ -43,7 +43,7 @@ namespace Engine {
         /** @brief Renders transform manipulation controls */
         void RenderTransformControls(RenderObject& renderObject);
         /** @brief Renders profiler information window */
-        void RenderProfiler();
+        void RenderProfiler() const;
         /** @brief Renders renderer settings panel */
         void RenderRendererSettings();
         /** @brief Renders event debugging window */

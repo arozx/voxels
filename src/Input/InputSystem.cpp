@@ -11,12 +11,17 @@
 #include "Events/MouseEvent.h"
 #include "Events/KeyCodes.h"
 #include "InputSystem.h"
-#include "Events/KeyCodes.h"
 #include <GLFW/glfw3.h>
 
 namespace Engine {
     InputSystem::InputSystem(Window* window, Renderer& renderer)
         : m_Window(window), m_Renderer(renderer) {
+        
+        if (!m_Window) {
+            throw std::invalid_argument("Window cannot be null");
+        }
+        
+
         // Lock cursor on startup
         m_CursorLocked = true;
         UpdateCursorState();
@@ -79,7 +84,7 @@ namespace Engine {
         }
     }
 
-    void InputSystem::HandleSpeedModifiers(float& speed) {
+    void InputSystem::HandleSpeedModifiers(float& speed) const {
         if (IsKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             speed *= m_SlowMultiplier;
         } else if (IsKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
@@ -90,14 +95,14 @@ namespace Engine {
     void InputSystem::HandleCameraMovement(float deltaTime) {
         if (!m_CameraEnabled || m_MovementLocked) return;
         
-        auto camera = m_Renderer.GetCamera();
+        auto& camera = m_Renderer.GetCamera();
         if (!camera) return;
 
         float speed = m_MovementSpeed;
         HandleSpeedModifiers(speed);
         
         if (m_Renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            auto perspCamera = m_Renderer.GetPerspectiveCamera();
+            auto& perspCamera = m_Renderer.GetPerspectiveCamera();
             if (perspCamera) {
                 glm::vec3 moveDir(0.0f);
                 
@@ -168,7 +173,7 @@ namespace Engine {
 
         // Only rotate perspective camera
         if (m_Renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            if (auto perspCamera = m_Renderer.GetPerspectiveCamera()) {
+            if (auto& perspCamera = m_Renderer.GetPerspectiveCamera()) {
                 perspCamera->RotateWithMouse(xOffset, yOffset, m_MouseSensitivity);
             }
         }

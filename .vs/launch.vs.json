@@ -5,6 +5,17 @@
     {
       "type": "default",
       "project": "CMakeLists.txt",
+      "projectTarget": "sandbox.exe (out\\build\\x64-Debug\\sandbox.exe)",
+      "name": "sandbox.exe",
+      "currentDir": "${workspaceRoot}",
+      "args": [],
+      "env": {
+        "PATH": "${env.PATH};${workspaceRoot}/out/build/x64-Debug"
+      }
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
       "projectTarget": "sandbox.exe",
       "name": "sandbox.exe"
     }

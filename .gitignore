@@ -38,3 +38,9 @@ vcpkg_installed/
 
 cmake-build-debug/
 cmake-build-release
+/external/glfw/lib-vc2017
+/external/glfw/lib-vc2013
+/external/glfw/lib-static-ucrt
+/external/glfw/lib-vc2019
+/external/glfw/lib-vc2015
+/external/glfw/lib-mingw-w64

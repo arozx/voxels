@@ -125,7 +125,7 @@ class InputSystem {
     float m_SmoothTime = 0.1f;          ///< Smoothing time factor
 
     // Input handling methods
-    void HandleSpeedModifiers(float& speed);
+    void HandleSpeedModifiers(float& speed) const;
     void HandleSensitivityAdjustment();
     void SmoothDamp(glm::vec3& current, const glm::vec3& target, glm::vec3& velocity,
                     float smoothTime, float deltaTime);
