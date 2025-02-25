@@ -56,7 +56,7 @@ else()
     if(NOT LUA_FOUND)
         message(FATAL_ERROR "Lua >= 5.4 not found. Please install lua5.4 and lua5.4-dev packages.")
     else()
-        target_include_directories(your_target PRIVATE /usr/include/lua5.4)
+        target_include_directories(voxel-engine PRIVATE /usr/include/lua5.4)
     endif()
 endif()
 
