@@ -10,6 +10,110 @@
 #include "../Core/FPSCounter.h"
 #include "ImGuiFlameGraph.h"
 
+/**
+ * @brief ImGui-based overlay for engine debugging and control interfaces.
+ *
+ * Provides a collection of ImGui windows and panels to display performance metrics,
+ * manipulate object transforms, adjust renderer settings, debug events, and control terrain generation.
+ */
+
+/**
+ * @brief Initializes the ImGui overlay.
+ *
+ * Sets up the ImGui overlay using the specified application window, which serves as the rendering context for ImGui elements.
+ *
+ * @param window Pointer to the application window.
+ */
+
+/**
+ * @brief Default destructor.
+ */
+
+/**
+ * @brief Renders the performance statistics overlay.
+ *
+ * Displays real-time performance metrics including current FPS, average FPS, frame time,
+ * and the 1% low/high FPS values. Optionally shows the FPS counter based on the provided flag.
+ *
+ * @param renderObject Current render object context.
+ * @param showFPSCounter Whether the FPS counter should be displayed.
+ * @param currentFPS Current frames per second.
+ * @param averageFPS Average frames per second.
+ * @param frameTime Time taken to render the last frame.
+ * @param fps1PercentLow 1% low FPS value.
+ * @param fps1PercentHigh 1% high FPS value.
+ */
+
+/**
+ * @brief Renders the transform manipulation controls.
+ *
+ * Displays interactive controls for adjusting the transform properties of a render object,
+ * such as translation, rotation, and scale.
+ *
+ * @param renderObject The render object whose transform is being controlled.
+ */
+
+/**
+ * @brief Displays the profiler information window.
+ *
+ * Renders a window with detailed profiling metrics for performance analysis.
+ * This method is const and does not modify the overlay state.
+ */
+
+/**
+ * @brief Displays the renderer settings panel.
+ *
+ * Provides a UI panel to adjust various renderer options and optimize visual performance.
+ */
+
+/**
+ * @brief Displays the event debugging interface.
+ *
+ * Renders a window that allows in-depth inspection and debugging of engine events.
+ */
+
+/**
+ * @brief Displays the terrain generation controls.
+ *
+ * Renders interactive UI elements for adjusting terrain generation parameters,
+ * enabling real-time debugging and refinement.
+ */
+
+/**
+ * @brief Sets the visibility of transform manipulation controls.
+ *
+ * @param show Flag indicating whether the transform controls should be displayed.
+ */
+
+/**
+ * @brief Sets the visibility of the profiler window.
+ *
+ * @param show Flag indicating whether the profiler should be displayed.
+ */
+
+/**
+ * @brief Sets the visibility of the renderer settings panel.
+ *
+ * @param show Flag indicating whether the renderer settings should be displayed.
+ */
+
+/**
+ * @brief Sets the visibility of the event debugger interface.
+ *
+ * @param show Flag indicating whether the event debugger should be displayed.
+ */
+
+/**
+ * @brief Sets the visibility of the terrain controls.
+ *
+ * @param show Flag indicating whether the terrain controls should be displayed.
+ */
+
+/**
+ * @brief Sets the visibility of the FPS counter overlay.
+ *
+ * @param show Flag indicating whether the FPS counter should be displayed.
+ */
 namespace Engine {
     /**
      * @brief ImGui-based overlay for debug and control interfaces

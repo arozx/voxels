@@ -57,7 +57,18 @@ namespace Engine {
     Application* Application::s_Instance = nullptr;
 
     /**
-     * @brief Initialize the application and all subsystems
+     * @brief Constructs the Application instance and initializes core engine subsystems.
+     *
+     * This constructor sets up the runtime environment for the voxel engine by:
+     * - Assigning the global instance pointer.
+     * - Beginning a runtime profiling session.
+     * - Creating the application window.
+     * - Initializing the renderer and input system.
+     * - Configuring the ImGui layer and overlay for UI rendering.
+     * - Initializing the Lua script system and executing initial scripts from designated asset directories.
+     * - Preloading frequently used assets and setting up default key toggle states.
+     *
+     * Critical initialization failures are logged to aid in troubleshooting startup issues.
      */
     Application::Application() 
     {

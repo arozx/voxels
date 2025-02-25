@@ -181,15 +181,14 @@ void SandboxApp::ExecuteCommand(const std::string& command) {
 
 namespace Engine {
 /**
- * @brief Creates and returns a new SandboxApp instance.
- * 
- * This function is responsible for instantiating the primary application 
- * for the sandbox environment. It allocates a new SandboxApp object 
- * which provides a Lua scripting console and other sandbox-specific 
- * application features.
- * 
- * @return Application* A pointer to a newly created SandboxApp instance.
- * @note The caller is responsible for managing the memory of the returned Application pointer.
+ * @brief Instantiates and returns a new SandboxApp.
+ *
+ * Creates a new SandboxApp, which powers the sandbox environment with a Lua scripting console and related features.
+ * Any exceptions thrown during instantiation are caught; in such cases, an error is logged to standard error and a 
+ * nullptr is returned.
+ *
+ * @return Application* Pointer to the new SandboxApp instance, or nullptr if instantiation fails.
+ * @note The caller is responsible for managing the memory of the returned pointer.
  */
 
 Application* CreateApplication() {
