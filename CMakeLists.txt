@@ -19,12 +19,19 @@ if (NOT OPENGL_FOUND)
 endif()
 
 # WINDOW SPECIFIC
-set(GLFW_DIR ${CMAKE_SOURCE_DIR}/external/glfw)
-set(GLFW_INCLUDE_DIR ${GLFW_DIR}/include)
-set(GLFW_LIBRARY ${GLFW_DIR}/lib-vc2022/glfw3.lib)
+if(WIN32)
+    set(GLFW_DIR ${CMAKE_SOURCE_DIR}/external/glfw)
+    set(GLFW_INCLUDE_DIR ${GLFW_DIR}/include)
+    set(GLFW_LIBRARY ${GLFW_DIR}/lib-vc2022/glfw3.lib)
 
-include_directories(${GLFW_INCLUDE_DIR})
-link_directories(${GLFW_DIR}/lib-vc2022)
+    include_directories(${GLFW_INCLUDE_DIR})
+    link_directories(${GLFW_DIR}/lib-vc2022)
+else()
+    find_package(glfw3 REQUIRED)
+    if(NOT glfw3_FOUND)
+        message(FATAL_ERROR "GLFW not found. Please install libglfw3 and libglfw3-dev packages.")
+    endif()
+endif()
 
 # Add GLAD
 add_library(glad STATIC
@@ -129,11 +136,10 @@ if(NOT WIN32)
 endif()
 
 target_link_libraries(voxel-engine PUBLIC 
-    ${GLFW_LIBRARY}
+    $<IF:$<BOOL:${WIN32}>,${GLFW_LIBRARY},glfw>
     OpenGL::GL
     glad
     ${LUA_LIBRARIES}
-    ${GLFW_DEPENDENCIES}
 )
 
 # Create sandbox executable
