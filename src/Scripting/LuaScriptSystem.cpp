@@ -589,7 +589,9 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
     std::vector<std::string> searchPaths = {
         originalPath, "../" + originalPath, "../../" + originalPath,
         "../sandbox/assets/scripts/" + originalPath.substr(originalPath.find_last_of("/\\") + 1),
-        "sandbox/assets/scripts/" + originalPath.substr(originalPath.find_last_of("/\\") + 1)};
+        "sandbox/assets/scripts/" + originalPath.substr(originalPath.find_last_of("/\\") + 1),
+        "assets/scripts/" + originalPath.substr(originalPath.find_last_of("/\\") + 1),
+    };
 
     std::string validPath;
     bool found = false;
@@ -597,13 +599,15 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
     for (const auto& path : searchPaths) {
         if (FileSystem::Exists(path)) {
             validPath = path;
+            LOG_TRACE_CONCAT("Script found: ", validPath);
             found = true;
             break;
         }
     }
 
     if (!found) {
-        LOG_ERROR("Script not found: ", originalPath);
+        LOG_ERROR_CONCAT("Script not found: ", originalPath);
+        LOG_TRACE_CONCAT("Current directory: ", std::filesystem::current_path());
         return false;
     }
 
