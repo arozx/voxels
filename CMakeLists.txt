@@ -161,6 +161,11 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /ZI")
 endif()
 
+# Required for Github Actions
+if(NOT WIN32)
+    target_include_directories(sandbox PRIVATE /usr/include/lua5.4)
+endif()
+
 add_custom_command(TARGET sandbox POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/sandbox/assets/scripts
