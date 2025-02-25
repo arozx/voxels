@@ -115,13 +115,6 @@ namespace Engine {
         try {
             m_ScriptSystem->Initialize();
 
-            // Only execute init.lua once from the source directory
-            LOG_INFO("Loading init.lua script...");
-            if (!m_ScriptSystem->ExecuteFile("sandbox/assets/scripts/init.lua")) {
-                LOG_ERROR("Failed to execute init.lua");
-                return;
-            }
-
             // Only execute main.lua once from the build directory
             LOG_INFO("Loading main.lua script...");
             if (!m_ScriptSystem->ExecuteFile("build/assets/scripts/main.lua")) {

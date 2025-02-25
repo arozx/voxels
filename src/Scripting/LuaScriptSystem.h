@@ -2,6 +2,7 @@
 
 #include <pch.h>
 
+#include "../Core/FileWatcher.h"
 #include "../external/sol2/sol.hpp"
 #include "Scene/SceneManager.h"
 
@@ -36,8 +37,22 @@ class LuaScriptSystem {
 
     void CallGlobalFunction(const std::string& functionName);
 
+    /// @brief Reloads a previously loaded script file
+    /// @param filepath Path to the script file to reload
+    /// @return true if reload succeeded, false otherwise
+    bool ReloadFile(const std::string& filepath);
+
+    /// @brief Register a callback for when a script file is reloaded
+    /// @param callback Function to call when any script is reloaded
+    void SetReloadCallback(std::function<void(const std::string&)> callback) {
+        m_ReloadCallback = callback;
+    }
+
    private:
     std::unique_ptr<sol::state> m_LuaState;
+    std::unordered_set<std::string> m_LoadedScripts;  // Track loaded script paths
+    FileWatcher m_ScriptWatcher;
+    std::function<void(const std::string&)> m_ReloadCallback;
 
    private:
     void RegisterEngineAPI();

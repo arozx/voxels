@@ -36,6 +36,9 @@ class DefaultShaders;
 LuaScriptSystem::LuaScriptSystem() : m_LuaState(std::make_unique<sol::state>()) {
     m_LuaState->open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string,
                                sol::lib::table, sol::lib::io, sol::lib::os);
+
+    // Create and store engine table in global state
+    m_LuaState->create_named_table("engine");
 }
 
 /**
@@ -93,7 +96,11 @@ void LuaScriptSystem::Initialize() { RegisterEngineAPI(); }
  */
 
 void LuaScriptSystem::RegisterEngineAPI() {
-    auto engine = m_LuaState->create_named_table("engine");
+    // Get existing engine table instead of creating new one
+    sol::table engine = (*m_LuaState)["engine"].get<sol::table>();
+
+    // First register the script watcher since other functions might need it
+    engine.set_function("updateScriptWatcher", [this]() { m_ScriptWatcher.Update(); });
 
     // Add glm::vec3 type registration
     m_LuaState->new_usertype<glm::vec3>(
@@ -604,6 +611,89 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
     if (!loadResult.valid() || !loadResult().valid()) {
         LOG_ERROR("Failed to execute script: ", validPath);
         return false;
+    }
+
+    // Add to loaded scripts and set up file watching
+    m_LoadedScripts.insert(validPath);
+    m_ScriptWatcher.WatchFile(
+        validPath, [this, validPath](const std::string&) { this->ReloadFile(validPath); });
+
+    return true;
+}
+
+bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
+    if (!FileSystem::Exists(filepath)) {
+        LOG_ERROR("Cannot reload missing script: ", filepath);
+        return false;
+    }
+
+    // Store previous global state
+    sol::table oldGlobals = (*m_LuaState)["_G"];
+    sol::table oldEngine = (*m_LuaState)["engine"];
+
+    // Create a new temporary state for validation
+    sol::state tempState;
+    tempState.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string,
+                             sol::lib::table, sol::lib::io, sol::lib::os);
+
+    // Try loading in temporary state first
+    sol::load_result loadResult = tempState.load_file(filepath);
+    if (!loadResult.valid()) {
+        sol::error err = loadResult;
+        LOG_ERROR("Failed to load updated script: ", filepath, " - ", err.what());
+        return false;
+    }
+
+    // Execute in temporary state to check for syntax errors
+    sol::protected_function_result result = loadResult();
+    if (!result.valid()) {
+        sol::error err = result;
+        LOG_ERROR_CONCAT("Failed to execute updated script: ", filepath, " - ", err.what());
+        return false;
+    }
+
+    // Before loading into main state, preserve old globals
+    std::unordered_map<std::string, sol::object> preservedGlobals;
+    for (const auto& pair : oldGlobals) {
+        if (pair.first.is<std::string>()) {
+            std::string key = pair.first.as<std::string>();
+            // Only preserve Lua-defined globals (skip C++ objects)
+            if (pair.second.get_type() == sol::type::table ||
+                pair.second.get_type() == sol::type::function ||
+                pair.second.get_type() == sol::type::string ||
+                pair.second.get_type() == sol::type::number ||
+                pair.second.get_type() == sol::type::boolean) {
+                preservedGlobals[key] = pair.second;
+            }
+        }
+    }
+
+    // Load into main state
+    sol::load_result mainLoadResult = m_LuaState->load_file(filepath);
+    if (!mainLoadResult.valid()) {
+        sol::error err = mainLoadResult;
+        LOG_ERROR("Failed to reload script in main state: ", filepath, " - ", err.what());
+        return false;
+    }
+
+    // Execute in main state
+    sol::protected_function_result mainResult = mainLoadResult();
+    if (!mainResult.valid()) {
+        sol::error err = mainResult;
+        LOG_ERROR("Failed to execute reloaded script in main state: ", filepath, " - ", err.what());
+        return false;
+    }
+
+    // Restore preserved globals
+    for (const auto& [key, value] : preservedGlobals) {
+        (*m_LuaState)["_G"][key] = value;
+    }
+
+    LOG_INFO("Successfully reloaded script: ", filepath);
+
+    // Notify callback if registered
+    if (m_ReloadCallback) {
+        m_ReloadCallback(filepath);
     }
 
     return true;
