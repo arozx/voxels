@@ -423,6 +423,13 @@ private:
         }
     }
 
+    /**
+     * @brief Ensures the thread-local batched measurements container has sufficient capacity.
+     *
+     * This function checks whether the current capacity of the batched measurements vector is 
+     * less than the predefined BATCH_RESERVE_SIZE. If it is, additional capacity is reserved to 
+     * minimize the need for reallocations during batch profiling.
+     */
     bool m_Enabled{true};
     std::unordered_set<std::string> m_StringPool;
     OutputFormat m_OutputFormat{OutputFormat::JSON};
