@@ -55,8 +55,6 @@ else()
     find_package(Lua 5.4 REQUIRED)
     if(NOT LUA_FOUND)
         message(FATAL_ERROR "Lua >= 5.4 not found. Please install lua5.4 and lua5.4-dev packages.")
-    else()
-        target_include_directories(voxel-engine PRIVATE /usr/include/lua5.4)
     endif()
 endif()
 
@@ -124,6 +122,11 @@ target_include_directories(voxel-engine PUBLIC
     ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-windows/include
     ${CMAKE_SOURCE_DIR}/external/sol2
 )
+
+# Required for Github Actions
+if(NOT WIN32)
+    target_include_directories(voxel-engine PRIVATE /usr/include/lua5.4)
+endif()
 
 target_link_libraries(voxel-engine PUBLIC 
     ${GLFW_LIBRARY}
