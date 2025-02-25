@@ -171,7 +171,7 @@ namespace Engine {
     void OpenGLWindow::Shutdown() {
         if (m_Window) {
             glfwDestroyWindow(m_Window);
-            // m_Window = nullptr;
+            m_Window = nullptr;
         }
         glfwTerminate();
     }
