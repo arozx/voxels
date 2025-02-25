@@ -8,6 +8,7 @@
 #include "Camera/OrthographicCamera.h"
 #include "Renderer/Renderer2D.h"
 
+namespace Engine {}
 // Add these constants before SandboxApp constructor
 static constexpr ImVec2 INITIAL_WINDOW_SIZE(520, 600);
 static constexpr size_t MAX_INPUT_BUFFER_SIZE = 256;
@@ -190,5 +191,14 @@ namespace Engine {
  * @return Application* A pointer to a newly created SandboxApp instance.
  * @note The caller is responsible for managing the memory of the returned Application pointer.
  */
-Application* CreateApplication() { return new SandboxApp(); }
+
+Application* CreateApplication() {
+    try {
+        return new SandboxApp();  // Or whatever your concrete application class is
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Failed to create application: " << e.what() << std::endl;
+        return nullptr;
+    }
+}
 }  // namespace Engine

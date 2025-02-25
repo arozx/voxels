@@ -510,7 +510,10 @@ private:
                     lru_idx = i;
                 }
             }
-            entries[lru_idx] = {name, data, accessCount};
+            // Ensure lru_idx is within bounds
+            if (lru_idx < FAST_PATH_SIZE) {
+                entries[lru_idx] = {name, data, accessCount};
+            }
         }
     };
     thread_local static FastPathCache t_FastPath;

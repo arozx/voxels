@@ -1,5 +1,4 @@
 #include <pch.h>
-#include "Application.h"
 
 #include <imgui.h>
 
@@ -73,10 +72,27 @@ namespace Engine {
         m_Renderer = std::make_unique<Renderer>();
         m_Renderer->Initialize();
 
+        m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), *m_Renderer);
+        if (!m_InputSystem) {
+            LOG_ERROR("Input system initialisation failed");
+        }
+
+
         // Create and initialize ImGui layer first
         m_ImGuiLayer = std::make_unique<ImGuiLayer>(m_Window.get());
+        
+        if (!m_ImGuiLayer) {
+            LOG_FATAL("Imgui layer init failed");
+        }
+
         m_ImGuiLayer->Init(m_Window.get());  // Explicitly call Init
         LOG_TRACE("ImGui initialized");
+
+        m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
+
+        if (!m_ImGuiOverlay) {
+            LOG_FATAL("ImGui layer init failed");
+        }
 
         // Initialize script system first
         m_ScriptSystem = std::make_unique<LuaScriptSystem>();
@@ -109,8 +125,6 @@ namespace Engine {
         
         // Initialize remaining systems after script system is ready
         AssetManager::Get().PreloadFrequentAssets();
-        m_InputSystem = std::make_unique<InputSystem>(m_Window.get(), *m_Renderer);
-        m_ImGuiOverlay = std::make_unique<ImGuiOverlay>(m_Window.get());
 
         InitializeToggleStates();
 

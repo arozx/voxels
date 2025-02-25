@@ -163,7 +163,7 @@ namespace Engine {
      * @note The window is only rendered if m_ShowProfiler is true
      * @note Profiling data includes average, minimum, maximum execution times, and number of calls
      */
-    void ImGuiOverlay::RenderProfiler() {
+    void ImGuiOverlay::RenderProfiler() const {
         if (!m_ShowProfiler) return;
         ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
         bool enabled = Profiler::Get().IsEnabled();
