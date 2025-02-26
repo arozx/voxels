@@ -337,10 +337,10 @@ void LuaScriptSystem::RegisterEngineAPI() {
     engine.set_function("getCameraPosition", []() -> std::tuple<float, float, float> {
         auto& renderer = Application::Get().GetRenderer();
         if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            auto pos = renderer.GetPerspectiveCamera()->GetPosition();
+            const auto& pos = renderer.GetPerspectiveCamera()->GetPosition();
             return std::make_tuple(pos.x, pos.y, pos.z);
         } else {
-            auto pos = renderer.GetCamera()->GetPosition();
+            const auto& pos = renderer.GetCamera()->GetPosition();
             return std::make_tuple(pos.x, pos.y, pos.z);
         }
     });
