@@ -203,16 +203,13 @@ void LuaScriptSystem::RegisterEngineAPI() {
         return Application::Get().GetRenderType() == RenderType::Render3D;
     });
 
-    // Scene API
+    // SceneManager API
     engine.set_function("createScene", [](const std::string& name) -> bool {
-        LOG_TRACE_CONCAT("[Lua] createScene called with name = ", name);
         auto scene = std::make_shared<Scene>(name);
         if (!scene) {
-            LOG_ERROR_CONCAT("Failed to create scene: ", name);
             return false;
         }
         SceneManager::Get().AddScene(scene);
-        // Logging already handled in Scene constructor
         return true;
     });
 
@@ -220,22 +217,15 @@ void LuaScriptSystem::RegisterEngineAPI() {
         auto& sceneManager = SceneManager::Get();
         auto scene = sceneManager.GetScene(name);
         if (!scene) {
-            LOG_ERROR_CONCAT("Scene not found: ", name);
             return false;
         }
         sceneManager.SetActiveScene(name);
-        // Logging already handled in SceneManager
         return true;
     });
 
-    engine.set_function("deleteScene", [](const std::string& name) -> bool {
+    engine.set_function("removeScene", [](const std::string& name) -> bool {
         auto& sceneManager = SceneManager::Get();
-        if (sceneManager.RemoveScene(name)) {
-            LOG_INFO_CONCAT("Deleted scene: ", name);
-            return true;
-        }
-        LOG_ERROR_CONCAT("Failed to delete scene: ", name);
-        return false;
+        return sceneManager.RemoveScene(name);
     });
 
     engine.set_function("getActiveSceneName", []() -> std::string {
