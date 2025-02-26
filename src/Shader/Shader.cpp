@@ -144,7 +144,7 @@ namespace Engine {
     }
 
     bool Shader::Load(const std::string& path) {
-        if (path == "" or path == " ") {
+        if (path == "" || path == " ") {
             LOG_ERROR("Shader path is empty");
             return false;
         }
