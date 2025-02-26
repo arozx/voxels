@@ -519,11 +519,20 @@ void LuaScriptSystem::RegisterEngineAPI() {
         return cube;
     });
 
-    // Fix getObject function
     engine.set_function("getObject", [](const std::string& name) -> std::shared_ptr<SceneObject> {
         auto scene = SceneManager::Get().GetActiveScene();
-        if (!scene) return nullptr;
-        return std::dynamic_pointer_cast<SceneObject>(scene->GetObject(name));
+        if (!scene) {
+            LOG_ERROR_CONCAT("No active scene when trying to get object: ", name);
+            return nullptr;
+        }
+        
+        auto object = scene->GetObject(name);
+        if (!object) {
+            LOG_WARN_CONCAT("Object not found in scene: ", name);
+            return nullptr;
+        }
+        
+        return std::dynamic_pointer_cast<SceneObject>(object);
     });
 }
 
