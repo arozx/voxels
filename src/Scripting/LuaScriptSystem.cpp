@@ -17,6 +17,15 @@ namespace Engine {
 // Forward declare DefaultShaders
 class DefaultShaders;
 
+namespace {
+constexpr float DEFAULT_ORTHO_LEFT = -1.6f;
+constexpr float DEFAULT_ORTHO_RIGHT = 1.6f;
+constexpr float DEFAULT_ORTHO_BOTTOM = -0.9f;
+constexpr float DEFAULT_ORTHO_TOP = 0.9f;
+
+constexpr int CHECKER_TEXTURE_SIZE = 8;
+}  // namespace
+
 /**
  * @brief Constructs a new LuaScriptSystem instance and initializes the Lua state.
  *
@@ -96,217 +105,421 @@ void LuaScriptSystem::Initialize() { RegisterEngineAPI(); }
  */
 
 void LuaScriptSystem::RegisterEngineAPI() {
-    // Get existing engine table instead of creating new one
     sol::table engine = (*m_LuaState)["engine"].get<sol::table>();
 
-    // First register the script watcher since other functions might need it
+    // Add API version to the engine table
+    engine["API_VERSION"] = API_VERSION;
+
+    // Register script watcher updater
     engine.set_function("updateScriptWatcher", [this]() { m_ScriptWatcher.Update(); });
 
-    // Add glm::vec3 type registration
+    // Register all API components
+    RegisterTypeDefinitions();
+    RegisterTerrainAPI(engine);
+    RegisterRendererAPI(engine);
+    RegisterSceneAPI(engine);
+    RegisterInputAPI(engine);
+    RegisterLoggingAPI(engine);
+    RegisterFileSystemAPI(engine);
+    RegisterCameraAPI(engine);
+    RegisterUIControlsAPI(engine);
+    RegisterConstantsAPI();
+    Register2DRendererAPI(engine);
+    RegisterObjectManagementAPI(engine);
+}
+
+/**
+ * @brief Registers C++ types for use in the Lua environment
+ *
+ * This method creates usertype bindings for C++ classes like glm::vec3,
+ * Transform, and SceneObject, exposing their methods and properties to Lua.
+ */
+void LuaScriptSystem::RegisterTypeDefinitions() {
+    // Register glm::vec3
     m_LuaState->new_usertype<glm::vec3>(
         "vec3", sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>(),
         "x", &glm::vec3::x, "y", &glm::vec3::y, "z", &glm::vec3::z);
 
-    // Update Transform registration with proper type handling
+    // Register Transform with proper method overloading
     m_LuaState->new_usertype<Transform>(
         "Transform", sol::constructors<Transform()>(),
 
-        // Position methods
+        // Position methods with proper overloading
         "SetPosition",
         sol::overload(
             static_cast<void (Transform::*)(float, float, float)>(&Transform::SetPosition),
             static_cast<void (Transform::*)(const glm::vec3&)>(&Transform::SetPosition)),
 
-        // Rotation methods
+        // Rotation methods with proper overloading
         "SetRotation",
         sol::overload(
             static_cast<void (Transform::*)(float, float, float)>(&Transform::SetRotation),
             static_cast<void (Transform::*)(const glm::vec3&)>(&Transform::SetRotation)),
 
-        // Scale methods
+        // Scale methods with proper overloading
         "SetScale",
         sol::overload(static_cast<void (Transform::*)(float, float, float)>(&Transform::SetScale),
                       static_cast<void (Transform::*)(const glm::vec3&)>(&Transform::SetScale)),
 
-        // Getters
+        // Getter methods
         "GetPosition", &Transform::GetPosition, "GetRotation", &Transform::GetRotation, "GetScale",
         &Transform::GetScale, "GetModelMatrix", &Transform::GetModelMatrix);
 
-    // Terrain API
-    engine.set_function("setTerrainHeight", [this](float height) {
+    // Register SceneObject with property access
+    m_LuaState->new_usertype<SceneObject>(
+        "SceneObject", sol::constructors<SceneObject(), SceneObject(const std::string&)>(), "name",
+        &SceneObject::name, "transform",
+        sol::property([](SceneObject& obj) -> Transform& { return obj.GetTransform(); }), "SetMesh",
+        &SceneObject::SetMesh, "SetMaterial", &SceneObject::SetMaterial, "GetMesh",
+        &SceneObject::GetMesh, "GetMaterial", &SceneObject::GetMaterial);
+}
+
+/**
+ * @brief Registers terrain manipulation functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterTerrainAPI(sol::table& engine) {
+    // Set terrain height
+    engine.set_function("setTerrainHeight", [this](float height) -> bool {
         LOG_TRACE_CONCAT("[Lua] setTerrainHeight called with height = ", height);
-        auto activeScene = Engine::SceneManager::Get().GetActiveScene();
-        if (activeScene) {
-            auto* terrain = activeScene->GetTerrainSystem();
-            if (terrain) {
+
+        return this->WithActiveScene(
+            [height](auto scene) -> bool {
+                auto* terrain = scene->GetTerrainSystem();
+                if (!terrain) {
+                    LOG_ERROR_CONCAT("No terrain system in active scene");
+                    return false;
+                }
+
                 terrain->SetBaseHeight(height);
-            } else {
-                LOG_ERROR("No terrain system in active scene");
-            }
-        } else {
-            LOG_ERROR("No active scene to set terrain height");
-        }
+                return true;
+            },
+            "No active scene to set terrain height");
     });
 
-    engine.set_function("generateTerrainMesh", [this](uint32_t seed) {
-        auto activeScene = Engine::SceneManager::Get().GetActiveScene();
-        if (activeScene) {
-            auto* terrain = activeScene->GetTerrainSystem();
-            if (terrain) {
+    // Generate terrain mesh
+    engine.set_function("generateTerrainMesh", [this](uint32_t seed) -> bool {
+        return this->WithActiveScene(
+            [seed](auto scene) -> bool {
+                auto* terrain = scene->GetTerrainSystem();
+                if (!terrain) {
+                    LOG_ERROR_CONCAT("No terrain system in active scene");
+                    return false;
+                }
+
                 terrain->GenerateMesh(seed);
-            } else {
-                LOG_ERROR("No terrain system in active scene");
-            }
-        } else {
-            LOG_ERROR("No active scene to generate terrain");
-        }
-        // Logging for mesh generation already handled in TerrainSystem
+                return true;
+            },
+            "No active scene to generate terrain");
     });
+}
 
-    // Renderer API
-    engine.set_function("setClearColor", [this](float r, float g, float b, float a) {
+/**
+ * @brief Registers renderer control functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterRendererAPI(sol::table& engine) {
+    // Set clear color for renderer
+    engine.set_function("setClearColor", [](float r, float g, float b, float a) -> bool {
+        if (r < 0.0f || r > 1.0f || g < 0.0f || g > 1.0f || b < 0.0f || b > 1.0f || a < 0.0f ||
+            a > 1.0f) {
+            LOG_WARN("Color values should be between 0.0 and 1.0");
+            return false;
+        }
+
         Renderer::Get().Clear(glm::vec4(r, g, b, a));
-    });
-
-    engine.set_function("setViewport", [this](int x, int y, int width, int height) {
-        Renderer::Get().SetViewport(x, y, width, height);
-    });
-
-    engine.set_function("setCameraType", [this](const std::string& type) {
-        if (type == "orthographic") {
-            Application::Get().SetCameraType(CameraType::Orthographic);
-        } else if (type == "perspective") {
-            Application::Get().SetCameraType(CameraType::Perspective);
-        }
         return true;
     });
 
+    // Set viewport dimensions
+    engine.set_function("setViewport", [](int x, int y, int width, int height) -> bool {
+        if (width <= 0 || height <= 0) {
+            LOG_ERROR_CONCAT("Viewport width and height must be positive");
+            return false;
+        }
+
+        Renderer::Get().SetViewport(x, y, width, height);
+        return true;
+    });
+
+    // Set camera type (orthographic or perspective)
+    engine.set_function("setCameraType", [](const std::string& type) -> bool {
+        if (type == "orthographic") {
+            Application::Get().SetCameraType(CameraType::Orthographic);
+            return true;
+        } else if (type == "perspective") {
+            Application::Get().SetCameraType(CameraType::Perspective);
+            return true;
+        } else {
+            LOG_ERROR_CONCAT("Invalid camera type: ", type);
+            LOG_INFO_CONCAT("Valid types are 'orthographic' or 'perspective'");
+            return false;
+        }
+    });
+
+    // Get current camera type
     engine.set_function("getCameraType", []() -> std::string {
         auto type = Renderer::Get().GetCameraType();
         return (type == Renderer::CameraType::Orthographic) ? "orthographic" : "perspective";
     });
 
-    // Renderer type control
-    engine.set_function("setRenderType", [](const std::string& type) {
+    // Set render type (2D or 3D)
+    engine.set_function("setRenderType", [](const std::string& type) -> bool {
         if (type == "2d") {
             Application::Get().SetRenderType(RenderType::Render2D);
+            return true;
         } else if (type == "3d") {
             Application::Get().SetRenderType(RenderType::Render3D);
+            return true;
+        } else {
+            LOG_ERROR_CONCAT("Invalid render type: ", type);
+            LOG_INFO_CONCAT("Valid types are '2d' or '3d'");
+            return false;
         }
     });
 
+    // Get current render type
     engine.set_function("getRenderType", []() -> std::string {
         return Application::Get().GetRenderType() == RenderType::Render2D ? "2d" : "3d";
     });
 
+    // Check if current render mode is 3D
     engine.set_function("is3D", []() -> bool {
         return Application::Get().GetRenderType() == RenderType::Render3D;
     });
+}
 
-    // SceneManager API
+/**
+ * @brief Registers scene management functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterSceneAPI(sol::table& engine) {
+    // Create a new scene
     engine.set_function("createScene", [](const std::string& name) -> bool {
-        auto scene = std::make_shared<Scene>(name);
-        if (!scene) {
+        if (name.empty()) {
+            LOG_ERROR_CONCAT("Scene name cannot be empty");
             return false;
         }
+
+        auto scene = std::make_shared<Scene>(name);
+        if (!scene) {
+            LOG_ERROR_CONCAT("Failed to create scene: ", name);
+            return false;
+        }
+        
         SceneManager::Get().AddScene(scene);
+        LOG_INFO_CONCAT("Created scene: ", name);
         return true;
     });
 
+    // Set the active scene
     engine.set_function("setActiveScene", [](const std::string& name) -> bool {
+        if (name.empty()) {
+            LOG_ERROR_CONCAT("Scene name cannot be empty");
+            return false;
+        }
+
         auto& sceneManager = SceneManager::Get();
         auto scene = sceneManager.GetScene(name);
         if (!scene) {
+            LOG_ERROR_CONCAT("Scene not found: ", name);
             return false;
         }
+        
         sceneManager.SetActiveScene(name);
+        LOG_INFO_CONCAT("Set active scene to: ", name);
         return true;
     });
 
+    // Remove a scene
     engine.set_function("removeScene", [](const std::string& name) -> bool {
-        auto& sceneManager = SceneManager::Get();
-        return sceneManager.RemoveScene(name);
+        if (name.empty()) {
+            LOG_ERROR_CONCAT("Scene name cannot be empty");
+            return false;
+        }
+
+        bool result = SceneManager::Get().RemoveScene(name);
+        if (result) {
+            LOG_INFO_CONCAT("Removed scene: ", name);
+        } else {
+            LOG_ERROR_CONCAT("Failed to remove scene: ", name);
+        }
+        return result;
     });
 
+    // Get the active scene name
     engine.set_function("getActiveSceneName", []() -> std::string {
         auto scene = SceneManager::Get().GetActiveScene();
         return scene ? scene->GetName() : "";
     });
+}
 
-    // Input API
-    engine.set_function("isKeyPressed", [](int keycode) {
+/**
+ * @brief Registers input handling functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterInputAPI(sol::table& engine) {
+    // Check if a key is pressed
+    engine.set_function("isKeyPressed", [](int keycode) -> bool {
         return Application::Get().GetInputSystem()->IsKeyPressed(keycode);
     });
 
-    engine.set_function("isMouseButtonPressed", [](int button) {
+    // Check if a mouse button is pressed
+    engine.set_function("isMouseButtonPressed", [](int button) -> bool {
+        if (button < 0 || button > 7) {
+            LOG_WARN("Mouse button index out of range: ", button);
+        }
         return Application::Get().GetInputSystem()->IsMouseButtonPressed(button);
     });
 
-    engine.set_function("getMousePosition", []() {
+    // Get current mouse position
+    engine.set_function("getMousePosition", []() -> std::tuple<float, float> {
         auto [x, y] = Application::Get().GetInputSystem()->GetMousePosition();
         return std::make_tuple(x, y);
     });
 
-    engine.set_function("setMouseSensitivity", [](float sensitivity) {
+    // Set mouse sensitivity
+    engine.set_function("setMouseSensitivity", [](float sensitivity) -> bool {
+        if (sensitivity <= 0.0f) {
+            LOG_WARN("Mouse sensitivity should be positive");
+            return false;
+        }
         Application::Get().GetInputSystem()->SetSensitivity(sensitivity);
+        return true;
     });
 
+    // Get mouse sensitivity
     engine.set_function("getMouseSensitivity", []() -> float {
         return Application::Get().GetInputSystem()->GetSensitivity();
     });
 
-    engine.set_function("setMovementSpeed", [](float speed) {
+    // Set movement speed
+    engine.set_function("setMovementSpeed", [](float speed) -> bool {
+        if (speed < 0.0f) {
+            LOG_WARN("Movement speed should be non-negative");
+            return false;
+        }
         Application::Get().GetInputSystem()->SetMovementSpeed(speed);
+        return true;
     });
 
+    // Get movement speed
     engine.set_function("getMovementSpeed", []() -> float {
         return Application::Get().GetInputSystem()->GetMovementSpeed();
     });
 
-    engine.set_function("toggleCameraControls",
-                        []() { Application::Get().GetInputSystem()->ToggleCameraControls(); });
+    // Toggle camera controls
+    engine.set_function("toggleCameraControls", []() -> bool {
+        Application::Get().GetInputSystem()->ToggleCameraControls();
+        return true;
+    });
 
-    engine.set_function("toggleMovementLock",
-                        []() { Application::Get().GetInputSystem()->ToggleMovementLock(); });
+    // Toggle movement lock
+    engine.set_function("toggleMovementLock", []() -> bool {
+        Application::Get().GetInputSystem()->ToggleMovementLock();
+        return true;
+    });
 
-    engine.set_function("toggleSmoothCamera",
-                        []() { Application::Get().GetInputSystem()->ToggleSmoothCamera(); });
+    // Toggle smooth camera
+    engine.set_function("toggleSmoothCamera", []() -> bool {
+        Application::Get().GetInputSystem()->ToggleSmoothCamera();
+        return true;
+    });
+}
 
-    // Debug/Logging API
-    engine.set_function(
-        "trace", [](const std::string& message) { LOG_TRACE_CONCAT("[Lua]: ", message, "."); });
+/**
+ * @brief Registers logging and profiling functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterLoggingAPI(sol::table& engine) {
+    // Register logging functions with consistent formatting
+    engine.set_function("trace", [](const std::string& message) -> bool {
+        LOG_TRACE_CONCAT("[Lua]: ", message);
+        return true;
+    });
 
-    engine.set_function(
-        "log", [](const std::string& message) { LOG_INFO_CONCAT("[Lua]: ", message, "."); });
+    engine.set_function("log", [](const std::string& message) -> bool {
+        LOG_INFO_CONCAT("[Lua]: ", message);
+        return true;
+    });
 
-    engine.set_function(
-        "warn", [](const std::string& message) { LOG_WARN_CONCAT("[Lua]: ", message, "."); });
+    engine.set_function("warn", [](const std::string& message) -> bool {
+        LOG_WARN_CONCAT("[Lua]: ", message);
+        return true;
+    });
 
-    engine.set_function(
-        "error", [](const std::string& message) { LOG_ERROR_CONCAT("[Lua]: ", message, "."); });
+    engine.set_function("error", [](const std::string& message) -> bool {
+        LOG_ERROR_CONCAT("[Lua]: ", message);
+        return true;
+    });
 
-    engine.set_function(
-        "fatal", [](const std::string& message) { LOG_FATAL_CONCAT("[Lua]: ", message, "."); });
+    engine.set_function("fatal", [](const std::string& message) -> bool {
+        LOG_FATAL_CONCAT("[Lua]: ", message);
+        return true;
+    });
 
-    // Profiling
-    engine.set_function("profileFunction", []() { PROFILE_FUNCTION(); });
+    // Profiling functions
+    engine.set_function("profileFunction", []() -> bool {
+        PROFILE_FUNCTION();
+        return true;
+    });
 
-    engine.set_function("profileScope", [](const std::string& name) { PROFILE_SCOPE(name); });
+    engine.set_function("profileScope", [](const std::string& name) -> bool {
+        if (name.empty()) {
+            LOG_WARN("Profile scope name should not be empty");
+        }
+        PROFILE_SCOPE(name);
+        return true;
+    });
+}
 
-    // File System API
-    engine.set_function("loadScript",
-                        [this](const std::string& filepath) { return ExecuteFile(filepath); });
+/**
+ * @brief Registers file system interaction functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterFileSystemAPI(sol::table& engine) {
+    // Load and execute a script file
+    engine.set_function("loadScript", [this](const std::string& filepath) -> bool {
+        if (filepath.empty()) {
+            LOG_ERROR_CONCAT("Script filepath cannot be empty");
+            return false;
+        }
+        return ExecuteFile(filepath);
+    });
 
-    engine.set_function("mkdir", [](const std::string& path) {
+    // Create a directory
+    engine.set_function("mkdir", [](const std::string& path) -> bool {
+        if (path.empty()) {
+            LOG_ERROR_CONCAT("Directory path cannot be empty");
+            return false;
+        }
         return FileSystem::CreateDirectory(path);
     });
 
-    engine.set_function("exists", [](const std::string& path) {
+    // Check if a file or directory exists
+    engine.set_function("exists", [](const std::string& path) -> bool {
+        if (path.empty()) {
+            LOG_ERROR_CONCAT("Path cannot be empty");
+            return false;
+        }
         return FileSystem::Exists(path);
     });
+}
 
-    // Camera
-    engine.set_function("setCameraPosition", [](float x, float y, float z) {
+/**
+ * @brief Registers camera control functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterCameraAPI(sol::table& engine) {
+    // Set camera position
+    engine.set_function("setCameraPosition", [](float x, float y, float z) -> bool {
         auto& renderer = Application::Get().GetRenderer();
         if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
             renderer.GetPerspectiveCamera()->SetPosition({x, y, z});
@@ -316,14 +529,18 @@ void LuaScriptSystem::RegisterEngineAPI() {
         return true;
     });
 
-    engine.set_function("setCameraRotation", [](float pitch, float yaw) {
+    // Set camera rotation (pitch and yaw for perspective camera)
+    engine.set_function("setCameraRotation", [](float pitch, float yaw) -> bool {
         auto& renderer = Application::Get().GetRenderer();
         if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
             renderer.GetPerspectiveCamera()->SetRotation(pitch, yaw);
-        };
-        // Note: Orthographic camera only supports Z rotation
+            return true;
+        }
+        LOG_WARN("setCameraRotation has no effect on orthographic camera");
+        return false;
     });
 
+    // Get camera position
     engine.set_function("getCameraPosition", []() -> std::tuple<float, float, float> {
         auto& renderer = Application::Get().GetRenderer();
         if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
@@ -335,95 +552,89 @@ void LuaScriptSystem::RegisterEngineAPI() {
         }
     });
 
-    engine.set_function("moveCameraForward", [](float deltaTime) {
-        auto& renderer = Application::Get().GetRenderer();
-        if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            renderer.GetPerspectiveCamera()->MoveForward(deltaTime);
-        }
-    });
+    // Camera movement functions (only for perspective camera)
+    auto registerCameraMovement = [&engine](const char* name, auto method) {
+        // Fix: Capture the name parameter in the lambda
+        engine.set_function(name, [name, method](float deltaTime) -> bool {
+            if (deltaTime < 0) {
+                LOG_WARN("Delta time should not be negative");
+                return false;
+            }
 
-    engine.set_function("moveCameraBackward", [](float deltaTime) {
-        auto& renderer = Application::Get().GetRenderer();
-        if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            renderer.GetPerspectiveCamera()->MoveBackward(deltaTime);
-        }
-    });
+            auto& renderer = Application::Get().GetRenderer();
+            if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
+                // Fix: Proper way to call a member function through a shared_ptr
+                auto camera = renderer.GetPerspectiveCamera();
+                ((*camera).*method)(deltaTime);  // Dereference the shared_ptr and use .*
+                return true;
+            }
+            LOG_WARN(name, " has no effect on orthographic camera");
+            return false;
+        });
+    };
 
-    engine.set_function("moveCameraLeft", [](float deltaTime) {
-        auto& renderer = Application::Get().GetRenderer();
-        if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            renderer.GetPerspectiveCamera()->MoveLeft(deltaTime);
-        }
-    });
+    // Register all camera movement methods
+    registerCameraMovement("moveCameraForward", &PerspectiveCamera::MoveForward);
+    registerCameraMovement("moveCameraBackward", &PerspectiveCamera::MoveBackward);
+    registerCameraMovement("moveCameraLeft", &PerspectiveCamera::MoveLeft);
+    registerCameraMovement("moveCameraRight", &PerspectiveCamera::MoveRight);
+    registerCameraMovement("moveCameraUp", &PerspectiveCamera::MoveUp);
+    registerCameraMovement("moveCameraDown", &PerspectiveCamera::MoveDown);
 
-    engine.set_function("moveCameraRight", [](float deltaTime) {
-        auto& renderer = Application::Get().GetRenderer();
-        if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            renderer.GetPerspectiveCamera()->MoveRight(deltaTime);
-        }
-    });
-
-    engine.set_function("moveCameraUp", [](float deltaTime) {
-        auto& renderer = Application::Get().GetRenderer();
-        if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            renderer.GetPerspectiveCamera()->MoveUp(deltaTime);
-        }
-    });
-
-    engine.set_function("moveCameraDown", [](float deltaTime) {
-        auto& renderer = Application::Get().GetRenderer();
-        if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
-            renderer.GetPerspectiveCamera()->MoveDown(deltaTime);
-        }
-    });
-
+    // Camera rotation with mouse
     engine.set_function(
-        "rotateCameraWithMouse", [](float xOffset, float yOffset, float sensitivity) {
+        "rotateCameraWithMouse", [](float xOffset, float yOffset, float sensitivity) -> bool {
+            if (sensitivity <= 0.0f) {
+                LOG_WARN("Camera sensitivity should be positive");
+                return false;
+            }
+
             auto& renderer = Application::Get().GetRenderer();
             if (renderer.GetCameraType() == Renderer::CameraType::Perspective) {
                 renderer.GetPerspectiveCamera()->RotateWithMouse(xOffset, yOffset, sensitivity);
+                return true;
             }
+            LOG_WARN("rotateCameraWithMouse has no effect on orthographic camera");
+            return false;
         });
+}
 
-    // ImGui Overlay controls
-    engine.set_function("showTransformControls", [](bool show) {
-        if (auto* overlay = Application::Get().GetImGuiOverlay()) {
-            overlay->ShowTransformControls(show);
-        }
-    });
+/**
+ * @brief Registers UI controls for ImGui overlay in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterUIControlsAPI(sol::table& engine) {
+    // Helper function to register ImGui overlay control functions
+    auto registerOverlayFunction = [&engine](const char* name, auto method) {
+        engine.set_function(name, [name, method](bool show) -> bool {
+            auto* overlay = Application::Get().GetImGuiOverlay();
+            if (!overlay) {
+                LOG_WARN("ImGui overlay not available for ", name);
+                return false;
+            }
+            (overlay->*method)(show);
+            return true;
+        });
+    };
 
-    engine.set_function("showProfiler", [](bool show) {
-        if (auto* overlay = Application::Get().GetImGuiOverlay()) {
-            overlay->ShowProfiler(show);
-        }
-    });
+    // Register all overlay control functions
+    registerOverlayFunction("showTransformControls", &ImGuiOverlay::ShowTransformControls);
+    registerOverlayFunction("showProfiler", &ImGuiOverlay::ShowProfiler);
+    registerOverlayFunction("showRendererSettings", &ImGuiOverlay::ShowRendererSettings);
+    registerOverlayFunction("showEventDebugger", &ImGuiOverlay::ShowEventDebugger);
+    registerOverlayFunction("showTerrainControls", &ImGuiOverlay::ShowTerrainControls);
+    registerOverlayFunction("showFPSCounter", &ImGuiOverlay::ShowFPSCounter);
+}
 
-    engine.set_function("showRendererSettings", [](bool show) {
-        if (auto* overlay = Application::Get().GetImGuiOverlay()) {
-            overlay->ShowRendererSettings(show);
-        }
-    });
-
-    engine.set_function("showEventDebugger", [](bool show) {
-        if (auto* overlay = Application::Get().GetImGuiOverlay()) {
-            overlay->ShowEventDebugger(show);
-        }
-    });
-
-    engine.set_function("showTerrainControls", [](bool show) {
-        if (auto* overlay = Application::Get().GetImGuiOverlay()) {
-            overlay->ShowTerrainControls(show);
-        }
-    });
-
-    engine.set_function("showFPSCounter", [](bool show) {
-        if (auto* overlay = Application::Get().GetImGuiOverlay()) {
-            overlay->ShowFPSCounter(show);
-        }
-    });
-
-    // Constants
+/**
+ * @brief Registers constants and enums in the Lua environment
+ */
+void LuaScriptSystem::RegisterConstantsAPI() {
+    // Register key code constants
     auto keyCodes = m_LuaState->create_named_table("KeyCode");
+
+    // Common keyboard keys
     keyCodes["ESCAPE"] = GLFW_KEY_ESCAPE;
     keyCodes["SPACE"] = GLFW_KEY_SPACE;
     keyCodes["W"] = GLFW_KEY_W;
@@ -431,32 +642,85 @@ void LuaScriptSystem::RegisterEngineAPI() {
     keyCodes["S"] = GLFW_KEY_S;
     keyCodes["D"] = GLFW_KEY_D;
 
-    // Register 2D rendering functions
-    engine.set_function("renderer2DBeginScene", []() {
+    // Add more key codes as needed
+    keyCodes["UP"] = GLFW_KEY_UP;
+    keyCodes["DOWN"] = GLFW_KEY_DOWN;
+    keyCodes["LEFT"] = GLFW_KEY_LEFT;
+    keyCodes["RIGHT"] = GLFW_KEY_RIGHT;
+    keyCodes["ENTER"] = GLFW_KEY_ENTER;
+
+    // Mouse button constants
+    auto mouseButtons = m_LuaState->create_named_table("MouseButton");
+    mouseButtons["LEFT"] = GLFW_MOUSE_BUTTON_LEFT;
+    mouseButtons["RIGHT"] = GLFW_MOUSE_BUTTON_RIGHT;
+    mouseButtons["MIDDLE"] = GLFW_MOUSE_BUTTON_MIDDLE;
+}
+
+/**
+ * @brief Registers 2D rendering functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::Register2DRendererAPI(sol::table& engine) {
+    // Begin a new 2D rendering scene
+    engine.set_function("renderer2DBeginScene", []() -> bool {
         auto& renderer = Engine::Renderer2D::Get();
-        auto camera = std::make_shared<Engine::OrthographicCamera>(-1.6f, 1.6f, -0.9f, 0.9f);
+        auto camera = std::make_shared<Engine::OrthographicCamera>(
+            DEFAULT_ORTHO_LEFT, DEFAULT_ORTHO_RIGHT, DEFAULT_ORTHO_BOTTOM, DEFAULT_ORTHO_TOP);
         renderer.BeginScene(camera);
+        return true;
     });
 
-    engine.set_function("renderer2DEndScene", []() { Engine::Renderer2D::Get().EndScene(); });
-
-    engine.set_function("drawQuad", [](float x, float y, float width, float height, float r,
-                                       float g, float b, float a) {
-        Engine::Renderer2D::Get().DrawQuad({x, y}, {width, height}, {r, g, b, a});
+    // End the current 2D rendering scene
+    engine.set_function("renderer2DEndScene", []() -> bool {
+        Engine::Renderer2D::Get().EndScene();
+        return true;
     });
 
-    engine.set_function("drawTexturedQuad", [](float x, float y, float width, float height,
-                                               const std::shared_ptr<Engine::Texture>& texture,
-                                               float tilingFactor) {
-        Engine::Renderer2D::Get().DrawQuad({x, y}, {width, height}, texture, tilingFactor);
-    });
+    // Draw a colored quad
+    engine.set_function("drawQuad",
+                        [](float x, float y, float width, float height, float r, float g, float b,
+                           float a) -> bool {
+                            if (width <= 0 || height <= 0) {
+                                LOG_WARN("Quad dimensions should be positive");
+                                return false;
+                            }
 
-    engine.set_function("createCheckerTexture", []() {
-        const int width = 8, height = 8;
-        uint8_t data[width * height * 4] = {0};
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int index = (y * width + x) * 4;
+                            if (r < 0.0f || r > 1.0f || g < 0.0f || g > 1.0f || b < 0.0f ||
+                                b > 1.0f || a < 0.0f || a > 1.0f) {
+                                LOG_WARN("Color values should be between 0.0 and 1.0");
+                            }
+
+                            Engine::Renderer2D::Get().DrawQuad({x, y}, {width, height},
+                                                               {r, g, b, a});
+                            return true;
+                        });
+
+    // Draw a textured quad
+    engine.set_function(
+        "drawTexturedQuad",
+        [](float x, float y, float width, float height,
+           const std::shared_ptr<Engine::Texture>& texture, float tilingFactor) -> bool {
+            if (width <= 0 || height <= 0) {
+                LOG_WARN("Quad dimensions should be positive");
+                return false;
+            }
+
+            if (!texture) {
+                LOG_ERROR_CONCAT("Texture cannot be null");
+                return false;
+            }
+
+            Engine::Renderer2D::Get().DrawQuad({x, y}, {width, height}, texture, tilingFactor);
+            return true;
+        });
+
+    // Create a checker texture
+    engine.set_function("createCheckerTexture", []() -> std::shared_ptr<Engine::Texture> {
+        uint8_t data[CHECKER_TEXTURE_SIZE * CHECKER_TEXTURE_SIZE * 4] = {0};
+        for (int y = 0; y < CHECKER_TEXTURE_SIZE; y++) {
+            for (int x = 0; x < CHECKER_TEXTURE_SIZE; x++) {
+                int index = (y * CHECKER_TEXTURE_SIZE + x) * 4;
                 if ((x + y) % 2 == 0) {
                     data[index + 0] = 255;
                     data[index + 1] = 255;
@@ -470,60 +734,128 @@ void LuaScriptSystem::RegisterEngineAPI() {
                 }
             }
         }
-        auto texture = std::make_shared<Engine::Texture>(width, height);
+        auto texture =
+            std::make_shared<Engine::Texture>(CHECKER_TEXTURE_SIZE, CHECKER_TEXTURE_SIZE);
         texture->SetData(data, sizeof(data));
         return texture;
     });
 
     // Add renderer initialization function
-    engine.set_function("renderer2DInitialize", []() { Engine::Renderer2D::Get().Initialize(); });
+    engine.set_function("renderer2DInitialize", []() -> bool {
+        Engine::Renderer2D::Get().Initialize();
+        return true;
+    });
+}
 
-    // Fix SceneObject registration - use the proper sol::property syntax
-    m_LuaState->new_usertype<SceneObject>(
-        "SceneObject", sol::constructors<SceneObject(), SceneObject(const std::string&)>(), "name",
-        &SceneObject::name,
-        // Fix: Use proper getter/setter pair for transform property
-        "transform",
-        sol::property([](SceneObject& obj) -> Transform& { return obj.GetTransform(); }), "SetMesh",
-        &SceneObject::SetMesh, "SetMaterial", &SceneObject::SetMaterial, "GetMesh",
-        &SceneObject::GetMesh, "GetMaterial", &SceneObject::GetMaterial);
+/**
+ * @brief Registers object creation and management functions in the Lua environment
+ *
+ * @param engine The engine table to add the functions to
+ */
+void LuaScriptSystem::RegisterObjectManagementAPI(sol::table& engine) {
+    // Create a new cube object in the active scene
+    engine.set_function("createCube",
+                        [this](const std::string& name) -> std::shared_ptr<SceneObject> {
+                            if (name.empty()) {
+                                LOG_ERROR_CONCAT("Object name cannot be empty");
+                                return nullptr;
+                            }
 
-    // Keep only one createCube function implementation
-    engine.set_function("createCube", [](const std::string& name) -> std::shared_ptr<SceneObject> {
-        auto scene = SceneManager::Get().GetActiveScene();
-        if (!scene) {
-            LOG_ERROR("No active scene to create cube in");
-            return nullptr;
-        }
+                            return this->WithActiveScene(
+                                [&name](auto scene) -> std::shared_ptr<SceneObject> {
+                                    auto cube = scene->CreateObject(name);
+                                    if (!cube) {
+                                        LOG_ERROR_CONCAT("Failed to create object: ", name);
+                                        return nullptr;
+                                    }
 
-        auto cube = scene->CreateObject(name);
-        if (cube) {
-            cube->SetMesh(AssetManager::Get().GetOrCreateCubeMesh());
-            auto shader = ShaderLibrary::CreateBasicShader();
-            if (shader) {
-                auto material = std::make_shared<Material>(shader);
-                material->SetVector4("u_Color", glm::vec4(1.0f));
-                cube->SetMaterial(material);
+                                    cube->SetMesh(AssetManager::Get().GetOrCreateCubeMesh());
+                                    auto shader = ShaderLibrary::CreateBasicShader();
+                                    if (shader) {
+                                        auto material = std::make_shared<Material>(shader);
+                                        material->SetVector4("u_Color", glm::vec4(1.0f));
+                                        cube->SetMaterial(material);
+                                    }
+                                    LOG_INFO_CONCAT("Created cube object: ", name);
+                                    return cube;
+                                },
+                                "No active scene to create cube in");
+                        });
+
+    // Get an existing object by name from the active scene
+    engine.set_function("getObject",
+                        [this](const std::string& name) -> std::shared_ptr<SceneObject> {
+                            if (name.empty()) {
+                                LOG_ERROR_CONCAT("Object name cannot be empty");
+                                return nullptr;
+                            }
+
+                            return this->WithActiveScene(
+                                [&name](auto scene) -> std::shared_ptr<SceneObject> {
+                                    auto object = scene->GetObject(name);
+                                    if (!object) {
+                                        LOG_WARN("Object not found in scene: ", name);
+                                        return nullptr;
+                                    }
+                                    return std::dynamic_pointer_cast<SceneObject>(object);
+                                },
+                                "No active scene when trying to get object: " + name);
+                        });
+}
+
+/**
+ * @brief Executes a Lua script from a provided script string with timeout protection
+ *
+ * This method attempts to load and execute a Lua script directly from a string.
+ * It performs two-stage validation: first checking script loading, then script execution.
+ * The script execution is protected by a timeout to prevent infinite loops.
+ *
+ * @param script A string containing the Lua script to be executed
+ * @param timeoutMs Maximum execution time in milliseconds (0 for no timeout)
+ * @return bool True if the script is successfully loaded and executed, false otherwise
+ */
+bool LuaScriptSystem::ExecuteScriptWithTimeout(const std::string& script, uint32_t timeoutMs) {
+    sol::load_result loadResult = m_LuaState->load(script);
+    if (!loadResult.valid()) {
+        sol::error err = loadResult;
+        LOG_ERROR_CONCAT("Failed to load script: ", err.what());
+        return false;
+    }
+
+    // Create protected function for execution
+    sol::protected_function protected_fn = loadResult;
+
+    bool success = true;
+    try {
+        // Start execution timer
+        auto start = std::chrono::high_resolution_clock::now();
+
+        // Execute the script
+        sol::protected_function_result result = protected_fn();
+
+        // Check execution time if timeout is set
+        if (timeoutMs > 0) {
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration =
+                std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            if (duration > timeoutMs) {
+                LOG_ERROR_CONCAT("Script execution exceeded timeout (", timeoutMs, "ms)");
+                success = false;
             }
         }
-        return cube;
-    });
 
-    engine.set_function("getObject", [](const std::string& name) -> std::shared_ptr<SceneObject> {
-        auto scene = SceneManager::Get().GetActiveScene();
-        if (!scene) {
-            LOG_ERROR_CONCAT("No active scene when trying to get object: ", name);
-            return nullptr;
+        if (success && !result.valid()) {
+            sol::error err = result;
+            LOG_ERROR_CONCAT("Failed to execute script: ", err.what());
+            success = false;
         }
-        
-        auto object = scene->GetObject(name);
-        if (!object) {
-            LOG_WARN_CONCAT("Object not found in scene: ", name);
-            return nullptr;
-        }
-        
-        return std::dynamic_pointer_cast<SceneObject>(object);
-    });
+    } catch (const std::exception& e) {
+        LOG_ERROR_CONCAT("Script execution error: ", e.what());
+        success = false;
+    }
+
+    return success;
 }
 
 /**
@@ -612,7 +944,7 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
 
     sol::load_result loadResult = m_LuaState->load_file(validPath);
     if (!loadResult.valid() || !loadResult().valid()) {
-        LOG_ERROR("Failed to execute script: ", validPath);
+        LOG_ERROR_CONCAT("Failed to execute script: ", validPath);
         return false;
     }
 
@@ -626,7 +958,7 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
 
 bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     if (!FileSystem::Exists(filepath)) {
-        LOG_ERROR("Cannot reload missing script: ", filepath);
+        LOG_ERROR_CONCAT("Cannot reload missing script: ", filepath);
         return false;
     }
 
@@ -636,6 +968,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
 
     // Create a new temporary state for validation
     sol::state tempState;
+    // Execute in main state
     tempState.open_libraries(sol::lib::base, sol::lib::package, sol::lib::math, sol::lib::string,
                              sol::lib::table, sol::lib::io, sol::lib::os);
 
@@ -643,7 +976,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     sol::load_result loadResult = tempState.load_file(filepath);
     if (!loadResult.valid()) {
         sol::error err = loadResult;
-        LOG_ERROR("Failed to load updated script: ", filepath, " - ", err.what());
+        LOG_ERROR_CONCAT("Failed to load updated script: ", filepath, " - ", err.what());
         return false;
     }
 
@@ -675,7 +1008,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     sol::load_result mainLoadResult = m_LuaState->load_file(filepath);
     if (!mainLoadResult.valid()) {
         sol::error err = mainLoadResult;
-        LOG_ERROR("Failed to reload script in main state: ", filepath, " - ", err.what());
+        LOG_ERROR_CONCAT("Failed to reload script in main state: ", filepath, " - ", err.what());
         return false;
     }
 
@@ -683,7 +1016,8 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     sol::protected_function_result mainResult = mainLoadResult();
     if (!mainResult.valid()) {
         sol::error err = mainResult;
-        LOG_ERROR("Failed to execute reloaded script in main state: ", filepath, " - ", err.what());
+        LOG_ERROR_CONCAT("Failed to execute reloaded script in main state: ", filepath, " - ",
+                         err.what());
         return false;
     }
 
@@ -692,7 +1026,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
         (*m_LuaState)["_G"][key] = value;
     }
 
-    LOG_INFO("Successfully reloaded script: ", filepath);
+    LOG_INFO_CONCAT("Successfully reloaded script: ", filepath);
 
     // Notify callback if registered
     if (m_ReloadCallback) {
@@ -713,4 +1047,105 @@ void LuaScriptSystem::CallGlobalFunction(const std::string& functionName) {
         LOG_WARN("Failed to call global function: ", functionName);
     }
 }
+
+/**
+ * @brief Creates a sandboxed environment for script execution
+ *
+ * This method creates a restricted execution environment that limits
+ * access to potentially dangerous libraries and functions.
+ *
+ * @param allowedLibs Map of libraries to allow and whether they should be restricted
+ * @return sol::environment The sandboxed environment
+ */
+sol::environment LuaScriptSystem::CreateSandbox(
+    const std::unordered_map<std::string, bool>& allowedLibs) {
+    sol::environment env(*m_LuaState, sol::create, m_LuaState->globals());
+
+    // Remove potentially dangerous libraries by default
+    env["os"] = sol::nil;
+    env["io"] = sol::nil;
+    env["package"] = sol::nil;
+    env["require"] = sol::nil;
+
+    // Add allowed libraries back, possibly with restrictions
+    for (const auto& [lib, unrestricted] : allowedLibs) {
+        if (lib == "os" && !unrestricted) {
+            // Create restricted os table
+            sol::table safe_os = m_LuaState->create_table();
+
+            // Copy safe functions directly
+            if ((*m_LuaState)["os"]["time"].valid()) safe_os["time"] = (*m_LuaState)["os"]["time"];
+
+            if ((*m_LuaState)["os"]["date"].valid()) safe_os["date"] = (*m_LuaState)["os"]["date"];
+
+            if ((*m_LuaState)["os"]["clock"].valid())
+                safe_os["clock"] = (*m_LuaState)["os"]["clock"];
+
+            // Exclude dangerous functions like execute, remove, etc.
+            env["os"] = safe_os;
+        } else if (lib == "io" && !unrestricted) {
+            // Create restricted io table (read-only)
+            sol::table safe_io = m_LuaState->create_table();
+
+            // Copy read function directly
+            if ((*m_LuaState)["io"]["read"].valid()) safe_io["read"] = (*m_LuaState)["io"]["read"];
+
+            // Exclude write operations
+            env["io"] = safe_io;
+        } else if (allowedLibs.find(lib) != allowedLibs.end()) {
+            // Add the entire library if it's allowed and unrestricted
+            env[lib] = (*m_LuaState)[lib];
+        }
+    }
+
+    // Always make the engine API available
+    env["engine"] = (*m_LuaState)["engine"];
+
+    return env;
+}
+
+/**
+ * @brief Execute a Lua script in a sandboxed environment with limited capabilities
+ *
+ * @param script The Lua script to execute
+ * @param allowedLibs Map of libraries to allow and whether they should be unrestricted
+ * @return bool True if execution succeeded, false otherwise
+ */
+bool LuaScriptSystem::ExecuteScriptSandboxed(
+    const std::string& script, const std::unordered_map<std::string, bool>& allowedLibs) {
+    // Create the sandbox environment
+    sol::environment env = CreateSandbox(allowedLibs);
+
+    // Instead of using set_environment, we'll use Lua's run_script with the environment
+    try {
+        // Wrap the script with "return function() ... end" to create a function
+        // that will run in the environment
+        std::string wrapped_script = "return function() " + script + " end";
+
+        // Load the wrapped script
+        sol::function setup = m_LuaState->script(wrapped_script);
+        if (!setup.valid()) {
+            LOG_ERROR_CONCAT("Failed to load script for sandbox");
+            return false;
+        }
+
+        // Get the function to run in the environment
+        sol::function target = setup();
+
+        // Run the function with the environment
+        sol::protected_function_result result = target(env);
+
+        if (!result.valid()) {
+            sol::error err = result;
+            LOG_ERROR_CONCAT("Failed to execute sandboxed script: ", err.what());
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR_CONCAT("Error in sandboxed execution: ", e.what());
+        return false;
+    }
+
+    return true;
+}
+
 }  // namespace Engine
