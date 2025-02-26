@@ -463,7 +463,7 @@ void LuaScriptSystem::RegisterEngineAPI() {
 
     engine.set_function("createCheckerTexture", []() {
         const int width = 8, height = 8;
-        uint8_t data[width * height * 4];
+        uint8_t data[width * height * 4] = {0};
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int index = (y * width + x) * 4;
