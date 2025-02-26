@@ -57,7 +57,7 @@ namespace Engine {
 
 Scene::Scene(const std::string &name) : m_Name(name) {
     m_RootObject = std::make_shared<SceneObject>("Root");
-    LOG_TRACE_CONCAT("Created scene: ", m_Name);  // Fix: Use _CONCAT for string concatenation
+    LOG_TRACE("Created scene: ", m_Name);  // Fix: Use _CONCAT for string concatenation
 }
 
 /**

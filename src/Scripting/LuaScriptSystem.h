@@ -131,7 +131,7 @@ class LuaScriptSystem {
         auto scene = SceneManager::Get().GetActiveScene();
         if (!scene) {
             // Convert std::string to const char* for LOG_ERROR
-            LOG_ERROR_CONCAT(errorMessage.c_str());
+            LOG_ERROR(errorMessage.c_str());
             return decltype(func(scene))();
         }
         return func(scene);
@@ -147,7 +147,7 @@ class LuaScriptSystem {
     template <typename T>
     bool ValidateArgType(const sol::object& arg, const std::string& name) {
         if (arg.get_type() != sol::type_of<T>()) {
-            LOG_ERROR_CONCAT("Expected ", name, " to be of type ", typeid(T).name());
+            LOG_ERROR("Expected ", name, " to be of type ", typeid(T).name());
             return false;
         }
         return true;

@@ -123,7 +123,7 @@ namespace Engine {
             }
 
         } catch (const std::exception& e) {
-            LOG_ERROR_CONCAT("Failed to initialize script system: ", e.what());
+            LOG_ERROR("Failed to initialize script system: ", e.what());
             return;
         }
         
@@ -143,7 +143,7 @@ namespace Engine {
             m_ImGuiLayer->Shutdown();
         }
         LOG_INFO("Application Destroyed");
-        
+
         AssetManager::Get().UnloadUnused();
     }
 
@@ -220,12 +220,13 @@ namespace Engine {
             
             EventQueue::Get().ProcessEvents([this](std::shared_ptr<Event> event) {
                 EventDispatcher dispatcher(*event.get());
-                
-                dispatcher.Dispatch<WindowCloseEvent>([this](const WindowCloseEvent& e [[maybe_unused]]) {
-                    LOG_INFO("Window Close Event received");
-                    m_Running = false;
-                    return true;
-                });
+
+                dispatcher.Dispatch<WindowCloseEvent>(
+                    [this](const WindowCloseEvent& e [[maybe_unused]]) {
+                        LOG_INFO("Window Close Event received");
+                        m_Running = false;
+                        return true;
+                    });
 
                 if (!event->IsHandled()) {
                     m_InputSystem->OnEvent(*event);
@@ -272,7 +273,7 @@ namespace Engine {
      * @see EventQueue
      */
     void Application::InitWindow(const char* title, int width, int height) {
-        LOG_TRACE_CONCAT("Creating window: ", title, ", Resolution: ", width, "x", height);
+        LOG_TRACE("Creating window: ", title, ", Resolution: ", width, "x", height);
         WindowProps props(title, width, height);
         m_Window = std::unique_ptr<Window>(Window::Create(props));
         
@@ -463,9 +464,9 @@ namespace Engine {
         }
 
         Renderer::CameraType rendererCamType = static_cast<Renderer::CameraType>(m_CameraType);
-        LOG_TRACE_CONCAT("Camera type set to: ",
-                         (rendererCamType == Renderer::CameraType::Orthographic ? "orthographic"
-                                                                                : "perspective"));
+        LOG_TRACE("Camera type set to: ",
+                  (rendererCamType == Renderer::CameraType::Orthographic ? "orthographic"
+                                                                         : "perspective"));
         m_Renderer->SetCameraType(rendererCamType);
 
         // Create cameras if they don't exist

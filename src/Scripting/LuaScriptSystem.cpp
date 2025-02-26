@@ -182,13 +182,13 @@ void LuaScriptSystem::RegisterTypeDefinitions() {
 void LuaScriptSystem::RegisterTerrainAPI(sol::table& engine) {
     // Set terrain height
     engine.set_function("setTerrainHeight", [this](float height) -> bool {
-        LOG_TRACE_CONCAT("[Lua] setTerrainHeight called with height = ", height);
+        LOG_TRACE("[Lua] setTerrainHeight called with height = ", height);
 
         return this->WithActiveScene(
             [height](auto scene) -> bool {
                 auto* terrain = scene->GetTerrainSystem();
                 if (!terrain) {
-                    LOG_ERROR_CONCAT("No terrain system in active scene");
+                    LOG_ERROR("No terrain system in active scene");
                     return false;
                 }
 
@@ -204,7 +204,7 @@ void LuaScriptSystem::RegisterTerrainAPI(sol::table& engine) {
             [seed](auto scene) -> bool {
                 auto* terrain = scene->GetTerrainSystem();
                 if (!terrain) {
-                    LOG_ERROR_CONCAT("No terrain system in active scene");
+                    LOG_ERROR("No terrain system in active scene");
                     return false;
                 }
 
@@ -236,7 +236,7 @@ void LuaScriptSystem::RegisterRendererAPI(sol::table& engine) {
     // Set viewport dimensions
     engine.set_function("setViewport", [](int x, int y, int width, int height) -> bool {
         if (width <= 0 || height <= 0) {
-            LOG_ERROR_CONCAT("Viewport width and height must be positive");
+            LOG_ERROR("Viewport width and height must be positive");
             return false;
         }
 
@@ -253,8 +253,8 @@ void LuaScriptSystem::RegisterRendererAPI(sol::table& engine) {
             Application::Get().SetCameraType(CameraType::Perspective);
             return true;
         } else {
-            LOG_ERROR_CONCAT("Invalid camera type: ", type);
-            LOG_INFO_CONCAT("Valid types are 'orthographic' or 'perspective'");
+            LOG_ERROR("Invalid camera type: ", type);
+            LOG_INFO("Valid types are 'orthographic' or 'perspective'");
             return false;
         }
     });
@@ -274,8 +274,8 @@ void LuaScriptSystem::RegisterRendererAPI(sol::table& engine) {
             Application::Get().SetRenderType(RenderType::Render3D);
             return true;
         } else {
-            LOG_ERROR_CONCAT("Invalid render type: ", type);
-            LOG_INFO_CONCAT("Valid types are '2d' or '3d'");
+            LOG_ERROR("Invalid render type: ", type);
+            LOG_INFO("Valid types are '2d' or '3d'");
             return false;
         }
     });
@@ -300,52 +300,52 @@ void LuaScriptSystem::RegisterSceneAPI(sol::table& engine) {
     // Create a new scene
     engine.set_function("createScene", [](const std::string& name) -> bool {
         if (name.empty()) {
-            LOG_ERROR_CONCAT("Scene name cannot be empty");
+            LOG_ERROR("Scene name cannot be empty");
             return false;
         }
 
         auto scene = std::make_shared<Scene>(name);
         if (!scene) {
-            LOG_ERROR_CONCAT("Failed to create scene: ", name);
+            LOG_ERROR("Failed to create scene: ", name);
             return false;
         }
         
         SceneManager::Get().AddScene(scene);
-        LOG_INFO_CONCAT("Created scene: ", name);
+        LOG_INFO("Created scene: ", name);
         return true;
     });
 
     // Set the active scene
     engine.set_function("setActiveScene", [](const std::string& name) -> bool {
         if (name.empty()) {
-            LOG_ERROR_CONCAT("Scene name cannot be empty");
+            LOG_ERROR("Scene name cannot be empty");
             return false;
         }
 
         auto& sceneManager = SceneManager::Get();
         auto scene = sceneManager.GetScene(name);
         if (!scene) {
-            LOG_ERROR_CONCAT("Scene not found: ", name);
+            LOG_ERROR("Scene not found: ", name);
             return false;
         }
         
         sceneManager.SetActiveScene(name);
-        LOG_INFO_CONCAT("Set active scene to: ", name);
+        LOG_INFO("Set active scene to: ", name);
         return true;
     });
 
     // Remove a scene
     engine.set_function("removeScene", [](const std::string& name) -> bool {
         if (name.empty()) {
-            LOG_ERROR_CONCAT("Scene name cannot be empty");
+            LOG_ERROR("Scene name cannot be empty");
             return false;
         }
 
         bool result = SceneManager::Get().RemoveScene(name);
         if (result) {
-            LOG_INFO_CONCAT("Removed scene: ", name);
+            LOG_INFO("Removed scene: ", name);
         } else {
-            LOG_ERROR_CONCAT("Failed to remove scene: ", name);
+            LOG_ERROR("Failed to remove scene: ", name);
         }
         return result;
     });
@@ -439,27 +439,27 @@ void LuaScriptSystem::RegisterInputAPI(sol::table& engine) {
 void LuaScriptSystem::RegisterLoggingAPI(sol::table& engine) {
     // Register logging functions with consistent formatting
     engine.set_function("trace", [](const std::string& message) -> bool {
-        LOG_TRACE_CONCAT("[Lua]: ", message);
+        LOG_TRACE("[Lua]: ", message);
         return true;
     });
 
     engine.set_function("log", [](const std::string& message) -> bool {
-        LOG_INFO_CONCAT("[Lua]: ", message);
+        LOG_INFO("[Lua]: ", message);
         return true;
     });
 
     engine.set_function("warn", [](const std::string& message) -> bool {
-        LOG_WARN_CONCAT("[Lua]: ", message);
+        LOG_WARN("[Lua]: ", message);
         return true;
     });
 
     engine.set_function("error", [](const std::string& message) -> bool {
-        LOG_ERROR_CONCAT("[Lua]: ", message);
+        LOG_ERROR("[Lua]: ", message);
         return true;
     });
 
     engine.set_function("fatal", [](const std::string& message) -> bool {
-        LOG_FATAL_CONCAT("[Lua]: ", message);
+        LOG_FATAL("[Lua]: ", message);
         return true;
     });
 
@@ -487,7 +487,7 @@ void LuaScriptSystem::RegisterFileSystemAPI(sol::table& engine) {
     // Load and execute a script file
     engine.set_function("loadScript", [this](const std::string& filepath) -> bool {
         if (filepath.empty()) {
-            LOG_ERROR_CONCAT("Script filepath cannot be empty");
+            LOG_ERROR("Script filepath cannot be empty");
             return false;
         }
         return ExecuteFile(filepath);
@@ -496,7 +496,7 @@ void LuaScriptSystem::RegisterFileSystemAPI(sol::table& engine) {
     // Create a directory
     engine.set_function("mkdir", [](const std::string& path) -> bool {
         if (path.empty()) {
-            LOG_ERROR_CONCAT("Directory path cannot be empty");
+            LOG_ERROR("Directory path cannot be empty");
             return false;
         }
         return FileSystem::CreateDirectory(path);
@@ -505,7 +505,7 @@ void LuaScriptSystem::RegisterFileSystemAPI(sol::table& engine) {
     // Check if a file or directory exists
     engine.set_function("exists", [](const std::string& path) -> bool {
         if (path.empty()) {
-            LOG_ERROR_CONCAT("Path cannot be empty");
+            LOG_ERROR("Path cannot be empty");
             return false;
         }
         return FileSystem::Exists(path);
@@ -707,7 +707,7 @@ void LuaScriptSystem::Register2DRendererAPI(sol::table& engine) {
             }
 
             if (!texture) {
-                LOG_ERROR_CONCAT("Texture cannot be null");
+                LOG_ERROR("Texture cannot be null");
                 return false;
             }
 
@@ -757,7 +757,7 @@ void LuaScriptSystem::RegisterObjectManagementAPI(sol::table& engine) {
     engine.set_function("createCube",
                         [this](const std::string& name) -> std::shared_ptr<SceneObject> {
                             if (name.empty()) {
-                                LOG_ERROR_CONCAT("Object name cannot be empty");
+                                LOG_ERROR("Object name cannot be empty");
                                 return nullptr;
                             }
 
@@ -765,7 +765,7 @@ void LuaScriptSystem::RegisterObjectManagementAPI(sol::table& engine) {
                                 [&name](auto scene) -> std::shared_ptr<SceneObject> {
                                     auto cube = scene->CreateObject(name);
                                     if (!cube) {
-                                        LOG_ERROR_CONCAT("Failed to create object: ", name);
+                                        LOG_ERROR("Failed to create object: ", name);
                                         return nullptr;
                                     }
 
@@ -776,7 +776,7 @@ void LuaScriptSystem::RegisterObjectManagementAPI(sol::table& engine) {
                                         material->SetVector4("u_Color", glm::vec4(1.0f));
                                         cube->SetMaterial(material);
                                     }
-                                    LOG_INFO_CONCAT("Created cube object: ", name);
+                                    LOG_INFO("Created cube object: ", name);
                                     return cube;
                                 },
                                 "No active scene to create cube in");
@@ -786,7 +786,7 @@ void LuaScriptSystem::RegisterObjectManagementAPI(sol::table& engine) {
     engine.set_function("getObject",
                         [this](const std::string& name) -> std::shared_ptr<SceneObject> {
                             if (name.empty()) {
-                                LOG_ERROR_CONCAT("Object name cannot be empty");
+                                LOG_ERROR("Object name cannot be empty");
                                 return nullptr;
                             }
 
@@ -818,7 +818,7 @@ bool LuaScriptSystem::ExecuteScriptWithTimeout(const std::string& script, uint32
     sol::load_result loadResult = m_LuaState->load(script);
     if (!loadResult.valid()) {
         sol::error err = loadResult;
-        LOG_ERROR_CONCAT("Failed to load script: ", err.what());
+        LOG_ERROR("Failed to load script: ", err.what());
         return false;
     }
 
@@ -840,18 +840,18 @@ bool LuaScriptSystem::ExecuteScriptWithTimeout(const std::string& script, uint32
                 std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
             if (duration > timeoutMs) {
-                LOG_ERROR_CONCAT("Script execution exceeded timeout (", timeoutMs, "ms)");
+                LOG_ERROR("Script execution exceeded timeout (", timeoutMs, "ms)");
                 success = false;
             }
         }
 
         if (success && !result.valid()) {
             sol::error err = result;
-            LOG_ERROR_CONCAT("Failed to execute script: ", err.what());
+            LOG_ERROR("Failed to execute script: ", err.what());
             success = false;
         }
     } catch (const std::exception& e) {
-        LOG_ERROR_CONCAT("Script execution error: ", e.what());
+        LOG_ERROR("Script execution error: ", e.what());
         success = false;
     }
 
@@ -881,14 +881,14 @@ bool LuaScriptSystem::ExecuteScript(const std::string& script) {
     sol::load_result loadResult = m_LuaState->load(script);
     if (!loadResult.valid()) {
         sol::error err = loadResult;
-        LOG_ERROR_CONCAT("Failed to load script: ", err.what());
+        LOG_ERROR("Failed to load script: ", err.what());
         return false;
     }
 
     sol::protected_function_result result = loadResult();
     if (!result.valid()) {
         sol::error err = result;
-        LOG_ERROR_CONCAT("Failed to execute script: ", err.what());
+        LOG_ERROR("Failed to execute script: ", err.what());
         return false;
     }
 
@@ -930,21 +930,21 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
     for (const auto& path : searchPaths) {
         if (FileSystem::Exists(path)) {
             validPath = path;
-            LOG_TRACE_CONCAT("Script found: ", validPath);
+            LOG_TRACE("Script found: ", validPath);
             found = true;
             break;
         }
     }
 
     if (!found) {
-        LOG_ERROR_CONCAT("Script not found: ", originalPath);
-        LOG_TRACE_CONCAT("Current directory: ", std::filesystem::current_path());
+        LOG_ERROR("Script not found: ", originalPath);
+        LOG_TRACE("Current directory: ", std::filesystem::current_path());
         return false;
     }
 
     sol::load_result loadResult = m_LuaState->load_file(validPath);
     if (!loadResult.valid() || !loadResult().valid()) {
-        LOG_ERROR_CONCAT("Failed to execute script: ", validPath);
+        LOG_ERROR("Failed to execute script: ", validPath);
         return false;
     }
 
@@ -958,7 +958,7 @@ bool LuaScriptSystem::ExecuteFile(const std::string& originalPath) {
 
 bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     if (!FileSystem::Exists(filepath)) {
-        LOG_ERROR_CONCAT("Cannot reload missing script: ", filepath);
+        LOG_ERROR("Cannot reload missing script: ", filepath);
         return false;
     }
 
@@ -976,7 +976,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     sol::load_result loadResult = tempState.load_file(filepath);
     if (!loadResult.valid()) {
         sol::error err = loadResult;
-        LOG_ERROR_CONCAT("Failed to load updated script: ", filepath, " - ", err.what());
+        LOG_ERROR("Failed to load updated script: ", filepath, " - ", err.what());
         return false;
     }
 
@@ -984,7 +984,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     sol::protected_function_result result = loadResult();
     if (!result.valid()) {
         sol::error err = result;
-        LOG_ERROR_CONCAT("Failed to execute updated script: ", filepath, " - ", err.what());
+        LOG_ERROR("Failed to execute updated script: ", filepath, " - ", err.what());
         return false;
     }
 
@@ -1008,7 +1008,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     sol::load_result mainLoadResult = m_LuaState->load_file(filepath);
     if (!mainLoadResult.valid()) {
         sol::error err = mainLoadResult;
-        LOG_ERROR_CONCAT("Failed to reload script in main state: ", filepath, " - ", err.what());
+        LOG_ERROR("Failed to reload script in main state: ", filepath, " - ", err.what());
         return false;
     }
 
@@ -1016,8 +1016,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
     sol::protected_function_result mainResult = mainLoadResult();
     if (!mainResult.valid()) {
         sol::error err = mainResult;
-        LOG_ERROR_CONCAT("Failed to execute reloaded script in main state: ", filepath, " - ",
-                         err.what());
+        LOG_ERROR("Failed to execute reloaded script in main state: ", filepath, " - ", err.what());
         return false;
     }
 
@@ -1026,7 +1025,7 @@ bool LuaScriptSystem::ReloadFile(const std::string& filepath) {
         (*m_LuaState)["_G"][key] = value;
     }
 
-    LOG_INFO_CONCAT("Successfully reloaded script: ", filepath);
+    LOG_INFO("Successfully reloaded script: ", filepath);
 
     // Notify callback if registered
     if (m_ReloadCallback) {
@@ -1125,7 +1124,7 @@ bool LuaScriptSystem::ExecuteScriptSandboxed(
         // Load the wrapped script
         sol::function setup = m_LuaState->script(wrapped_script);
         if (!setup.valid()) {
-            LOG_ERROR_CONCAT("Failed to load script for sandbox");
+            LOG_ERROR("Failed to load script for sandbox");
             return false;
         }
 
@@ -1137,11 +1136,11 @@ bool LuaScriptSystem::ExecuteScriptSandboxed(
 
         if (!result.valid()) {
             sol::error err = result;
-            LOG_ERROR_CONCAT("Failed to execute sandboxed script: ", err.what());
+            LOG_ERROR("Failed to execute sandboxed script: ", err.what());
             return false;
         }
     } catch (const std::exception& e) {
-        LOG_ERROR_CONCAT("Error in sandboxed execution: ", e.what());
+        LOG_ERROR("Error in sandboxed execution: ", e.what());
         return false;
     }
 

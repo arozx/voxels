@@ -27,12 +27,12 @@ class SceneManager {
         }
 
         if (scenes.find(name) != scenes.end()) {
-            LOG_ERROR_CONCAT("Failed to add scene: ", name, " (already exists)");
+            LOG_ERROR("Failed to add scene: ", name, " (already exists)");
             return false;
         }
 
         scenes[name] = scene;
-        LOG_INFO_CONCAT("Added scene: ", name);
+        LOG_INFO("Added scene: ", name);
         return true;
     }
 
@@ -47,20 +47,20 @@ class SceneManager {
         if (it != scenes.end()) {
             try {
                 if (activeScene) {
-                    LOG_TRACE_CONCAT("Deactivating current scene: ", activeScene->GetName());
+                    LOG_TRACE("Deactivating current scene: ", activeScene->GetName());
                     activeScene->OnDeactivate();
                 }
                 activeScene = it->second;
-                LOG_TRACE_CONCAT("Activating scene: ", name);
+                LOG_TRACE("Activating scene: ", name);
                 activeScene->OnActivate();
-                LOG_INFO_CONCAT("Activated scene: ", name);
+                LOG_INFO("Activated scene: ", name);
                 return true;
             } catch (const std::exception& e) {
-                LOG_ERROR_CONCAT("Exception during scene activation: ", e.what());
+                LOG_ERROR("Exception during scene activation: ", e.what());
                 return false;
             }
         } else {
-            LOG_ERROR_CONCAT("Failed to set active scene: ", name, " (not found)");
+            LOG_ERROR("Failed to set active scene: ", name, " (not found)");
             return false;
         }
     }
@@ -68,7 +68,7 @@ class SceneManager {
     std::shared_ptr<Scene> GetActiveScene() const {
         std::lock_guard<std::mutex> lock(sceneMutex);
         if (!activeScene) {
-            LOG_WARN_CONCAT("GetActiveScene: No active scene currently set");
+            LOG_WARN("GetActiveScene: No active scene currently set");
         }
         return activeScene;
     }
@@ -82,7 +82,7 @@ class SceneManager {
         std::lock_guard<std::mutex> lock(sceneMutex);
         auto it = scenes.find(name);
         if (it == scenes.end()) {
-            LOG_ERROR_CONCAT("GetScene: Scene not found: ", name);
+            LOG_ERROR("GetScene: Scene not found: ", name);
             return nullptr;
         }
         return it->second;
@@ -97,17 +97,17 @@ class SceneManager {
         std::lock_guard<std::mutex> lock(sceneMutex);
         auto it = scenes.find(name);
         if (it == scenes.end()) {
-            LOG_ERROR_CONCAT("Cannot remove scene: ", name, " (not found)");
+            LOG_ERROR("Cannot remove scene: ", name, " (not found)");
             return false;
         }
 
         if (activeScene && activeScene->GetName() == name) {
-            LOG_WARN_CONCAT("Removing currently active scene: ", name);
+            LOG_WARN("Removing currently active scene: ", name);
             activeScene = nullptr;
         }
 
         scenes.erase(it);
-        LOG_INFO_CONCAT("Removed scene: ", name);
+        LOG_INFO("Removed scene: ", name);
         return true;
     }
 
@@ -117,7 +117,7 @@ class SceneManager {
             try {
                 activeScene->OnUpdate(deltaTime);
             } catch (const std::exception& e) {
-                LOG_ERROR_CONCAT("Exception during scene update: ", e.what());
+                LOG_ERROR("Exception during scene update: ", e.what());
             }
         } else {
             LOG_TRACE("Update: No active scene to update");
@@ -130,7 +130,7 @@ class SceneManager {
             try {
                 activeScene->OnRender(renderer);
             } catch (const std::exception& e) {
-                LOG_ERROR_CONCAT("Exception during scene rendering: ", e.what());
+                LOG_ERROR("Exception during scene rendering: ", e.what());
             }
         } else {
             LOG_TRACE("Render: No active scene to render");
@@ -157,7 +157,7 @@ class SceneManager {
    private:
     SceneManager() = default;
     ~SceneManager() {
-        LOG_TRACE_CONCAT("SceneManager shutting down, clearing scenes");
+        LOG_TRACE("SceneManager shutting down, clearing scenes");
         std::lock_guard<std::mutex> lock(sceneMutex);
         activeScene = nullptr;
         scenes.clear();

@@ -83,7 +83,7 @@ namespace Engine {
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
-        
+
         LOG_INFO("ImGui shutdown");
     }
 

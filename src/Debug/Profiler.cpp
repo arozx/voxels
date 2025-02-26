@@ -79,7 +79,7 @@ void Profiler::InitSignalHandlers() {
 }
 
 void Profiler::SignalHandler(int signal) {
-    LOG_INFO_CONCAT("Received signal ", signal, ", saving profiler results...");
+    LOG_INFO("Received signal ", signal, ", saving profiler results...");
     Get().Cleanup();
     std::exit(signal);
 }
@@ -127,10 +127,10 @@ void Profiler::BeginSession(const std::string& name) {
             file.flush();
         }
     } catch (const std::exception& e) {
-        LOG_ERROR_CONCAT("Failed to initialize profile file: ", e.what());
+        LOG_ERROR("Failed to initialize profile file: ", e.what());
     }
-    
-    LOG_INFO_CONCAT("Started profiling session: ", name);
+
+    LOG_INFO("Started profiling session: ", name);
 }
 
 /**
@@ -159,14 +159,13 @@ void Profiler::EndSession() {
             WriteCompleteJSON();
             break;
         case OutputFormat::Console:
-            LOG_INFO_CONCAT("Profile results for session", m_CurrentSession);
+            LOG_INFO("Profile results for session", m_CurrentSession);
             for (const auto& [name, data] : m_Profiles) {
                 if (data->empty()) continue;
-                
-                LOG_INFO_CONCAT(std::string_view(name), ": Avg: ", 
-                (data->totalTime / data->calls), "ms, Min: ",
-                data->minTime, "ms, Max: ", data->maxTime,
-                "ms, Calls: ", data->calls);
+
+                LOG_INFO(std::string_view(name), ": Avg: ", (data->totalTime / data->calls),
+                         "ms, Min: ", data->minTime, "ms, Max: ", data->maxTime,
+                         "ms, Calls: ", data->calls);
             }
             break;
     }
@@ -251,14 +250,14 @@ void Profiler::WriteCompleteJSON() const {
     try {
         std::ofstream file(m_JSONOutputPath, std::ios::out | std::ios::trunc);
         if (!file) {
-            LOG_ERROR_CONCAT("Failed to open profile output file: ", m_JSONOutputPath);
+            LOG_ERROR("Failed to open profile output file: ", m_JSONOutputPath);
             return;
         }
         file << std::setw(2) << output << std::endl;
         file.close();
         
     } catch (const std::exception& e) {
-        LOG_ERROR_CONCAT("Error writing profile data: ", e.what());
+        LOG_ERROR("Error writing profile data: ", e.what());
     }
 }
 
@@ -332,7 +331,7 @@ void Profiler::WriteFrameDataJSON() const {
             file << std::setw(2) << output;
         }
     } catch (const std::exception& e) {
-        LOG_ERROR_CONCAT("Error waiting for profile data", e.what());
+        LOG_ERROR("Error waiting for profile data", e.what());
     }
 }
 
@@ -527,7 +526,7 @@ void Profiler::RestoreProfilingState() {
 
 void Profiler::ProfileFrames(uint32_t frameCount) {
     frameCount = std::min(frameCount, MAX_PROFILE_FRAMES);
-    LOG_INFO_CONCAT("Profiling next ", frameCount, " frames.");
+    LOG_INFO("Profiling next ", frameCount, " frames.");
     PreserveProfilingState();  // Save current state
     m_CurrentSession = "Frame Profile";
     m_FramesToProfile = frameCount;

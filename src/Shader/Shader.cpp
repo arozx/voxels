@@ -144,9 +144,13 @@ namespace Engine {
     }
 
     bool Shader::Load(const std::string& path) {
+        if (path == "" or path == " ") {
+            LOG_ERROR("Shader path is empty");
+            return false;
+        }
         size_t separator = path.find(';');
         if (separator == std::string::npos) {
-            LOG_ERROR_CONCAT("Invalid shader path format: ", path);
+            LOG_ERROR("Invalid shader path format: ", path);
             return false;
         }
 
