@@ -70,8 +70,8 @@ TerrainSystem::TerrainSystem() : m_NoiseGen(std::random_device{}()) {
         if (!logged) {
             auto pos = m_TerrainTransform.GetPosition();
             auto scale = m_TerrainTransform.GetScale();
-            LOG_TRACE_CONCAT("Terrain Transform - Position: (", pos.x, ", ", pos.y, ", ", pos.z,
-                             ") Scale: (", scale.x, ", ", scale.y, ", ", scale.z, ")");
+            LOG_TRACE("Terrain Transform - Position: (", pos.x, ", ", pos.y, ", ", pos.z,
+                      ") Scale: (", scale.x, ", ", scale.y, ", ", scale.z, ")");
             logged = true;
         }
     }
@@ -171,8 +171,8 @@ TerrainSystem::TerrainSystem() : m_NoiseGen(std::random_device{}()) {
         }
 
         // Debug output
-        LOG_TRACE_CONCAT("Generated terrain mesh with ", vertices.size() / 5, " vertices and ",
-                         indices.size(), " indicies.");
+        LOG_TRACE("Generated terrain mesh with ", vertices.size() / 5, " vertices and ",
+                  indices.size(), " indicies.");
     }
 
     /**

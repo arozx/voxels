@@ -151,17 +151,16 @@ namespace Engine {
     }
 
     /**
-     * @brief Renders a comprehensive profiler window for performance metrics and analysis
-     * 
-     * This method displays a window that allows users to control and view profiling information.
-     * Features include:
-     * - Enabling/disabling profiling
-     * - Clearing existing profiling data
-     * - Configuring number of frames to profile
-     * - Displaying detailed performance statistics for each profiled function
-     * 
-     * @note The window is only rendered if m_ShowProfiler is true
-     * @note Profiling data includes average, minimum, maximum execution times, and number of calls
+     * @brief Renders a profiler window displaying performance metrics.
+     *
+     * This method displays an interactive profiling window that allows users to enable or disable
+     * performance profiling, clear existing profiling data, and set the number of frames to profile
+     * (clamped between 1 and 1000). It also shows detailed timing statistics for each profiled function,
+     * including average, minimum, and maximum execution times, as well as the call count.
+     *
+     * If a frame profiling session is active, the window displays the current profiling progress.
+     *
+     * @note The profiler window is rendered only when profiling display (m_ShowProfiler) is enabled.
      */
     void ImGuiOverlay::RenderProfiler() const {
         if (!m_ShowProfiler) return;
