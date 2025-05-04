@@ -4,12 +4,15 @@
 # build files
 build/
 cmake.db
+*.o
+*.a
+*.dblite
 
 #docs
 docs/
 
 # imGUI config files
-imgui.ini
+*/imgui.ini
 
 # TODO
 todo.txt
