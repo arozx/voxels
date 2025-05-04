@@ -77,18 +77,6 @@ class Logger {
         Log(level, ss.str());
     }
 
-    /**
-     * @brief Logs a formatted message
-     * @tparam Args Types of format arguments
-     * @param level Severity level of the message
-     * @param format Format string
-     * @param args Format arguments
-     */
-    template <typename... Args>
-    void LogFormat(LogLevel level, const char* format, Args... args) {
-        Log(level, format);  // For now, just output the format string
-    }
-
     void Log(LogLevel level, const std::string& message) {
         std::time_t now = std::time(nullptr);
         char buffer[32];
@@ -204,18 +192,6 @@ class Logger {
         Log(level, ss.str());
     }
 
-    /**
-     * @brief Logs a formatted message
-     * @tparam Args Types of format arguments
-     * @param level Severity level of the message
-     * @param format Format string
-     * @param args Format arguments
-     */
-    template <typename... Args>
-    void LogFormat(LogLevel level, const char* format, Args... args) {
-        Log(level, format);  // For now, just output the format string
-    }
-
     void Log(LogLevel level, const std::string& message) {
         std::time_t now = std::time(nullptr);
         char buffer[32];
@@ -288,17 +264,11 @@ class Logger {
 };
 #endif
 
-#define LOG_TRACE_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Trace, __VA_ARGS__)
-#define LOG_INFO_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Info, __VA_ARGS__)
-#define LOG_WARN_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Warn, __VA_ARGS__)
-#define LOG_ERROR_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Error, __VA_ARGS__)
-#define LOG_FATAL_CONCAT(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Fatal, __VA_ARGS__)
-
-#define LOG_TRACE(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Trace, __VA_ARGS__)
-#define LOG_INFO(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Info, __VA_ARGS__)
-#define LOG_WARN(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Warn, __VA_ARGS__)
-#define LOG_ERROR(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Error, __VA_ARGS__)
-#define LOG_FATAL(...) Engine::Logger::Get().LogFormat(Engine::LogLevel::Fatal, __VA_ARGS__)
+#define LOG_TRACE(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Trace, __VA_ARGS__)
+#define LOG_INFO(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Info, __VA_ARGS__)
+#define LOG_WARN(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Warn, __VA_ARGS__)
+#define LOG_ERROR(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Error, __VA_ARGS__)
+#define LOG_FATAL(...) Engine::Logger::Get().LogConcat(Engine::LogLevel::Fatal, __VA_ARGS__)
 
 // New convenience macros
 #define LOG_VAR(level, name, value) Engine::Logger::Get().LogValue(level, #name, value)

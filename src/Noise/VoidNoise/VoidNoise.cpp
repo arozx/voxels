@@ -92,9 +92,8 @@ float VoidNoise::noise(float x, float y) const {
     // Debug output for first few calls
     static int debugCount = 0;
     if (debugCount < 5) {
-        LOG_TRACE_CONCAT("VoidNoise - Input (",x,",",y,"):", 
-                        " Corners: ", g00, ",", g10, ",", g01, ",", g11,
-                        " Result: ", result);
+        LOG_TRACE("VoidNoise - Input (", x, ",", y, "):", " Corners: ", g00, ",", g10, ",", g01,
+                  ",", g11, " Result: ", result);
         debugCount++;
     }
 
@@ -134,7 +133,7 @@ std::vector<float> VoidNoise::generateHeightmap(int width, int height, float sca
 
             // Debug first few values
             if (x == 0 && y < 2) {
-                LOG_TRACE_CONCAT("Heightmap value at (", x, ",", y, "): ", heightmap[y * width + x]);
+                LOG_TRACE("Heightmap value at (", x, ",", y, "): ", heightmap[y * width + x]);
             }
         }
     }

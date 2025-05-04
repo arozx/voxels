@@ -14,6 +14,16 @@
 #include <GLFW/glfw3.h>
 
 namespace Engine {
+    /**
+     * @brief Constructs the InputSystem instance.
+     *
+     * Initializes the input system with the provided window and renderer. The constructor locks
+     * the cursor by default and updates its state. It also performs a null check on the window pointer,
+     * throwing a std::invalid_argument exception if the pointer is null.
+     *
+     * @param window Pointer to the application window. Must not be null.
+     * @param renderer Reference to the renderer utilized by the input system.
+     */
     InputSystem::InputSystem(Window* window, Renderer& renderer)
         : m_Window(window), m_Renderer(renderer) {
         
@@ -75,6 +85,13 @@ namespace Engine {
         HandleSensitivityAdjustment();
     }
 
+    /**
+     * @brief Adjusts the mouse sensitivity based on key input.
+     *
+     * Increases the mouse sensitivity by 0.01 when the right bracket key is pressed,
+     * and decreases it by 0.01 when the left bracket key is pressed, ensuring a minimum
+     * sensitivity of 0.01.
+     */
     void InputSystem::HandleSensitivityAdjustment() {
         if (IsKeyPressed(GLFW_KEY_RIGHT_BRACKET)) {
             m_MouseSensitivity += 0.01f;
@@ -84,6 +101,14 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Adjusts the movement speed based on modifier key inputs.
+     *
+     * Modifies the provided speed value by reference: if the left control key is pressed, the speed is reduced
+     * by the slow multiplier; if the left shift key is pressed, the speed is increased by the sprint multiplier.
+     *
+     * @param speed Movement speed factor to be adjusted.
+     */
     void InputSystem::HandleSpeedModifiers(float& speed) const {
         if (IsKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             speed *= m_SlowMultiplier;
@@ -92,6 +117,19 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Updates the perspective camera's position based on keyboard input.
+     *
+     * Processes movement keys (W, A, S, D, SPACE, and LEFT SHIFT) to compute a directional
+     * vector relative to the camera's orientation. The movement speed is adjusted by custom modifiers,
+     * and the displacement is scaled by the elapsed time. When smooth camera movement is enabled, a damping
+     * algorithm interpolates the camera's position toward a target to ensure smooth transitions.
+     *
+     * No movement is applied if camera control is disabled, movement is locked, or if the active or
+     * perspective camera is invalid.
+     *
+     * @param deltaTime The elapsed time since the last update, used to scale the movement.
+     */
     void InputSystem::HandleCameraMovement(float deltaTime) {
         if (!m_CameraEnabled || m_MovementLocked) return;
         
@@ -155,6 +193,15 @@ namespace Engine {
         }
     }
 
+    /**
+     * @brief Updates the perspective camera's rotation based on mouse movement.
+     *
+     * Processes a mouse movement event by calculating the offset from the previous cursor position,
+     * then applies this offset to the perspective camera if camera controls are enabled and movement is not locked.
+     * On the first mouse event, it initializes the last known mouse coordinates to prevent sudden jumps.
+     *
+     * @param e The mouse movement event containing the current cursor coordinates.
+     */
     void InputSystem::HandleMouseMovement(const MouseMovedEvent& e) {
         if (!m_CameraEnabled || m_MovementLocked) return;
         

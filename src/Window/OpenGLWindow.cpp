@@ -165,13 +165,16 @@ namespace Engine {
     }
 
     /**
-     * @brief Clean up window resources
-     * @details Destroys GLFW window and terminates GLFW
+     * @brief Shuts down the OpenGL window system.
+     *
+     * This function destroys the GLFW window if it exists and then terminates the GLFW library.
+     * Note that the internal window pointer is not reset after destruction, so it may become a dangling pointer
+     * if accessed subsequently.
      */
     void OpenGLWindow::Shutdown() {
         if (m_Window) {
             glfwDestroyWindow(m_Window);
-            m_Window = nullptr;
+            // m_Window = nullptr;
         }
         glfwTerminate();
     }

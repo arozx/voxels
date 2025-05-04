@@ -115,7 +115,7 @@ void VoxelTerrain::SaveHeightmapDebug(int chunkX, int chunkZ) {
 
             // Debug first few values
             if (x < 2 && z < 2) {
-                LOG_TRACE_CONCAT("Heightmap ",x,z,", Height: ",height," Pixel: ",pixelValue);
+                LOG_TRACE("Heightmap ", x, z, ", Height: ", height, " Pixel: ", pixelValue);
             }
         }
     }
